@@ -723,21 +723,69 @@ function tabLunar(){
   const lunaT={};
   ore.forEach(o=>{ const m=lunaDin(o.data); const k=`${o.elevId}|${m}|${o.tip}`; cell[k]=(cell[k]||0)+nr(o.nr); const lk=`${m}|${o.tip}`; lunaT[lk]=(lunaT[lk]||0)+nr(o.nr); const kk=`${m}|km`; lunaT[kk]=(lunaT[kk]||0)+nr(o.km); });
   const v=x=>x?fmtNr(x):'<span class="muted">·</span>';
-  const head1=luni.map(m=>`<th colspan="2" style="text-align:center; border-left:1px solid var(--border);">${LUNI[m].slice(0,3)}</th>`).join('');
+  const [y1,y2]=state.settings.anScolar.split('-').map(Number);
+  const lunaCur=lunaDin(todayISO());
+  const lunaSel = ui.lunarLuna || (luni.includes(lunaCur) && anDinData(todayISO())===state.settings.anScolar ? lunaCur : (luni.find(m=>lunaT[`${m}|S`]||lunaT[`${m}|C`])||luni[0]));
+  const head1=luni.map(m=>`<th colspan="2" style="text-align:center; border-left:1px solid var(--border); cursor:pointer; ${m===lunaSel?'background:var(--infield); color:#fff;':''}" data-act="lunar-luna" data-l="${m}">${LUNI[m].slice(0,3)}</th>`).join('');
   const head2=luni.map(()=>`<th class="num" style="border-left:1px solid var(--border); color:var(--sim);">S</th><th class="num">C</th>`).join('');
   const rows=el.map(e=>{ let tot=0; const tds=luni.map(m=>{ const s=cell[`${e.id}|${m}|S`]||0, c=cell[`${e.id}|${m}|C`]||0; tot+=s+c; return `<td class="num" style="border-left:1px solid var(--border);">${v(s)}</td><td class="num">${v(c)}</td>`; }).join('');
     return `<tr><td style="white-space:nowrap;">${esc(e.nume)}</td>${tds}<td class="num"><b>${fmtNr(tot)}</b></td></tr>`; }).join('');
   let gT=0; const totRow=luni.map(m=>{ const s=lunaT[`${m}|S`]||0, c=lunaT[`${m}|C`]||0; gT+=s+c; return `<td class="num" style="border-left:1px solid var(--border);">${v(s)}</td><td class="num">${v(c)}</td>`; }).join('');
 
   const carb = state.masini.map(m=>tabelConsumAn(m)).join('');
+  const selector = `<div class="card no-print" style="padding:12px 14px;"><div class="field"><label>Alege luna — detaliile apar mai jos</label>
+    <div style="display:flex; flex-wrap:wrap; gap:6px; margin-top:4px;">${luni.map(m=>{ const are=(lunaT[`${m}|S`]||lunaT[`${m}|C`]); return `<button type="button" class="btn ${m===lunaSel?'btn-primary':'btn-ghost'}" data-act="lunar-luna" data-l="${m}" style="min-height:40px; padding:8px 14px; ${!are&&m!==lunaSel?'opacity:.55;':''}">${LUNI[m]}</button>`; }).join('')}</div></div></div>`;
   return `
     <h2>Pe luni</h2>
-    <p class="tab-desc">Orele fiecărui elev, lună de lună — <b style="color:var(--sim);">S</b> = simulator, <b>C</b> = conducere. Ca foaia „Statistica” din Excel, dar calculată automat.</p>
+    <p class="tab-desc">Orele fiecărui elev, lună de lună — <b style="color:var(--sim);">S</b> = simulator, <b>C</b> = conducere. Alege o lună (sau atinge numele ei din tabel) ca să vezi jos toate datele ei.</p>
+    ${selector}
     <div class="card"><div class="table-wrap"><table style="font-size:13px;">
       <thead><tr><th rowspan="2">Elev</th>${head1}<th rowspan="2" class="num">Total</th></tr><tr>${head2}</tr></thead>
       <tbody>${rows}<tr class="total"><td>TOTAL</td>${totRow}<td class="num">${fmtNr(gT)}</td></tr></tbody>
     </table></div></div>
-    ${carb}`;
+    ${carb}
+    <div id="detalii-luna">${detaliiLuna(lunaSel, lunaSel>=9?y1:y2)}</div>`;
+}
+function detaliiLuna(l, y){
+  const de=`${y}-${pad2(l)}-01`, pana=`${y}-${pad2(l)}-31`;
+  const ids=new Set(eleviAn().map(e=>e.id));
+  const ore=state.ore.filter(o=>ids.has(o.elevId) && o.data>=de && o.data<=pana).sort((a,b)=>a.data.localeCompare(b.data)||(a.ora||'').localeCompare(b.ora||''));
+  let sim=0, ss=0, ip=0, km=0, cons=0;
+  ore.forEach(o=>{ if(o.tip==='S') sim+=nr(o.nr); else { if(regimOra(o)==='IP') ip+=nr(o.nr); else ss+=nr(o.nr); km+=nr(o.km); cons+=consumOra(o); } });
+  const bil=state.masini.map(m=>({m, b:bilantMasina(m,de,pana), st0:stocLa(m,de)}));
+  const litri=bil.reduce((a,x)=>a+x.b.litri,0), bonuri=bil.reduce((a,x)=>a+x.b.bonuri,0);
+  const nume=`${LUNI[l]} ${y}`;
+  // pe elev
+  const pe={}; ore.forEach(o=>{ const x=pe[o.elevId]||(pe[o.elevId]={s:0,c:0,km:0,cons:0,n:0}); if(o.tip==='S') x.s+=nr(o.nr); else { x.c+=nr(o.nr); x.km+=nr(o.km); x.cons+=consumOra(o); } x.n++; });
+  const elevi=eleviAn().filter(e=>pe[e.id]);
+  const alim=[]; state.masini.forEach(m=>m.alimentari.forEach(a=>{ if(a.data>=de && a.data<=pana) alim.push({...a, m}); })); alim.sort((a,b)=>a.data.localeCompare(b.data));
+  if(!ore.length && !alim.length) return `<div class="card"><h3>${nume}</h3><p class="muted small" style="margin:0;">Nicio oră și nicio alimentare în ${nume.toLowerCase()}.</p></div>`;
+  return `
+    <div class="card" style="border-top:4px solid var(--track);">
+      <h3 style="font-size:20px;">Detalii — ${nume}</h3>
+      <div class="stats">
+        <div class="stat"><div class="v">${elevi.length}</div><div class="l">Elevi cu ore</div></div>
+        <div class="stat"><div class="v" style="color:var(--sim);">${fmtNr(sim)}</div><div class="l">Ore simulator</div></div>
+        <div class="stat"><div class="v">${fmtNr(ss)}</div><div class="l">Ore conducere SS</div></div>
+        <div class="stat"><div class="v">${fmtNr(ip)}</div><div class="l">Ore conducere IP</div></div>
+        <div class="stat"><div class="v">${fmtNr(km)}</div><div class="l">Km</div></div>
+        <div class="stat accent"><div class="v">${fmtNr(cons)}</div><div class="l">Consum (l)</div></div>
+        <div class="stat"><div class="v" style="color:var(--ok);">${fmtNr(litri)}</div><div class="l">Alimentat (l) · ${fmtNr(bonuri)} bonuri</div></div>
+      </div>
+      ${state.masini.length?`<div class="day-head">Pe mașini</div><div class="table-wrap"><table><thead><tr><th>Mașina</th><th class="num">Ore SS</th><th class="num">Ore IP</th><th class="num">Km</th><th class="num">Consum (l)</th><th class="num">Bonuri</th><th class="num">Alimentat (l)</th><th class="num">Stoc început</th><th class="num">Stoc sfârșit</th><th></th></tr></thead><tbody>
+        ${bil.map(({m,b,st0})=>{ const st1=st0+b.litri-b.consum; return `<tr><td><b>${esc(m.nr)}</b></td><td class="num">${fmtNr(b.oreSS)}</td><td class="num">${fmtNr(b.oreIP)}</td><td class="num">${fmtNr(b.km)}</td><td class="num"><b>${fmtNr(b.consum)}</b></td><td class="num">${b.bonuri?fmtNr(b.bonuri)+' · '+fmtNr(b.lei)+' lei':'—'}</td><td class="num">${fmtNr(b.litri)}</td><td class="num">${fmtNr(st0)}</td><td class="num" style="color:${st1<0?'var(--danger)':'var(--ok)'};"><b>${fmtNr(st1)}</b></td><td style="text-align:right;"><button class="btn btn-ghost" data-act="consum-open" data-m="${m.id}" data-l="${y}-${pad2(l)}">🖨 Situație</button></td></tr>`; }).join('')}
+      </tbody></table></div>`:''}
+      ${elevi.length?`<div class="day-head">Pe elevi</div><div class="table-wrap"><table><thead><tr><th>Elev</th><th>Pregătire</th><th class="num">Simulator</th><th class="num">Conducere</th><th class="num">Km</th><th class="num">Consum (l)</th><th class="num">Total ore până acum</th></tr></thead><tbody>
+        ${elevi.map(e=>{ const x=pe[e.id], st=statElev(e.id); return `<tr class="clickable" data-act="elev-open" data-id="${e.id}"><td>${esc(e.nume)}</td><td>${pillRegim(regimElev(e))}</td><td class="num">${x.s?fmtNr(x.s):'·'}</td><td class="num">${x.c?fmtNr(x.c):'·'}</td><td class="num">${fmtNr(x.km)}</td><td class="num">${fmtNr(x.cons)}</td><td class="num">${fmtNr(st.total)}/${state.settings.oreNecesare}</td></tr>`; }).join('')}
+      </tbody></table></div>`:''}
+      ${ore.length?`<div class="day-head">Toate orele (${ore.length})</div><div class="table-wrap"><table><thead><tr><th>Data</th><th>Interval</th><th>Elev</th><th>Tip</th><th>Mașina</th><th class="num">Ore</th><th class="num">Km</th><th class="num">Consum (l)</th></tr></thead><tbody>
+        ${ore.map(o=>`<tr><td style="white-space:nowrap;">${fmtData(o.data)}</td><td style="white-space:nowrap;">${intervalOrar(o)}</td><td>${esc(numeElev(o.elevId))}</td><td style="white-space:nowrap;">${pillOra(o)}</td><td>${esc(nrMasina(o.masinaId))}</td><td class="num">${fmtNr(nr(o.nr))}</td><td class="num">${o.tip==='S'?'—':fmtNr(nr(o.km))}</td><td class="num">${o.tip==='S'?'—':fmtNr(consumOra(o))}</td></tr>`).join('')}
+        <tr class="total"><td colspan="5">TOTAL</td><td class="num">${fmtNr(sim+ss+ip)}</td><td class="num">${fmtNr(km)}</td><td class="num">${fmtNr(cons)}</td></tr>
+      </tbody></table></div>`:''}
+      ${alim.length?`<div class="day-head">Alimentări</div><div class="table-wrap"><table><thead><tr><th>Data</th><th>Mașina</th><th class="num">Bonuri</th><th class="num">Valoare</th><th class="num">Litri</th></tr></thead><tbody>
+        ${alim.map(a=>`<tr><td>${fmtData(a.data)}</td><td>${esc(a.m.nr)}</td><td class="num">${a.bcf||'—'}</td><td class="num">${a.bcf?fmtNr(nr(a.bcf)*nr(state.settings.valoareBon))+' lei':'—'}</td><td class="num"><b>${fmtNr(nr(a.litri))}</b></td></tr>`).join('')}
+      </tbody></table></div>`:''}
+    </div>`;
 }
 
 /* ---------------- PROGRAMĂRI ---------------- */
@@ -1016,24 +1064,24 @@ function construiesteFisa(data, masinaId, pana){
                     : oreFisa(data, masinaId);
   const masTxt = masinaId && masinaId!=='all' ? nrMasina(masinaId) : 'toate mașinile';
   const randuri=lista ? ore.length : Math.max(8, ore.length);
-  const tot={}; let tOre=0,tKm=0;
-  ore.forEach(o=>{ tOre+=nr(o.nr); tKm+=nr(o.km); const k=(nrMasina(o.masinaId)||'—')+'|'+regimOra(o); tot[k]=(tot[k]||0)+nr(o.nr); });
+  const tot={}, totC={}; let tOre=0,tKm=0,tC=0;
+  ore.forEach(o=>{ const c=consumOra(o); tOre+=nr(o.nr); tKm+=nr(o.km); tC+=c; const k=(nrMasina(o.masinaId)||'—')+'|'+regimOra(o); tot[k]=(tot[k]||0)+nr(o.nr); totC[k]=(totC[k]||0)+c; });
   let rows='';
   for(let i=0;i<randuri;i++){
     const o=ore[i];
-    rows+= o ? `<tr><td>${i+1}.</td>${lista?`<td>${fmtData(o.data)}</td>`:''}<td>${intervalOrar(o).replace('–',' – ')}</td><td class="nume">${esc(numeElev(o.elevId))}</td><td>${regimOra(o)}</td><td>${esc(nrMasina(o.masinaId))}</td><td>${fmtNr(nr(o.nr))}</td><td>${fmtNr(nr(o.km))}</td></tr>`
-             : `<tr><td>${i+1}.</td><td>&nbsp;</td><td></td><td></td><td></td><td></td><td></td></tr>`;
+    rows+= o ? `<tr><td>${i+1}.</td>${lista?`<td>${fmtData(o.data)}</td>`:''}<td>${intervalOrar(o).replace('–',' – ')}</td><td class="nume">${esc(numeElev(o.elevId))}</td><td>${regimOra(o)}</td><td>${esc(nrMasina(o.masinaId))}</td><td>${fmtNr(nr(o.nr))}</td><td>${fmtNr(nr(o.km))}</td><td>${fmtNr(consumOra(o))}</td></tr>`
+             : `<tr><td>${i+1}.</td><td>&nbsp;</td><td></td><td></td><td></td><td></td><td></td><td></td></tr>`;
   }
-  const rez=Object.keys(tot).sort().map(k=>{ const [mn,r]=k.split('|'); return `${esc(mn)} ${r}: ${fmtNr(tot[k])} h`; }).join(' · ');
+  const rez=Object.keys(tot).sort().map(k=>{ const [mn,r]=k.split('|'); return `${esc(mn)} ${r}: ${fmtNr(tot[k])} h → ${fmtNr(totC[k])} l`; }).join(' · ');
   return `<div class="fisa">
     <div class="sc">${esc(s.scoala)}</div>
     <div class="tt">Monitorizare ore conducere</div>
     <div class="meta"><span>Instructor auto: <b>${esc(s.instructor)}</b></span><span>An școlar: <b>${esc(anDinData(data))}</b></span></div>
     <div class="meta"><span>${lista?`Perioada: <b>${fmtData(data)} – ${fmtData(pana)}</b>`:`Data: <b>${fmtData(data)}</b> (${ziDin(data).toLowerCase()})`}</span><span>Autoturism: <b>${esc(masTxt)}</b></span></div>
-    <table><thead><tr><th style="width:7%;">Nr. crt.</th>${lista?'<th style="width:12%;">Data</th>':''}<th style="width:16%;">Interval orar</th><th>Numele și prenumele cursantului</th><th style="width:7%;">Tip oră</th><th style="width:12%;">Mașina</th><th style="width:8%;">Nr. ore</th><th style="width:11%;">Km parcurși</th></tr></thead>
-    <tbody>${rows || `<tr><td colspan="${lista?8:7}">Nicio oră de conducere în perioada aleasă.</td></tr>`}<tr><td colspan="${lista?6:5}" style="text-align:right;"><b>Total</b></td><td><b>${tOre?fmtNr(tOre):''}</b></td><td><b>${tKm?fmtNr(tKm):''}</b></td></tr></tbody></table>
+    <table><thead><tr><th style="width:7%;">Nr. crt.</th>${lista?'<th style="width:12%;">Data</th>':''}<th style="width:16%;">Interval orar</th><th>Numele și prenumele cursantului</th><th style="width:7%;">Tip oră</th><th style="width:12%;">Mașina</th><th style="width:7%;">Nr. ore</th><th style="width:9%;">Km parcurși</th><th style="width:9%;">Consum (l)</th></tr></thead>
+    <tbody>${rows || `<tr><td colspan="${lista?9:8}">Nicio oră de conducere în perioada aleasă.</td></tr>`}<tr><td colspan="${lista?6:5}" style="text-align:right;"><b>Total</b></td><td><b>${tOre?fmtNr(tOre):''}</b></td><td><b>${tKm?fmtNr(tKm):''}</b></td><td><b>${tC?fmtNr(tC):''}</b></td></tr></tbody></table>
     ${rez?`<div style="font-size:13px; margin-top:6px;">${rez}</div>`:''}
-    <div style="font-size:12px; margin-top:4px;">SS = școala de șoferi (oraș) · IP = instruire practică (curtea școlii)</div>
+    <div style="font-size:12px; margin-top:4px;">SS = școala de șoferi (oraș) · IP = instruire practică (curtea școlii) · Normă: ${normaText(data, pana||data)}</div>
     <div class="semn">Semnătura, ..............................</div>
   </div>`;
 }
@@ -1602,6 +1650,7 @@ document.addEventListener('click', e=>{
     case 'fisa-mod': ui.fisaMod = a.dataset.v; render(); break;
     case 'fisa-tip': ui.fisaVedere = a.dataset.v; render(); break;
     case 'filtru-regim': ui.eleviRegim = a.dataset.v; render(); break;
+    case 'lunar-luna': ui.lunarLuna = parseInt(a.dataset.l,10); render(); setTimeout(()=>{ const d=document.getElementById('detalii-luna'); if(d) d.scrollIntoView({behavior:'smooth', block:'start'}); },30); break;
     case 'foaie-save': {
       const d=ui.fisaData||todayISO();
       let f=foaieZi(d); if(!f){ f={id:uid(), data:d}; state.foi.push(f); }

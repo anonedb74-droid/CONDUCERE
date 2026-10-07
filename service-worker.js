@@ -1,6 +1,6 @@
 // Service worker pentru Școala de șoferi — face aplicația disponibilă offline,
 // oricât timp a trecut de la ultima deschidere cu internet.
-const CACHE_NAME = 'scoala-soferi-cache-v7';
+const CACHE_NAME = 'scoala-soferi-cache-v8';
 const FILES_DE_CACHE = [
   './',
   './index.html',
