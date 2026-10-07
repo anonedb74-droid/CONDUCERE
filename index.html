@@ -144,6 +144,21 @@
   .fisa th{font-weight:700;}
   .fisa td.nume{text-align:left;}
   .fisa .semn{display:flex; justify-content:flex-end; margin-top:30px; font-size:15px; padding-right:40px;}
+  /* ---------- FOAIA DE PARCURS (tipizat 15×15 cm) ---------- */
+  .foi-wrap{display:flex; gap:20px; flex-wrap:wrap; justify-content:center; margin-bottom:20px;}
+  .foaie-pag{position:relative;}
+  .foaie-cap{font-size:12px; color:var(--muted); font-weight:600; text-transform:uppercase; letter-spacing:.04em; margin-bottom:6px;}
+  .foaie{position:relative; width:150mm; height:150mm; background:#fff; color:#000; font-family:Arial,Helvetica,sans-serif; font-size:8pt; overflow:hidden; box-shadow:0 2px 10px rgba(0,0,0,.12); border:1px solid #ccc;}
+  .foaie .fv{position:absolute; white-space:nowrap; overflow:hidden; font-weight:700;}
+  .foaie .fl{position:absolute; white-space:nowrap; color:#555; font-size:6.5pt;}
+  .foaie table{position:absolute; border-collapse:collapse; table-layout:fixed; font-family:Arial,Helvetica,sans-serif;}
+  .foaie th, .foaie td{border:0.25mm solid #000; padding:0 0.8mm; font-size:7pt; color:#000; overflow:hidden; white-space:nowrap; text-overflow:clip; text-transform:none; letter-spacing:0; font-family:Arial,Helvetica,sans-serif; vertical-align:middle;}
+  .foaie th{font-size:5.6pt; font-weight:700; text-align:center; white-space:normal; line-height:1.05;}
+  .foaie td.c{text-align:center;}
+  .foaie .box{position:absolute; border:0.25mm solid #000;}
+  .foaie.date-doar{box-shadow:none; border:1px dashed #bbb;}
+  .foaie.date-doar th, .foaie.date-doar td{border-color:transparent;}
+  .foaie.date-doar th, .foaie.date-doar .fl, .foaie.date-doar .box{visibility:hidden;}
   @media print{
     @page{size:A4; margin:14mm;}
     body{background:#fff;}
@@ -153,6 +168,12 @@
     main{overflow:visible; padding:0;}
     .fisa{border:none; padding:0; max-width:none; margin:0; page-break-after:always; break-after:page;}
     .fisa:last-child{page-break-after:auto; break-after:auto;}
+    .foi-wrap{display:block; margin:0;}
+    .foaie-pag{width:210mm; height:296mm; page-break-after:always; break-after:page; overflow:hidden;}
+    .foaie-pag:last-child{page-break-after:auto; break-after:auto;}
+    .foaie-cap{display:none;}
+    .foaie{position:absolute; left:var(--ox,10mm); top:var(--oy,10mm); box-shadow:none;}
+    .foaie.date-doar{border:none;}
   }
 </style>
 </head>
@@ -185,6 +206,8 @@ function stareImplicita(){
       titlu: 'Școala de șoferi',
       scoala: 'LICEUL TEHNOLOGIC „ALEXANDRU VLAHUȚĂ” ȘENDRICENI',
       instructor: 'BOTEZATU DANIEL',
+      atestatSeria: '', atestatNr: '',
+      foaieOffsetX: 10, foaieOffsetY: 10, foaieChenar: true,
       anScolar: anDinData(todayISO()),
       oreNecesare: 30,
       kmPeOra: 5,
@@ -197,6 +220,7 @@ function stareImplicita(){
     ore: [],
     programari: [],
     istoricExamene: [],
+    foi: [],
   };
 }
 let state = stareImplicita();
@@ -204,7 +228,7 @@ let currentTab = 'azi';
 let ui = {
   oreLuna:'all', oreElev:'all', editOraId:null, preOra:null,
   progTrecute:false, elevDetaliu:null, masinaId:null,
-  fisaData:null, fisaMasina:null, fisaLunaIntreaga:false,
+  fisaData:null, fisaMasina:null, fisaLunaIntreaga:false, fisaTip:'foaie',
 };
 
 /* ---------------- UTILITARE ---------------- */
@@ -238,8 +262,8 @@ function loadState(){
 function migreaza(){
   const d = stareImplicita();
   state.settings = Object.assign(d.settings, state.settings||{});
-  ['masini','elevi','ore','programari','istoricExamene'].forEach(k=>{ if(!Array.isArray(state[k])) state[k]=[]; });
-  state.elevi.forEach(e=>{ if(!e.note) e.note=[]; if(e.telefon===undefined) e.telefon=''; if(e.obs===undefined) e.obs=''; });
+  ['masini','elevi','ore','programari','istoricExamene','foi'].forEach(k=>{ if(!Array.isArray(state[k])) state[k]=[]; });
+  state.elevi.forEach(e=>{ if(e.grupa===undefined) e.grupa=''; if(e.registru===undefined) e.registru=''; if(!e.note) e.note=[]; if(e.telefon===undefined) e.telefon=''; if(e.obs===undefined) e.obs=''; });
   state.masini.forEach(m=>{ ['documente','revizii','alimentari'].forEach(k=>{ if(!m[k]) m[k]=[]; }); });
 }
 let ultimaSalvare = null, saveTimer = null;
@@ -326,7 +350,7 @@ const TABS = [
   {id:'note', label:'Note'},
   {id:'examen', label:'Examen'},
   {id:'masina', label:'Mașina'},
-  {id:'fisa', label:'Fișa zilnică'},
+  {id:'fisa', label:'Foi / fișe'},
 ];
 
 /* ================= RANDARE ================= */
@@ -647,7 +671,9 @@ function tabElevi(){
       <div class="row">
         <div class="field" style="flex:3 1 260px;"><label>Nume și prenume</label><input type="text" id="e-nume" placeholder="ex: POPESCU I. ANDREI"></div>
         <div class="field" style="flex:1 1 90px;"><label>Clasa</label><input type="text" id="e-clasa" placeholder="XI F"></div>
-        <div class="field" style="flex:1 1 150px;"><label>Telefon</label><input type="tel" id="e-tel" placeholder="opțional"></div>
+        <div class="field" style="flex:1 1 100px;"><label>Nr. serie / grupă</label><input type="text" id="e-grupa" placeholder="opțional"></div>
+        <div class="field" style="flex:1 1 100px;"><label>Nr. registru</label><input type="text" id="e-reg" placeholder="opțional"></div>
+        <div class="field" style="flex:1 1 140px;"><label>Telefon</label><input type="tel" id="e-tel" placeholder="opțional"></div>
         <button class="btn btn-primary" data-act="elev-add">Adaugă</button>
       </div>
     </div>
@@ -780,7 +806,8 @@ function tabMasina(){
         <div class="row" style="margin-bottom:10px;">
           <div class="field"><label>Data</label><input type="date" id="a-data" value="${todayISO()}"></div>
           <div class="field"><label>BCF</label><input type="number" id="a-bcf" class="mic" min="0" step="1"></div>
-          <div class="field"><label>Litri</label><input type="number" id="a-litri" class="mic" min="0" step="0.01"></div>
+          <div class="field"><label>Litri aprobați</label><input type="number" id="a-apr" class="mic" min="0" step="0.01"></div>
+          <div class="field"><label>Litri efectiv</label><input type="number" id="a-litri" class="mic" min="0" step="0.01"></div>
           <button class="btn btn-secondary" data-act="alim-add">Adaugă</button>
         </div>
         ${alim.length?`<div class="table-wrap"><table><thead><tr><th>Data</th><th class="num">BCF</th><th class="num">Litri</th><th></th></tr></thead><tbody>${alim.map(a=>`<tr><td>${a.data?fmtData(a.data):'—'}${a.obs?`<div class="small muted">${esc(a.obs)}</div>`:''}</td><td class="num">${a.bcf||'—'}</td><td class="num"><b>${fmtNr(nr(a.litri))}</b></td><td style="text-align:right;"><button class="icon-btn del" data-act="alim-del" data-id="${a.id}">${ICONS.trash}</button></td></tr>`).join('')}</tbody></table></div>`:'<p class="muted small">Nicio alimentare în acest an școlar.</p>'}
@@ -820,6 +847,11 @@ function construiesteFisa(data, masina){
   </div>`;
 }
 function tabFisa(){
+  const seg=`<div class="seg" style="margin-bottom:14px;"><button type="button" data-act="fisa-tip" data-v="foaie" class="${ui.fisaTip==='foaie'?'on':''}">Foaie de parcurs</button><button type="button" data-act="fisa-tip" data-v="monit" class="${ui.fisaTip!=='foaie'?'on':''}">Monitorizare (A4)</button></div>`;
+  if(ui.fisaTip==='foaie') return `<div class="no-print">${seg}</div>` + tabFoaie();
+  return `<div class="no-print">${seg}</div>` + tabMonitorizare();
+}
+function tabMonitorizare(){
   const m=masinaActiva(); const masNr = ui.fisaMasina || (m?m.nr:'');
   const d=ui.fisaData||todayISO();
   let fise='';
@@ -838,9 +870,116 @@ function tabFisa(){
         <div class="field"><label>Autoturism</label><input type="text" id="f-masina" value="${esc(masNr)}" style="width:140px;"></div>
         <div class="field"><label>Ce tipăresc</label><div class="seg"><button type="button" data-act="fisa-mod" data-v="0" class="${!ui.fisaLunaIntreaga?'on':''}">Doar ziua</button><button type="button" data-act="fisa-mod" data-v="1" class="${ui.fisaLunaIntreaga?'on':''}">Toată luna</button></div></div>
         <button class="btn btn-primary" data-act="print">🖨 Tipărește ${ui.fisaLunaIntreaga?`(${nrZile} ${nrZile===1?'fișă':'fișe'})`:''}</button>
-      </div></div>
+      </div><p class="small muted no-print" style="margin:8px 0 0;">Pe tabletă fără imprimantă: în fereastra de tipărire alege sus <b>„Salvează ca PDF”</b>, apoi trimite PDF-ul pe laptop. Ca să ieși din fereastră fără să tipărești: butonul <b>Înapoi</b> al tabletei.</p></div>
     </div>
     ${fise}`;
+}
+
+/* ---------------- FOAIA DE PARCURS ---------------- */
+function foaieZi(data){ return state.foi.find(f=>f.data===data) || null; }
+function oreConducereZi(data){ return state.ore.filter(o=>o.data===data && o.tip==='C').sort((a,b)=>(a.ora||'').localeCompare(b.ora||'')); }
+function kmPlecareSugerat(data){
+  const ant=state.foi.filter(f=>f.data<data && nr(f.kmSosire)>0).sort((a,b)=>b.data.localeCompare(a.data))[0];
+  return ant ? nr(ant.kmSosire) : '';
+}
+function construiesteFoaie(data, masNr){
+  const s=state.settings, f=foaieZi(data)||{};
+  const ore=oreConducereZi(data);
+  const m=state.masini.find(x=>x.nr===masNr) || masinaActiva();
+  const alim=m ? m.alimentari.filter(a=>a.data===data) : [];
+  let kmTot=0, oreTot=0; ore.forEach(o=>{ kmTot+=nr(o.km); oreTot+=nr(o.nr); });
+  const kmP=f.kmPlecare, kmS=f.kmSosire;
+  const cls='foaie'+(s.foaieChenar?'':' date-doar');
+  const sty=`--ox:${nr(s.foaieOffsetX)}mm; --oy:${nr(s.foaieOffsetY)}mm;`;
+  const V=(x,y,txt,w,extra)=>txt===''||txt===undefined||txt===null?'':`<div class="fv" style="left:${x}mm; top:${y}mm; ${w?`width:${w}mm;`:''} ${extra||''}">${esc(txt)}</div>`;
+  const L=(x,y,txt)=>`<div class="fl" style="left:${x}mm; top:${y}mm;">${txt}</div>`;
+  // ---- FAȚA
+  let alimRows=''; for(let i=0;i<4;i++){ const a=alim[i]; alimRows+=`<tr style="height:3.9mm;"><td>${a?esc(a.bcf||''):''}</td><td class="c">${a&&a.aprobat?fmtNr(nr(a.aprobat)):''}</td><td class="c">${a?fmtNr(nr(a.litri)):''}</td><td></td></tr>`; }
+  const calc = (kmP!==''&&kmP!==undefined&&kmS) ? `Km bord: ${fmtNr(nr(kmS)-nr(kmP))} · ` : '';
+  const fata=`<div class="${cls}" style="${sty}">
+    <div class="box" style="left:12mm; top:2.3mm; width:125mm; height:35mm;"></div>
+    <div class="box" style="left:48mm; top:2.3mm; width:53mm; height:35mm;"></div>
+    ${L(17,14,'ȘTAMPILA UNITĂȚII')}${L(55,12,'<b>FOAIE DE PARCURS</b>')}${L(55,15.5,'PENTRU AUTOVEHICULELE „ȘCOALĂ”')}
+    ${L(104,8.5,'Data:')}${L(104,18.5,'Seria')}${L(104,26,'nr.')}
+    ${V(114,8.3,fmtData(data),22)}${V(114,18.3,f.seria||'',22)}${V(114,25.8,f.nr||'',22)}
+    <div class="box" style="left:12mm; top:37.3mm; width:125mm; height:14.5mm;"></div>
+    ${L(13.5,41,'Nr. de înmatriculare')}${L(52,39,'autovehicul')}${L(52,46.5,'remorcă')}
+    ${V(70,39,masNr||'',60)}
+    <div class="box" style="left:12mm; top:52mm; width:125mm; height:13.5mm;"></div>
+    ${L(30,53,'Numele și prenumele instructorului')}${L(110,53,'Atestat')}
+    ${V(15,60,s.instructor,80)}${L(100,60.3,'Seria')}${V(106,60,s.atestatSeria||'',10)}${L(117,60.3,'Nr.')}${V(122,60,s.atestatNr||'',15)}
+    ${L(30,67,'Alimentarea autovehiculului')}
+    <table style="left:12mm; top:72.5mm; width:68mm;"><colgroup><col style="width:19mm"><col style="width:15.5mm"><col style="width:12.5mm"><col style="width:21mm"></colgroup>
+      <tr style="height:6.5mm;"><th>Tip / BCF</th><th>Aprobat</th><th>Efectiv</th><th>Semnătura</th></tr>${alimRows}</table>
+    ${L(84,67,'C  Autovehiculul este în bună stare de circulație')}${L(98,75,'Semnătură instructor')}
+    <table style="left:81mm; top:90.5mm; width:56mm;"><colgroup><col style="width:23mm"><col style="width:19mm"><col style="width:14mm"></colgroup>
+      <tr style="height:3.9mm;"><th></th><th>Kilometraj</th><th>Verificat</th></tr>
+      <tr style="height:3.9mm;"><th style="text-align:left;">La plecare</th><td class="c">${kmP?Number(kmP).toLocaleString('ro-RO'):''}</td><td></td></tr>
+      <tr style="height:3.9mm;"><th style="text-align:left;">La sosire</th><td class="c">${kmS?Number(kmS).toLocaleString('ro-RO'):''}</td><td></td></tr></table>
+    ${L(13,107,'3  CALCULE')}
+    ${ore.length?V(14,111,`${calc}Km cursanți: ${fmtNr(kmTot)} · Ore: ${fmtNr(oreTot)}`,64,'font-weight:600;'):''}
+    ${f.obs?V(14,115,f.obs,64,'font-weight:400;'):''}
+  </div>`;
+  // ---- VERSO
+  let rows=''; for(let i=0;i<18;i++){ const o=ore[i]; const e=o?elevById(o.elevId):null;
+    rows+= `<tr style="height:5.7mm;">${o?`<td style="font-size:6.3pt;">${esc(e?e.nume:'')}</td><td class="c">${esc(e?e.grupa||'':'')}</td><td class="c">${esc(e?e.registru||'':'')}</td><td class="c">${o.ora||''}</td><td class="c">${o.ora?adunaOre(o.ora,nr(o.nr)):''}</td><td class="c">${fmtNr(nr(o.km))}</td><td></td>`:'<td></td><td></td><td></td><td></td><td></td><td></td><td></td>'}</tr>`; }
+  const start=ore.length?ore[0].ora:'', ultim=ore[ore.length-1], sfarsit=ultim&&ultim.ora?adunaOre(ultim.ora,nr(ultim.nr)):'';
+  const verso=`<div class="${cls}" style="${sty}">
+    <table style="left:14.3mm; top:3.2mm; width:119.6mm;"><colgroup><col style="width:33.7mm"><col style="width:12mm"><col style="width:13.4mm"><col style="width:10.4mm"><col style="width:11.7mm"><col style="width:18mm"><col style="width:20.4mm"></colgroup>
+      <tr style="height:11.1mm;"><th>Numele și prenumele cursantului</th><th>Nr. serie/ grupă</th><th>Nr. registru</th><th>De la ora</th><th>la ora</th><th>Km efectivi</th><th>Semnătura de confirmare a cursantului</th></tr>${rows}</table>
+    <table style="left:13.5mm; top:124.6mm; width:120.4mm;"><colgroup><col style="width:16.1mm"><col style="width:17.8mm"><col style="width:11.9mm"><col style="width:19.6mm"><col style="width:14.8mm"><col style="width:40.2mm"></colgroup>
+      <tr style="height:7.6mm;"><th>7 ora de început</th><th>ora de sfârșit</th><th>durata</th><th>Evenimente de circulație</th><th>Observații</th><th>8 Notări ale instructorului de conducere auto</th></tr>
+      <tr style="height:10.8mm;"><td class="c">${start}</td><td class="c">${sfarsit}</td><td class="c">${ore.length?fmtNr(oreTot)+' h':''}</td><td></td><td></td><td></td></tr></table>
+  </div>`;
+  return {fata, verso};
+}
+function tabFoaie(){
+  const s=state.settings, m=masinaActiva(); const masNr = ui.fisaMasina || (m?m.nr:'');
+  const d=ui.fisaData||todayISO();
+  const f=foaieZi(d)||{};
+  const ore=oreConducereZi(d); const kmTot=ore.reduce((a,o)=>a+nr(o.km),0);
+  const kmP = f.kmPlecare!==undefined && f.kmPlecare!=='' ? f.kmPlecare : kmPlecareSugerat(d);
+  const kmS = f.kmSosire!==undefined && f.kmSosire!=='' ? f.kmSosire : '';
+  const sugerSosire = kmP!=='' && ore.length ? nr(kmP)+kmTot : '';
+  const {fata, verso}=construiesteFoaie(d, masNr);
+  const lipsa = ore.filter(o=>{ const e=elevById(o.elevId); return e && (!e.grupa || !e.registru); }).length;
+  const foiLuna=state.foi.filter(x=>x.data.slice(0,7)===d.slice(0,7)).sort((a,b)=>a.data.localeCompare(b.data));
+  return `
+    <div class="no-print">
+      <h2>Foaie de parcurs</h2>
+      <p class="tab-desc">Formularul „Foaie de parcurs pentru autovehiculele «Școală»” (15×15 cm), completat automat cu orele de conducere din ziua aleasă. Treci aici doar seria, numărul și kilometrajul.</p>
+      <div class="card">
+        <div class="row">
+          <div class="field"><label>Ziua</label><input type="date" id="f-data" value="${d}"></div>
+          <div class="field"><label>Autoturism</label><input type="text" id="f-masina" value="${esc(masNr)}" style="width:130px;"></div>
+          <div class="field"><label>Seria</label><input type="text" id="fp-seria" value="${esc(f.seria||'')}" style="width:90px;"></div>
+          <div class="field"><label>Nr.</label><input type="text" id="fp-nr" value="${esc(f.nr||'')}" style="width:100px;"></div>
+          <div class="field"><label>Km la plecare</label><input type="number" id="fp-kmp" value="${kmP}" style="width:120px;"></div>
+          <div class="field"><label>Km la sosire</label><input type="number" id="fp-kms" value="${kmS}" placeholder="${sugerSosire}" style="width:120px;"></div>
+          <div class="field" style="flex:1 1 180px;"><label>Calcule / observații</label><input type="text" id="fp-obs" value="${esc(f.obs||'')}" placeholder="opțional"></div>
+          <button class="btn btn-primary" data-act="foaie-save">Salvează foaia</button>
+        </div>
+        <p class="small muted" style="margin:10px 0 0;">${ore.length?`${ore.length} ${ore.length===1?'oră':'ore'} de conducere în ziua asta · ${fmtNr(kmTot)} km la cursanți${sugerSosire?` → la sosire ar trebui să fie cam <b>${Number(sugerSosire).toLocaleString('ro-RO')}</b>`:''}.`:'Nicio oră de conducere trecută în ziua asta — foaia iese doar cu antetul.'}
+        ${lipsa?` <span style="color:var(--track);">${lipsa} cursanți n-au trecut „Nr. serie/grupă” sau „Nr. registru” (le completezi la Elevi → ✎).</span>`:''}</p>
+      </div>
+      <div class="card"><div class="row" style="align-items:center;">
+        <label style="display:flex; gap:8px; align-items:center; font-weight:600; cursor:pointer;"><input type="checkbox" id="fp-chenar" ${s.foaieChenar?'checked':''} style="width:20px; height:20px;"> Tipăresc și chenarul formularului</label>
+        <span class="small muted" style="flex:1 1 260px;">Bifat = copie completă pe hârtie albă. Debifat = doar textul, ca să tipărești direct peste tipizat.</span>
+        <div class="field"><label>Mută la dreapta (mm)</label><input type="number" id="fp-ox" value="${s.foaieOffsetX}" step="0.5" style="width:90px;"></div>
+        <div class="field"><label>Mută în jos (mm)</label><input type="number" id="fp-oy" value="${s.foaieOffsetY}" step="0.5" style="width:90px;"></div>
+        <button class="btn btn-secondary" data-act="print">🖨 Tipărește (față + verso)</button>
+      </div><p class="small muted no-print" style="margin:8px 0 0;">Pe tabletă fără imprimantă: în fereastra de tipărire alege sus <b>„Salvează ca PDF”</b>, apoi trimite PDF-ul pe laptop. Ca să ieși din fereastră fără să tipărești: butonul <b>Înapoi</b> al tabletei.</p></div>
+    </div>
+    <div class="foi-wrap">
+      <div class="foaie-pag"><div class="foaie-cap">Fața</div>${fata}</div>
+      <div class="foaie-pag"><div class="foaie-cap">Verso</div>${verso}</div>
+    </div>
+    ${foiLuna.length?`<div class="card no-print"><h3>Foi de parcurs — ${LUNI[lunaDin(d)]}</h3><div class="table-wrap"><table>
+      <thead><tr><th>Data</th><th>Seria / nr.</th><th class="num">Km plecare</th><th class="num">Km sosire</th><th class="num">Km bord</th><th class="num">Km cursanți</th><th></th></tr></thead><tbody>
+      ${foiLuna.map(x=>{ const kc=oreConducereZi(x.data).reduce((a,o)=>a+nr(o.km),0); const kb=nr(x.kmSosire)&&nr(x.kmPlecare)?nr(x.kmSosire)-nr(x.kmPlecare):null;
+        return `<tr class="clickable" data-act="foaie-open" data-d="${x.data}"><td>${fmtData(x.data)}</td><td>${esc(x.seria||'')} ${esc(x.nr||'')}</td><td class="num">${x.kmPlecare?Number(x.kmPlecare).toLocaleString('ro-RO'):'—'}</td><td class="num">${x.kmSosire?Number(x.kmSosire).toLocaleString('ro-RO'):'—'}</td><td class="num">${kb===null?'—':fmtNr(kb)}</td><td class="num" style="${kb!==null&&kb!==kc?'color:var(--track); font-weight:700;':''}">${fmtNr(kc)}</td><td style="text-align:right;"><button class="icon-btn del" data-act="foaie-del" data-d="${x.data}">${ICONS.trash}</button></td></tr>`; }).join('')}
+      </tbody></table></div></div>`:''}
+    <style>@media print{ @page{size:A4; margin:0;} }</style>`;
 }
 
 /* ================= MODALE ================= */
@@ -862,6 +1001,7 @@ function modalElev(e){
   const b=openModal(`<h3>Modifică elevul</h3>
     <div class="field"><label>Nume și prenume</label><input type="text" id="me-nume" value="${esc(e.nume)}"></div>
     <div class="field"><label>Clasa</label><input type="text" id="me-clasa" value="${esc(e.clasa)}"></div>
+    <div class="row"><div class="field" style="flex:1;"><label>Nr. serie / grupă</label><input type="text" id="me-grupa" value="${esc(e.grupa||'')}"></div><div class="field" style="flex:1;"><label>Nr. registru</label><input type="text" id="me-reg" value="${esc(e.registru||'')}"></div></div>
     <div class="field"><label>Telefon</label><input type="tel" id="me-tel" value="${esc(e.telefon)}"></div>
     <div class="field"><label>Observații</label><input type="text" id="me-obs" value="${esc(e.obs)}" placeholder="ex: dosar depus, fișă medicală"></div>
     <div class="field"><label>An școlar</label><input type="text" id="me-an" value="${esc(e.anScolar)}"></div>
@@ -869,7 +1009,7 @@ function modalElev(e){
   b.querySelector('#me-x').onclick=closeModal;
   b.querySelector('#me-ok').onclick=()=>{
     const nume=capitalizeaza(b.querySelector('#me-nume').value); if(!nume) return toast('Numele nu poate fi gol.');
-    e.nume=nume; e.clasa=capitalizeaza(b.querySelector('#me-clasa').value); e.telefon=b.querySelector('#me-tel').value.trim();
+    e.nume=nume; e.clasa=capitalizeaza(b.querySelector('#me-clasa').value); e.telefon=b.querySelector('#me-tel').value.trim(); e.grupa=b.querySelector('#me-grupa').value.trim(); e.registru=b.querySelector('#me-reg').value.trim();
     e.obs=b.querySelector('#me-obs').value.trim(); e.anScolar=b.querySelector('#me-an').value.trim()||e.anScolar;
     save(); closeModal(); render(); toast('Salvat ✓');
   };
@@ -880,6 +1020,7 @@ function openSettings(){
     <div class="field"><label>Titlul aplicației</label><input type="text" id="s-titlu" value="${esc(s.titlu)}"></div>
     <div class="field"><label>Școala (apare pe fișa zilnică)</label><input type="text" id="s-scoala" value="${esc(s.scoala)}"></div>
     <div class="field"><label>Instructor auto</label><input type="text" id="s-instr" value="${esc(s.instructor)}"></div>
+    <div class="row"><div class="field" style="flex:1;"><label>Atestat — seria</label><input type="text" id="s-ats" value="${esc(s.atestatSeria)}"></div><div class="field" style="flex:1;"><label>Atestat — nr.</label><input type="text" id="s-atn" value="${esc(s.atestatNr)}"></div></div>
     <div class="row">
       <div class="field" style="flex:1;"><label>Ore obligatorii / elev</label><input type="number" id="s-ore" value="${s.oreNecesare}" min="1"></div>
       <div class="field" style="flex:1;"><label>Km impliciți / oră</label><input type="number" id="s-km" value="${s.kmPeOra}" min="0"></div>
@@ -902,6 +1043,7 @@ function openSettings(){
     s.titlu=b.querySelector('#s-titlu').value.trim()||'Școala de șoferi';
     s.scoala=b.querySelector('#s-scoala').value.trim();
     s.instructor=capitalizeaza(b.querySelector('#s-instr').value);
+    s.atestatSeria=b.querySelector('#s-ats').value.trim(); s.atestatNr=b.querySelector('#s-atn').value.trim();
     s.oreNecesare=Math.max(1,nr(b.querySelector('#s-ore').value)||30);
     s.kmPeOra=nr(b.querySelector('#s-km').value);
     s.normaLitriPeOra=nr(b.querySelector('#s-norma').value);
@@ -1148,7 +1290,7 @@ document.addEventListener('click', e=>{
     case 'elev-add': {
       const nume=capitalizeaza(document.getElementById('e-nume').value); if(!nume) return toast('Scrie numele elevului.');
       if(eleviAn().find(x=>normNume(x.nume)===normNume(nume))) return toast('Elevul există deja.');
-      state.elevi.push({id:uid(), nume, clasa:capitalizeaza(document.getElementById('e-clasa').value), telefon:document.getElementById('e-tel').value.trim(), obs:'', anScolar:state.settings.anScolar, note:[], examenData:'', examenRezultat:''});
+      state.elevi.push({id:uid(), nume, clasa:capitalizeaza(document.getElementById('e-clasa').value), telefon:document.getElementById('e-tel').value.trim(), grupa:document.getElementById('e-grupa').value.trim(), registru:document.getElementById('e-reg').value.trim(), obs:'', anScolar:state.settings.anScolar, note:[], examenData:'', examenRezultat:''});
       save(); render(); toast('Elev adăugat ✓'); document.getElementById('e-nume').focus(); break; }
     case 'elev-edit': modalElev(elevById(id)); break;
     case 'elev-del': { const ev=elevById(id); const n=state.ore.filter(o=>o.elevId===id).length;
@@ -1170,11 +1312,21 @@ document.addEventListener('click', e=>{
       const nm={id:uid(), nr:v, documente:DOC_TIPURI.slice(0,3).map(t=>({id:uid(),tip:t,valabil:'',expira:''})), revizii:[], alimentari:[]}; state.masini.push(nm); ui.masinaId=nm.id; save(); render(); break; }
     case 'doc-add': { const tip=capitalizeaza(document.getElementById('d-tip').value); if(!tip) return toast('Scrie numele documentului.'); m.documente.push({id:uid(), tip, valabil:document.getElementById('d-val').value, expira:document.getElementById('d-exp').value}); save(); render(); break; }
     case 'doc-del': confirma('Ștergi documentul?', ()=>{ m.documente=m.documente.filter(d=>d.id!==id); save(); render(); }); break;
-    case 'alim-add': { const l=nr(document.getElementById('a-litri').value); const d=document.getElementById('a-data').value; if(!l||!d) return toast('Completează data și litrii.'); m.alimentari.push({id:uid(), data:d, bcf:document.getElementById('a-bcf').value, litri:l, obs:''}); save(); render(); toast('Alimentare adăugată ✓'); break; }
+    case 'alim-add': { const l=nr(document.getElementById('a-litri').value); const d=document.getElementById('a-data').value; if(!l||!d) return toast('Completează data și litrii.'); m.alimentari.push({id:uid(), data:d, bcf:document.getElementById('a-bcf').value, aprobat:document.getElementById('a-apr').value, litri:l, obs:''}); save(); render(); toast('Alimentare adăugată ✓'); break; }
     case 'alim-del': m.alimentari=m.alimentari.filter(x=>x.id!==id); save(); render(); break;
     case 'rev-add': { const ds=document.getElementById('r-desc').value.trim(); if(!ds) return toast('Scrie ce s-a făcut.'); m.revizii.push({id:uid(), data:document.getElementById('r-data').value, km:document.getElementById('r-km').value, descriere:ds}); save(); render(); break; }
     case 'rev-del': m.revizii=m.revizii.filter(x=>x.id!==id); save(); render(); break;
     case 'fisa-mod': ui.fisaLunaIntreaga = a.dataset.v==='1'; render(); break;
+    case 'fisa-tip': ui.fisaTip = a.dataset.v; render(); break;
+    case 'foaie-save': {
+      const d=ui.fisaData||todayISO();
+      let f=foaieZi(d); if(!f){ f={id:uid(), data:d}; state.foi.push(f); }
+      f.seria=document.getElementById('fp-seria').value.trim().toUpperCase(); f.nr=document.getElementById('fp-nr').value.trim();
+      f.kmPlecare=document.getElementById('fp-kmp').value; f.kmSosire=document.getElementById('fp-kms').value; f.obs=document.getElementById('fp-obs').value.trim();
+      f.masina=ui.fisaMasina || (masinaActiva()||{}).nr || '';
+      save(); render(); toast('Foaia de parcurs salvată ✓'); break; }
+    case 'foaie-open': ui.fisaData=a.dataset.d; render(); document.getElementById('main').scrollTop=0; break;
+    case 'foaie-del': e.stopPropagation(); confirma(`Ștergi foaia de parcurs din ${fmtData(a.dataset.d)}? Orele elevilor rămân.`, ()=>{ state.foi=state.foi.filter(x=>x.data!==a.dataset.d); save(); render(); }); break;
     case 'print': window.print(); break;
     case 'export-json': exportJson(); break;
     case 'import-json': document.getElementById('file-json').click(); break;
@@ -1190,6 +1342,8 @@ document.addEventListener('change', e=>{
   if(t.dataset.doc){ const m=masinaActiva(); const d=m.documente.find(x=>x.id===t.dataset.id); d[t.dataset.doc]=t.value; save(); render(); toast('Salvat ✓', 900); return; }
   if(t.id==='f-data'){ ui.fisaData=t.value||todayISO(); render(); return; }
   if(t.id==='f-masina'){ ui.fisaMasina=t.value; render(); return; }
+  if(t.id==='fp-chenar'){ state.settings.foaieChenar=t.checked; save(); render(); return; }
+  if(t.id==='fp-ox' || t.id==='fp-oy'){ state.settings[t.id==='fp-ox'?'foaieOffsetX':'foaieOffsetY']=nr(t.value); save(); toast('Salvat ✓',900); return; }
   if(t.id==='file-json' && t.files[0]){ importJson(t.files[0]); t.value=''; return; }
   if(t.id==='file-xlsx' && t.files[0]){ importXlsx(t.files[0]); t.value=''; return; }
   if(t.id==='p-start'){ const f=document.getElementById('p-final'); if(f && !f.value && t.value){ const i=state.settings.intervale.indexOf(t.value); f.value = i>=0 && state.settings.intervale[i+1] ? state.settings.intervale[i+1] : adunaOre(t.value,1); } }
