@@ -1,0 +1,1210 @@
+<!DOCTYPE html>
+<html lang="ro">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+<title>Școala de șoferi</title>
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#23303B">
+<link rel="apple-touch-icon" href="icon-192.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Oswald:wght@500;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<style>
+  :root{
+    --track:#D9480F;
+    --track-dark:#B03A0B;
+    --infield:#23303B;
+    --infield-dark:#18222B;
+    --chalk:#F5F4F0;
+    --card:#FFFFFF;
+    --ink:#1D2125;
+    --muted:#6B7177;
+    --border:#E1DED6;
+    --yellow:#E3A23C;
+    --danger:#B23A32;
+    --ok:#3D7A4E;
+    --sim:#1D5A9E;
+    --radius:10px;
+  }
+  *{box-sizing:border-box;}
+  html,body{height:100%;}
+  body{margin:0; background:var(--chalk); color:var(--ink); font-family:'Inter',system-ui,sans-serif; -webkit-tap-highlight-color:transparent;}
+  h1,h2,h3,.display{font-family:'Oswald',system-ui,sans-serif; text-transform:uppercase; letter-spacing:0.02em;}
+  #app{display:flex; flex-direction:column; height:100vh;}
+  header{background:var(--infield); color:#fff; display:flex; align-items:center; justify-content:space-between; padding:14px 20px; flex-shrink:0; border-bottom:4px solid var(--track); gap:10px;}
+  header .title{display:flex; align-items:baseline; gap:10px; min-width:0;}
+  header h1{margin:0; font-size:22px; color:#fff; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;}
+  header .subtitle{font-size:13px; color:#C3CCD4; font-family:'Inter',sans-serif;}
+  header .date{font-family:'Oswald',sans-serif; font-size:14px; color:#D9DEE3;}
+  .an-select{background:transparent; color:#fff; border:1px solid #4A5A68; border-radius:8px; padding:6px 8px; font-family:'Oswald',sans-serif; font-size:14px; min-height:36px;}
+  .an-select option{color:var(--ink);}
+  .body-wrap{flex:1; display:flex; overflow:hidden;}
+  nav.sidebar{width:190px; background:var(--infield-dark); flex-shrink:0; display:flex; flex-direction:column; padding:10px 0; overflow-y:auto;}
+  nav.sidebar button{display:flex; align-items:center; gap:10px; width:100%; border:none; background:transparent; color:#C9D2DA; font-family:'Inter',sans-serif; font-size:15px; font-weight:600; padding:14px 18px; cursor:pointer; text-align:left; border-left:4px solid transparent;}
+  nav.sidebar button svg{flex-shrink:0; width:20px; height:20px;}
+  nav.sidebar button.active{background:var(--infield); color:#fff; border-left:4px solid var(--track);}
+  nav.sidebar button:not(.active):hover{background:rgba(255,255,255,0.06);}
+  main{flex:1; overflow-y:auto; padding:22px 26px 80px;}
+  main h2{font-size:22px; margin:0 0 4px; color:var(--infield);}
+  main h3{font-size:16px; margin:0 0 10px; color:var(--infield);}
+  .tab-desc{color:var(--muted); font-size:14px; margin:0 0 20px;}
+  nav.bottombar{display:none;}
+  @media (max-width:760px){
+    nav.sidebar{display:none;}
+    .body-wrap{flex-direction:column;}
+    main{padding:16px 14px 96px;}
+    header{padding:10px 14px;}
+    header h1{font-size:18px;}
+    header .subtitle, header .date, #btn-save-now span{display:none;}
+    nav.bottombar{display:flex; position:fixed; bottom:0; left:0; right:0; background:var(--infield-dark); border-top:3px solid var(--track); z-index:20; overflow-x:auto; scrollbar-width:none;}
+    nav.bottombar::-webkit-scrollbar{display:none;}
+    nav.bottombar button{flex:1 0 66px; display:flex; flex-direction:column; align-items:center; gap:3px; background:transparent; border:none; color:#C9D2DA; font-size:11.5px; font-weight:600; padding:8px 2px 10px; white-space:nowrap;}
+    nav.bottombar button svg{width:20px; height:20px;}
+    nav.bottombar button.active{color:#fff;}
+    nav.bottombar button.active svg{stroke:var(--track);}
+  }
+  @media (orientation: portrait) and (min-width:761px){
+    header{padding:8px 14px;} header h1{font-size:17px;} header .subtitle{display:none;}
+    main{padding:12px 14px 80px;} main h2{font-size:18px;}
+    nav.sidebar{width:150px;} nav.sidebar button{padding:10px 14px; font-size:13px;}
+  }
+  .card{background:var(--card); border:1px solid var(--border); border-radius:var(--radius); padding:18px; margin-bottom:16px;}
+  .row{display:flex; gap:10px; flex-wrap:wrap; align-items:flex-end;}
+  .field{display:flex; flex-direction:column; gap:5px; min-width:0;}
+  .field label{font-size:12px; font-weight:600; color:var(--muted); text-transform:uppercase; letter-spacing:0.03em;}
+  input[type=text], input[type=date], input[type=number], input[type=time], input[type=tel], select, textarea{font-family:'Inter',sans-serif; font-size:15px; padding:10px 12px; border:1.5px solid var(--border); border-radius:8px; background:#fff; color:var(--ink); min-height:44px; max-width:100%;}
+  input:focus, select:focus, textarea:focus{outline:2px solid var(--track); outline-offset:1px;}
+  input.mic{width:84px; text-align:center;}
+  button.btn{font-family:'Inter',sans-serif; font-weight:700; font-size:14px; padding:11px 18px; border-radius:8px; border:none; cursor:pointer; min-height:44px; white-space:nowrap;}
+  button.btn-primary{background:var(--track); color:#fff;}
+  button.btn-primary:hover{background:var(--track-dark);}
+  button.btn-secondary{background:#fff; color:var(--infield); border:1.5px solid var(--infield);}
+  button.btn-danger{background:transparent; color:var(--danger); border:1.5px solid var(--danger); padding:8px 12px; font-size:13px; min-height:36px;}
+  button.btn-ghost{background:transparent; color:var(--muted); border:1px solid var(--border); padding:8px 12px; font-size:13px; min-height:36px;}
+  button.btn-ok{background:var(--ok); color:#fff; padding:8px 12px; font-size:13px; min-height:36px;}
+  button.icon-btn{background:transparent; border:1px solid var(--border); border-radius:8px; color:var(--muted); cursor:pointer; width:36px; height:36px; display:inline-flex; align-items:center; justify-content:center;}
+  button.icon-btn.del{color:var(--danger);}
+  .seg{display:inline-flex; border:1.5px solid var(--infield); border-radius:8px; overflow:hidden;}
+  .seg button{border:none; background:#fff; color:var(--infield); font-weight:700; font-size:14px; padding:0 16px; min-height:41px; cursor:pointer; font-family:'Inter',sans-serif;}
+  .seg button.on{background:var(--infield); color:#fff;}
+  .table-wrap{overflow-x:auto; -webkit-overflow-scrolling:touch;}
+  table{width:100%; border-collapse:collapse; font-size:14px;}
+  th{text-align:left; font-family:'Oswald',sans-serif; font-size:12px; letter-spacing:0.04em; text-transform:uppercase; color:var(--muted); border-bottom:2px solid var(--border); padding:8px 8px; white-space:nowrap;}
+  td{padding:9px 8px; border-bottom:1px solid var(--border); vertical-align:middle;}
+  td.num, th.num{text-align:right; font-variant-numeric:tabular-nums;}
+  tr.total td{font-weight:700; border-top:2px solid var(--border); background:#FAF9F6;}
+  tr.clickable{cursor:pointer;} tr.clickable:hover td{background:#FAF8F3;}
+  .empty{text-align:center; padding:40px 20px; color:var(--muted);}
+  .empty .display{font-size:17px; color:var(--infield); margin-bottom:6px;}
+  .pill{display:inline-block; padding:3px 10px; border-radius:20px; font-size:12px; font-weight:600; white-space:nowrap;}
+  .pill-yellow{background:#FBEBD3; color:#8A5A16;}
+  .pill-danger{background:#F6DCDA; color:var(--danger);}
+  .pill-ok{background:#DCEBDF; color:var(--ok);}
+  .pill-blue{background:#D9E6F5; color:var(--sim);}
+  .pill-ghost{background:#ECEAE4; color:var(--muted);}
+  .pill-dark{background:#E3E7EB; color:var(--infield);}
+  .bar{height:8px; background:#ECEAE4; border-radius:5px; overflow:hidden; min-width:80px; display:flex;}
+  .bar span{display:block; height:100%;}
+  .bar .s{background:var(--sim);} .bar .c{background:var(--track);}
+  .stats{display:grid; grid-template-columns:repeat(auto-fill,minmax(150px,1fr)); gap:12px; margin-bottom:16px;}
+  .stat{background:var(--card); border:1px solid var(--border); border-radius:var(--radius); padding:14px 16px; border-top:4px solid var(--infield);}
+  .stat .v{font-family:'Oswald',sans-serif; font-size:28px; color:var(--infield); line-height:1.1;}
+  .stat .l{font-size:12px; color:var(--muted); text-transform:uppercase; letter-spacing:.03em; font-weight:600;}
+  .stat.accent{border-top-color:var(--track);}
+  .alert{display:flex; gap:12px; align-items:center; justify-content:space-between; flex-wrap:wrap; padding:12px 16px; border-radius:var(--radius); margin-bottom:12px; font-size:14px;}
+  .alert-danger{background:#F6DCDA; color:#7A1F19;}
+  .alert-yellow{background:#FBEBD3; color:#6B4510;}
+  .alert-blue{background:#D9E6F5; color:#123E70;}
+  .toast{position:fixed; bottom:24px; left:50%; transform:translateX(-50%); background:var(--infield); color:#fff; padding:10px 20px; border-radius:30px; font-size:14px; font-weight:600; box-shadow:0 6px 18px rgba(0,0,0,0.2); z-index:200; opacity:0; pointer-events:none; transition:opacity .25s ease, transform .25s ease; max-width:90vw; text-align:center;}
+  .toast.show{opacity:1; transform:translateX(-50%) translateY(-6px);}
+  .settings-btn{background:transparent; border:none; color:#C3CCD4; cursor:pointer; padding:6px;}
+  .modal-backdrop{position:fixed; inset:0; background:rgba(0,0,0,0.45); display:flex; align-items:center; justify-content:center; z-index:100; padding:16px;}
+  .modal{background:#fff; border-radius:12px; padding:22px; width:min(520px,100%); max-height:92vh; overflow-y:auto;}
+  .modal h3{margin-top:0; color:var(--infield);}
+  .modal .field{margin-bottom:12px;}
+  .modal .field input, .modal .field select, .modal .field textarea{width:100%;}
+  .modal hr{border:none; border-top:1px solid var(--border); margin:16px 0;}
+  .two-col{display:grid; grid-template-columns:1fr 1fr; gap:16px;}
+  @media (max-width:1000px){ .two-col{grid-template-columns:1fr;} }
+  .day-head{font-family:'Oswald',sans-serif; text-transform:uppercase; color:var(--infield); font-size:14px; margin:14px 0 6px; letter-spacing:.03em;}
+  .day-head:first-child{margin-top:0;}
+  .muted{color:var(--muted);}
+  .small{font-size:12.5px;}
+  .grade{display:inline-flex; align-items:center; gap:4px; background:#E3E7EB; color:var(--infield); border-radius:16px; padding:3px 4px 3px 10px; font-weight:700; margin:2px;}
+  .grade button{border:none; background:transparent; color:var(--muted); cursor:pointer; font-size:14px; padding:0 4px;}
+  .link{background:none; border:none; padding:0; color:var(--infield); font-weight:600; cursor:pointer; text-align:left; font-size:inherit; font-family:inherit; text-decoration:underline; text-decoration-color:var(--border); text-underline-offset:3px;}
+  /* ---------- FIȘA DE MONITORIZARE (tipărire) ---------- */
+  .fisa{background:#fff; border:1px solid var(--border); border-radius:6px; padding:28px 34px; max-width:780px; margin:0 auto 20px; color:#000; font-family:'Times New Roman',Times,serif;}
+  .fisa .sc{font-weight:700; font-size:15px;}
+  .fisa .tt{text-align:center; font-weight:700; font-size:20px; margin:18px 0 14px;}
+  .fisa .meta{display:flex; justify-content:space-between; font-size:15px; margin:6px 0;}
+  .fisa table{margin-top:12px; font-size:15px; font-family:'Times New Roman',Times,serif;}
+  .fisa th, .fisa td{border:1px solid #000; padding:7px 8px; color:#000; text-align:center; font-family:'Times New Roman',Times,serif; text-transform:none; letter-spacing:0; font-size:14px;}
+  .fisa th{font-weight:700;}
+  .fisa td.nume{text-align:left;}
+  .fisa .semn{display:flex; justify-content:flex-end; margin-top:30px; font-size:15px; padding-right:40px;}
+  @media print{
+    @page{size:A4; margin:14mm;}
+    body{background:#fff;}
+    header, nav, .no-print, .toast{display:none !important;}
+    #app{height:auto; display:block;}
+    .body-wrap{overflow:visible; display:block;}
+    main{overflow:visible; padding:0;}
+    .fisa{border:none; padding:0; max-width:none; margin:0; page-break-after:always; break-after:page;}
+    .fisa:last-child{page-break-after:auto; break-after:auto;}
+  }
+</style>
+</head>
+<body>
+<div id="app"></div>
+<div class="toast" id="toast"></div>
+<input type="file" id="file-json" accept=".json,application/json" style="display:none">
+<input type="file" id="file-xlsx" accept=".xlsx,.xls" style="display:none">
+
+<script>
+/* ============================================================
+   ȘCOALA DE ȘOFERI — catalogul instructorului auto (cat. B)
+   Aplicație de sine stătătoare, 100% offline după prima deschidere.
+   Datele stau doar pe dispozitiv (localStorage). Mutarea între
+   laptop și tabletă: Setări -> Exportă backup / Importă backup.
+   ============================================================ */
+const STORAGE_KEY = 'scoala-soferi-v1';
+const UI_STORAGE_KEY = 'scoala-soferi-ui-v1';
+
+const ZILE = ['DUMINICĂ','LUNI','MARȚI','MIERCURI','JOI','VINERI','SÂMBĂTĂ'];
+const LUNI = ['','Ianuarie','Februarie','Martie','Aprilie','Mai','Iunie','Iulie','August','Septembrie','Octombrie','Noiembrie','Decembrie'];
+const LUNI_AN = [9,10,11,12,1,2,3,4,5,6,7,8];
+const REZULTATE = ['', 'ADMIS', 'RESPINS', 'NEPREZENTAT'];
+const DOC_TIPURI = ['ASIGURARE PERSOANE','ASIGURARE RCA','I.T.P.','CASCO','ROVINIETĂ','AUTORIZAȚIE ȘCOALĂ','TRUSĂ MEDICALĂ','EXTINCTOR'];
+
+function stareImplicita(){
+  return {
+    versiune: 1,
+    settings: {
+      titlu: 'Școala de șoferi',
+      scoala: 'LICEUL TEHNOLOGIC „ALEXANDRU VLAHUȚĂ” ȘENDRICENI',
+      instructor: 'BOTEZATU DANIEL',
+      anScolar: anDinData(todayISO()),
+      oreNecesare: 30,
+      kmPeOra: 5,
+      normaLitriPeOra: 1,
+      intervale: ['07:40','08:35','09:30','10:30','11:25','12:20','13:15','14:00','14:50'],
+      ultimulExport: null,
+    },
+    masini: [],
+    elevi: [],
+    ore: [],
+    programari: [],
+    istoricExamene: [],
+  };
+}
+let state = stareImplicita();
+let currentTab = 'azi';
+let ui = {
+  oreLuna:'all', oreElev:'all', editOraId:null, preOra:null,
+  progTrecute:false, elevDetaliu:null, masinaId:null,
+  fisaData:null, fisaMasina:null, fisaLunaIntreaga:false,
+};
+
+/* ---------------- UTILITARE ---------------- */
+function uid(){ return Date.now().toString(36) + Math.random().toString(36).slice(2,8); }
+function pad2(n){ return String(n).padStart(2,'0'); }
+function todayISO(){ const d=new Date(); return `${d.getFullYear()}-${pad2(d.getMonth()+1)}-${pad2(d.getDate())}`; }
+function esc(s){ return String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+function fmtData(iso){ if(!iso) return '—'; const [y,m,d]=iso.split('-'); return `${d}.${m}.${y}`; }
+function ziDin(iso){ return ZILE[new Date(iso+'T12:00:00').getDay()]; }
+function lunaDin(iso){ return parseInt(iso.slice(5,7),10); }
+function anDinData(iso){ const y=parseInt(iso.slice(0,4),10), m=parseInt(iso.slice(5,7),10); return m>=9 ? `${y}-${y+1}` : `${y-1}-${y}`; }
+function adunaOre(hhmm, ore){ if(!hhmm) return ''; const [h,m]=hhmm.split(':').map(Number); const t=h*60+m+Math.round(ore*60); return `${pad2(Math.floor(t/60)%24)}:${pad2(t%60)}`; }
+function zileIntre(isoA, isoB){ return Math.round((new Date(isoB+'T12:00:00') - new Date(isoA+'T12:00:00'))/86400000); }
+function nr(v){ const x=parseFloat(String(v).replace(',','.')); return isNaN(x)?0:x; }
+function fmtNr(x){ return (Math.round(x*100)/100).toLocaleString('ro-RO'); }
+function capitalizeaza(s){ return String(s??'').trim().replace(/\s+/g,' ').toUpperCase(); }
+
+/* ---------------- STOCARE ---------------- */
+function loadState(){
+  try{
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if(raw) state = Object.assign(stareImplicita(), JSON.parse(raw));
+  }catch(e){}
+  migreaza();
+  try{
+    const raw = localStorage.getItem(UI_STORAGE_KEY);
+    if(raw){ const p=JSON.parse(raw); if(p.currentTab) currentTab=p.currentTab; if(p.ui) ui=Object.assign(ui,p.ui); }
+  }catch(e){}
+  ui.fisaData = todayISO(); ui.editOraId=null; ui.preOra=null;
+}
+function migreaza(){
+  const d = stareImplicita();
+  state.settings = Object.assign(d.settings, state.settings||{});
+  ['masini','elevi','ore','programari','istoricExamene'].forEach(k=>{ if(!Array.isArray(state[k])) state[k]=[]; });
+  state.elevi.forEach(e=>{ if(!e.note) e.note=[]; if(e.telefon===undefined) e.telefon=''; if(e.obs===undefined) e.obs=''; });
+  state.masini.forEach(m=>{ ['documente','revizii','alimentari'].forEach(k=>{ if(!m[k]) m[k]=[]; }); });
+}
+let ultimaSalvare = null, saveTimer = null;
+function saveNow(){
+  clearTimeout(saveTimer);
+  try{ localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); ultimaSalvare=new Date(); actualizeazaIndicator(); return true; }
+  catch(e){ return false; }
+}
+function save(){
+  clearTimeout(saveTimer);
+  saveTimer = setTimeout(()=>{ if(!saveNow()) toast('Nu am putut salva pe acest dispozitiv.'); }, 150);
+}
+function saveUI(){ try{ localStorage.setItem(UI_STORAGE_KEY, JSON.stringify({currentTab, ui})); }catch(e){} }
+function actualizeazaIndicator(){
+  const el=document.getElementById('save-indicator');
+  if(el) el.textContent = ultimaSalvare ? 'Salvat '+ultimaSalvare.toLocaleTimeString('ro-RO',{hour:'2-digit',minute:'2-digit'}) : '';
+}
+window.addEventListener('beforeunload', saveNow);
+document.addEventListener('visibilitychange', ()=>{ if(document.visibilityState==='hidden') saveNow(); });
+
+function toast(msg, ms){
+  const t=document.getElementById('toast'); t.textContent=msg; t.classList.add('show');
+  clearTimeout(toast._t); toast._t=setTimeout(()=>t.classList.remove('show'), ms||2000);
+}
+
+/* ---------------- DATE DERIVATE ---------------- */
+function eleviAn(){ return state.elevi.filter(e=>e.anScolar===state.settings.anScolar).sort((a,b)=>a.nume.localeCompare(b.nume,'ro')); }
+function elevById(id){ return state.elevi.find(e=>e.id===id); }
+function numeElev(id){ const e=elevById(id); return e?e.nume:'(elev șters)'; }
+function oreAn(){ const ids=new Set(eleviAn().map(e=>e.id)); return state.ore.filter(o=>ids.has(o.elevId)); }
+function statElev(id){
+  let s=0,c=0,km=0,n=0;
+  state.ore.forEach(o=>{ if(o.elevId!==id) return; if(o.tip==='S') s+=nr(o.nr); else c+=nr(o.nr); km+=nr(o.km); n++; });
+  const total=s+c;
+  return {s,c,total,km,n,ramase:Math.max(0,state.settings.oreNecesare-total)};
+}
+function mediaElev(e){ if(!e.note.length) return null; return e.note.reduce((a,n)=>a+nr(n.nota),0)/e.note.length; }
+function masinaActiva(){
+  if(!state.masini.length) return null;
+  return state.masini.find(m=>m.id===ui.masinaId) || state.masini[0];
+}
+function stareDoc(doc){
+  if(!doc.expira) return {cls:'pill-ghost', txt:'Fără dată', zile:null};
+  const z = zileIntre(todayISO(), doc.expira);
+  if(z<0) return {cls:'pill-danger', txt:`Expirat de ${-z} ${-z===1?'zi':'zile'}`, zile:z};
+  if(z<=30) return {cls:'pill-yellow', txt:`Expiră în ${z} ${z===1?'zi':'zile'}`, zile:z};
+  return {cls:'pill-ok', txt:'Valabil', zile:z};
+}
+function aniDisponibili(){
+  const s=new Set(state.elevi.map(e=>e.anScolar)); s.add(state.settings.anScolar); s.add(anDinData(todayISO()));
+  return [...s].filter(Boolean).sort().reverse();
+}
+function luniCuDate(){
+  const set=new Set(oreAn().map(o=>lunaDin(o.data)));
+  // septembrie–iunie apar mereu; iulie/august doar dacă au ore
+  return LUNI_AN.filter(m=> (m!==7 && m!==8) || set.has(m));
+}
+function intervalOrar(o){ return o.ora ? `${o.ora}–${adunaOre(o.ora, nr(o.nr))}` : ''; }
+
+/* ---------------- ICONIȚE ---------------- */
+const ICONS = {
+  azi:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3.5 2"/></svg>',
+  ore:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="2.5"/><path d="M12 14.5V21"/><path d="M9.6 11.3L3.3 9.8"/><path d="M14.4 11.3l6.3-1.5"/></svg>',
+  centralizator:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 20V10"/><path d="M12 20V4"/><path d="M20 20v-7"/></svg>',
+  lunar:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="17" rx="2"/><path d="M3 9h18"/><path d="M8 2v4"/><path d="M16 2v4"/><path d="M8 13h2"/><path d="M14 13h2"/><path d="M8 17h2"/><path d="M14 17h2"/></svg>',
+  programari:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4.5" width="18" height="16" rx="2"/><path d="M3 9.5h18"/><path d="M8 2.5v4"/><path d="M16 2.5v4"/><path d="M9 14l2 2 4-4"/></svg>',
+  elevi:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="9" cy="8" r="3.2"/><path d="M2.5 20c0-3.5 3-6 6.5-6s6.5 2.5 6.5 6"/><circle cx="17.5" cy="9" r="2.4"/><path d="M15 20c0-2.6 1-4.6 3-5.5"/></svg>',
+  note:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 3h9l4 4v14H6z"/><path d="M9 11l2 2 4-4"/></svg>',
+  examen:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="9" r="5"/><path d="M8.5 13l-1.5 8 5-2.5 5 2.5-1.5-8"/></svg>',
+  masina:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 17h14v-4l-2-5H7l-2 5z"/><path d="M5 13h14"/><circle cx="8" cy="17" r="1.8"/><circle cx="16" cy="17" r="1.8"/></svg>',
+  fisa:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9V3h12v6"/><rect x="3" y="9" width="18" height="8" rx="1.5"/><path d="M6 14h12v7H6z"/></svg>',
+  save:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="17" height="17"><path d="M5 3h11l3 3v15H5z"/><path d="M8 3v6h8V3"/><path d="M7 21v-8h10v8"/></svg>',
+  gear:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="20" height="20"><circle cx="12" cy="12" r="3"/><path d="M19.4 13a7.6 7.6 0 000-2l2-1.5-2-3.4-2.3.9a7.7 7.7 0 00-1.7-1L15 3h-6l-.4 2.9a7.7 7.7 0 00-1.7 1l-2.3-.9-2 3.4L4.6 11a7.6 7.6 0 000 2l-2 1.5 2 3.4 2.3-.9c.5.4 1.1.8 1.7 1L9 21h6l.4-2.9c.6-.2 1.2-.6 1.7-1l2.3.9 2-3.4z"/></svg>',
+  trash:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="15" height="15"><path d="M4 7h16"/><path d="M9 7V4h6v3"/><path d="M6 7l1 13h10l1-13"/></svg>',
+  edit:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="15" height="15"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 013 3L7 19l-4 1 1-4z"/></svg>',
+};
+const TABS = [
+  {id:'azi', label:'Azi'},
+  {id:'ore', label:'Ore'},
+  {id:'centralizator', label:'Centralizator'},
+  {id:'lunar', label:'Pe luni'},
+  {id:'programari', label:'Programări'},
+  {id:'elevi', label:'Elevi'},
+  {id:'note', label:'Note'},
+  {id:'examen', label:'Examen'},
+  {id:'masina', label:'Mașina'},
+  {id:'fisa', label:'Fișa zilnică'},
+];
+
+/* ================= RANDARE ================= */
+function render(){
+  if(!TABS.find(t=>t.id===currentTab)) currentTab='azi';
+  const app=document.getElementById('app');
+  const navBtns = TABS.map(t=>`<button data-tab="${t.id}" class="${currentTab===t.id?'active':''}">${ICONS[t.id]}<span>${t.label}</span></button>`).join('');
+  app.innerHTML = `
+    <header>
+      <div class="title">
+        <h1>${esc(state.settings.titlu)}</h1>
+        <span class="subtitle">Instructor auto · cat. B</span>
+      </div>
+      <div style="display:flex; align-items:center; gap:10px;">
+        <span class="date" id="save-indicator"></span>
+        <select class="an-select" id="an-select" title="An școlar">
+          ${aniDisponibili().map(a=>`<option value="${a}" ${a===state.settings.anScolar?'selected':''}>${a}</option>`).join('')}
+        </select>
+        <button class="btn btn-primary" id="btn-save-now" style="padding:8px 14px; min-height:36px; display:flex; align-items:center; gap:6px;">${ICONS.save}<span>Salvează</span></button>
+        <button class="settings-btn" id="btn-settings" title="Setări">${ICONS.gear}</button>
+      </div>
+    </header>
+    <div class="body-wrap">
+      <nav class="sidebar">${navBtns}</nav>
+      <main id="main"></main>
+    </div>
+    <nav class="bottombar">${navBtns}</nav>`;
+  actualizeazaIndicator();
+  renderTab();
+  const activ=document.querySelector('nav.bottombar button.active');
+  if(activ) activ.scrollIntoView({inline:'center', block:'nearest'});
+  saveUI();
+}
+function renderTab(){
+  const main=document.getElementById('main');
+  const f = {azi:tabAzi, ore:tabOre, centralizator:tabCentralizator, lunar:tabLunar, programari:tabProgramari, elevi:tabElevi, note:tabNote, examen:tabExamen, masina:tabMasina, fisa:tabFisa}[currentTab];
+  main.innerHTML = f();
+  if(currentTab==='ore') initFormOra();
+}
+function goTab(id){ currentTab=id; render(); document.getElementById('main').scrollTop=0; }
+function gol(titlu, txt){ return `<div class="empty"><div class="display">${titlu}</div><div>${txt||''}</div></div>`; }
+function optElevi(selId, cuToti){
+  const el=eleviAn();
+  return (cuToti?`<option value="all">Toți elevii</option>`:'<option value="">— alege elevul —</option>') +
+    el.map(e=>`<option value="${e.id}" ${e.id===selId?'selected':''}>${esc(e.nume)}${e.clasa?' · '+esc(e.clasa):''}</option>`).join('');
+}
+function faraElevi(){
+  return gol('Niciun elev în '+esc(state.settings.anScolar), `Adaugă elevi în tabul <b>Elevi</b> sau importă fișierul Excel din <b>Setări</b>.<div style="margin-top:14px; display:flex; gap:8px; justify-content:center; flex-wrap:wrap;"><button class="btn btn-primary" data-act="import-xlsx">Importă din Excel</button><button class="btn btn-secondary" data-tab="elevi">Adaugă elevi</button></div>`);
+}
+
+/* ---------------- AZI ---------------- */
+function tabAzi(){
+  const azi=todayISO();
+  const s=state.settings;
+  const progAzi=state.programari.filter(p=>p.data===azi && !p.efectuata).sort((a,b)=>a.oraStart.localeCompare(b.oraStart));
+  const oreAzi=state.ore.filter(o=>o.data===azi).sort((a,b)=>(a.ora||'').localeCompare(b.ora||''));
+  const el=eleviAn();
+  let alerte='';
+  state.masini.forEach(m=>m.documente.forEach(d=>{
+    const st=stareDoc(d);
+    if(st.zile!==null && st.zile<=30) alerte+=`<div class="alert ${st.zile<0?'alert-danger':'alert-yellow'}"><div><b>${esc(m.nr)} — ${esc(d.tip)}:</b> ${st.txt.toLowerCase()} (${fmtData(d.expira)}).</div><button class="btn btn-ghost" data-tab="masina" style="background:#fff;">Actualizează</button></div>`;
+  }));
+  const zExp = s.ultimulExport ? zileIntre(s.ultimulExport, azi) : null;
+  if(zExp===null || zExp>=7) alerte+=`<div class="alert alert-blue"><div>💾 ${zExp===null?'<b>N-ai făcut încă niciun backup.</b> Dacă pierzi tableta, pierzi tot.':`<b>Ultimul backup a fost acum ${zExp} zile.</b>`}</div><button class="btn btn-primary" data-act="export-json">Exportă acum</button></div>`;
+  let totS=0,totC=0,termin=0;
+  el.forEach(e=>{ const st=statElev(e.id); totS+=st.s; totC+=st.c; if(st.ramase===0) termin++; });
+  const rami=el.map(e=>({e,st:statElev(e.id)})).filter(x=>x.st.ramase>0).sort((a,b)=>b.st.ramase-a.st.ramase).slice(0,5);
+  return `
+    <h2>${ziDin(azi)}, ${fmtData(azi)}</h2>
+    <p class="tab-desc">Programările de azi, orele trecute deja și ce trebuie urmărit. An școlar ${esc(s.anScolar)}.</p>
+    ${alerte}
+    <div class="stats">
+      <div class="stat"><div class="v">${el.length}</div><div class="l">Elevi</div></div>
+      <div class="stat"><div class="v">${fmtNr(totC)}</div><div class="l">Ore conducere</div></div>
+      <div class="stat"><div class="v">${fmtNr(totS)}</div><div class="l">Ore simulator</div></div>
+      <div class="stat accent"><div class="v">${termin}/${el.length}</div><div class="l">Au terminat ${s.oreNecesare} ore</div></div>
+    </div>
+    <div class="two-col">
+      <div class="card">
+        <div style="display:flex; justify-content:space-between; align-items:center; gap:8px; margin-bottom:10px;"><h3 style="margin:0;">Programați azi</h3><button class="btn btn-ghost" data-tab="programari">+ Programare</button></div>
+        ${progAzi.length ? `<div class="table-wrap"><table>${progAzi.map(p=>`<tr><td style="white-space:nowrap;"><b>${p.oraStart}</b>–${p.oraFinal||''}</td><td>${esc(numeElev(p.elevId))}</td><td style="text-align:right;"><button class="btn btn-ok" data-act="prog-done" data-id="${p.id}">Efectuată ✓</button></td></tr>`).join('')}</table></div>` : `<p class="muted small" style="margin:0;">Nicio programare pentru azi.</p>`}
+      </div>
+      <div class="card">
+        <div style="display:flex; justify-content:space-between; align-items:center; gap:8px; margin-bottom:10px;"><h3 style="margin:0;">Ore trecute azi</h3><button class="btn btn-primary" data-act="ora-noua">+ Oră</button></div>
+        ${oreAzi.length ? `<div class="table-wrap"><table>${oreAzi.map(o=>`<tr><td style="white-space:nowrap;">${intervalOrar(o)}</td><td>${esc(numeElev(o.elevId))}</td><td>${pillTip(o.tip)}</td><td class="num">${fmtNr(nr(o.nr))} h · ${fmtNr(nr(o.km))} km</td></tr>`).join('')}</table></div>` : `<p class="muted small" style="margin:0;">Nicio oră trecută azi.</p>`}
+      </div>
+    </div>
+    ${rami.length ? `<div class="card"><h3>Cele mai multe ore rămase</h3><div class="table-wrap"><table>${rami.map(x=>`<tr class="clickable" data-act="elev-open" data-id="${x.e.id}"><td>${esc(x.e.nume)}</td><td style="width:40%;">${barProgres(x.st)}</td><td class="num"><b>${fmtNr(x.st.ramase)}</b> rămase</td></tr>`).join('')}</table></div></div>` : ''}
+    ${el.length===0 ? faraElevi() : ''}
+  `;
+}
+function pillTip(t){ return t==='S' ? '<span class="pill pill-blue">Simulator</span>' : '<span class="pill pill-dark">Conducere</span>'; }
+function barProgres(st){
+  const N=state.settings.oreNecesare||30;
+  const ps=Math.min(100, st.s/N*100), pc=Math.min(100-ps, st.c/N*100);
+  return `<div class="bar" title="${fmtNr(st.s)} simulator + ${fmtNr(st.c)} conducere din ${N}"><span class="s" style="width:${ps}%"></span><span class="c" style="width:${pc}%"></span></div>`;
+}
+
+/* ---------------- ORE (JURNAL) ---------------- */
+function tabOre(){
+  const el=eleviAn();
+  if(!el.length) return `<h2>Jurnalul de ore</h2>${faraElevi()}`;
+  const s=state.settings;
+  const ed = ui.editOraId ? state.ore.find(o=>o.id===ui.editOraId) : null;
+  const pre = ed || ui.preOra || {};
+  const tip = pre.tip || 'C';
+  const nrO = pre.nr ?? 1;
+  const kmV = pre.km ?? (tip==='C' ? nrO*s.kmPeOra : 0);
+  const ora = pre.ora || '';
+  let lista = oreAn();
+  if(ui.oreLuna!=='all') lista=lista.filter(o=>lunaDin(o.data)===parseInt(ui.oreLuna,10));
+  if(ui.oreElev!=='all') lista=lista.filter(o=>o.elevId===ui.oreElev);
+  lista.sort((a,b)=> b.data.localeCompare(a.data) || (b.ora||'').localeCompare(a.ora||''));
+  let sumS=0,sumC=0,sumKm=0; lista.forEach(o=>{ if(o.tip==='S') sumS+=nr(o.nr); else sumC+=nr(o.nr); sumKm+=nr(o.km); });
+  const luniOpt = luniCuDate();
+  return `
+    <h2>Jurnalul de ore</h2>
+    <p class="tab-desc">Fiecare oră făcută cu un elev — la simulator sau la volan. Totalurile din Centralizator și Pe luni se calculează automat de aici.</p>
+    <div class="card" id="form-ora" ${ed?'style="border-color:var(--track); border-width:2px;"':''}>
+      <h3>${ed?'Modifică ora':'Adaugă o oră'}</h3>
+      <div class="row">
+        <div class="field" style="flex:2 1 240px;"><label>Elev</label><select id="o-elev">${optElevi(pre.elevId||'')}</select></div>
+        <div class="field" style="flex:1 1 150px;"><label>Data</label><input type="date" id="o-data" value="${pre.data||todayISO()}"></div>
+        <div class="field" style="flex:1 1 120px;"><label>Ora de început</label>
+          <input type="time" id="o-ora" value="${ora}" list="intervale-list"><datalist id="intervale-list">${s.intervale.map(i=>`<option value="${i}">`).join('')}</datalist></div>
+      </div>
+      <div class="row" style="margin-top:12px;">
+        <div class="field"><label>Tip</label><div class="seg" id="o-tip"><button type="button" data-tipval="C" class="${tip==='C'?'on':''}">Conducere</button><button type="button" data-tipval="S" class="${tip==='S'?'on':''}">Simulator</button></div></div>
+        <div class="field"><label>Nr. ore</label><input type="number" id="o-nr" class="mic" min="0.5" step="0.5" value="${nrO}"></div>
+        <div class="field"><label>Km</label><input type="number" id="o-km" class="mic" min="0" step="1" value="${kmV}" data-manual="${ed?1:0}" ${tip==='S'?'disabled':''}></div>
+        <div class="field" style="flex:1 1 200px;"><label>Observații (traseu, manevre)</label><input type="text" id="o-obs" value="${esc(pre.obs||'')}" placeholder="opțional"></div>
+      </div>
+      <div class="row" style="margin-top:14px;">
+        <button class="btn btn-primary" data-act="ora-save">${ed?'Salvează modificarea':'Adaugă ora'}</button>
+        ${ed||ui.preOra?'<button class="btn btn-ghost" data-act="ora-cancel">Renunță</button>':''}
+      </div>
+    </div>
+    <div class="card">
+      <div class="row" style="margin-bottom:12px;">
+        <div class="field"><label>Luna</label><select data-filter="oreLuna"><option value="all">Toate lunile</option>${luniOpt.map(m=>`<option value="${m}" ${String(m)===String(ui.oreLuna)?'selected':''}>${LUNI[m]}</option>`).join('')}</select></div>
+        <div class="field" style="flex:1 1 220px;"><label>Elev</label><select data-filter="oreElev">${optElevi(ui.oreElev,true)}</select></div>
+      </div>
+      <p class="small muted" style="margin:0 0 8px;">${lista.length} înregistrări · ${fmtNr(sumC)} ore conducere · ${fmtNr(sumS)} ore simulator · ${fmtNr(sumKm)} km</p>
+      ${lista.length ? `<div class="table-wrap"><table>
+        <thead><tr><th>Data</th><th>Ora</th><th>Elev</th><th>Tip</th><th class="num">Ore</th><th class="num">Km</th><th></th></tr></thead>
+        <tbody>${lista.map(o=>`<tr>
+          <td style="white-space:nowrap;">${fmtData(o.data)}</td>
+          <td style="white-space:nowrap;">${o.ora||''}</td>
+          <td>${esc(numeElev(o.elevId))}${o.obs?`<div class="small muted">${esc(o.obs)}</div>`:''}</td>
+          <td>${pillTip(o.tip)}</td>
+          <td class="num">${fmtNr(nr(o.nr))}</td>
+          <td class="num">${o.tip==='S'?'—':fmtNr(nr(o.km))}</td>
+          <td style="white-space:nowrap; text-align:right;"><button class="icon-btn" data-act="ora-edit" data-id="${o.id}" title="Modifică">${ICONS.edit}</button> <button class="icon-btn del" data-act="ora-del" data-id="${o.id}" title="Șterge">${ICONS.trash}</button></td>
+        </tr>`).join('')}</tbody></table></div>` : gol('Nicio oră','Nu există înregistrări pentru filtrul ales.')}
+    </div>`;
+}
+function initFormOra(){
+  const nrEl=document.getElementById('o-nr'), kmEl=document.getElementById('o-km');
+  if(!nrEl) return;
+  const recalc=()=>{
+    const tip=document.querySelector('#o-tip button.on').dataset.tipval;
+    if(tip==='S'){ kmEl.value=0; kmEl.disabled=true; return; }
+    kmEl.disabled=false;
+    if(kmEl.dataset.manual!=='1') kmEl.value = Math.round(nr(nrEl.value)*state.settings.kmPeOra);
+  };
+  nrEl.addEventListener('input', recalc);
+  kmEl.addEventListener('input', ()=>{ kmEl.dataset.manual='1'; });
+  document.querySelectorAll('#o-tip button').forEach(b=>b.addEventListener('click',()=>{
+    document.querySelectorAll('#o-tip button').forEach(x=>x.classList.toggle('on', x===b)); recalc();
+  }));
+}
+function salveazaOra(){
+  const elevId=document.getElementById('o-elev').value;
+  const data=document.getElementById('o-data').value;
+  const ora=document.getElementById('o-ora').value;
+  const tip=document.querySelector('#o-tip button.on').dataset.tipval;
+  const nrO=nr(document.getElementById('o-nr').value);
+  const km= tip==='S' ? 0 : nr(document.getElementById('o-km').value);
+  const obs=document.getElementById('o-obs').value.trim();
+  if(!elevId) return toast('Alege elevul.');
+  if(!data) return toast('Alege data.');
+  if(nrO<=0) return toast('Numărul de ore trebuie să fie mai mare ca 0.');
+  const masinaId = (masinaActiva()||{}).id || null;
+  if(ui.editOraId){
+    const o=state.ore.find(x=>x.id===ui.editOraId);
+    Object.assign(o,{elevId,data,ora,tip,nr:nrO,km,obs});
+    toast('Ora a fost modificată ✓');
+  }else{
+    state.ore.push({id:uid(), elevId, data, ora, tip, nr:nrO, km, obs, masinaId});
+    if(ui.preOra && ui.preOra.progId){ const p=state.programari.find(x=>x.id===ui.preOra.progId); if(p) p.efectuata=true; }
+    const st=statElev(elevId);
+    toast(`Adăugată ✓ — ${numeElev(elevId).split(' ')[0]}: ${fmtNr(st.total)} din ${state.settings.oreNecesare} ore`, 2600);
+  }
+  ui.editOraId=null; ui.preOra=null;
+  save(); render();
+}
+
+/* ---------------- CENTRALIZATOR ---------------- */
+function tabCentralizator(){
+  const el=eleviAn();
+  if(!el.length) return `<h2>Centralizator</h2>${faraElevi()}`;
+  const N=state.settings.oreNecesare;
+  let T={s:0,c:0,total:0,km:0,ramase:0};
+  const rows=el.map((e,i)=>{ const st=statElev(e.id); ['s','c','total','km','ramase'].forEach(k=>T[k]+=st[k]);
+    return `<tr class="clickable" data-act="elev-open" data-id="${e.id}">
+      <td class="muted">${i+1}</td><td><b>${esc(e.nume)}</b></td><td>${esc(e.clasa)}</td>
+      <td class="num">${fmtNr(st.s)}</td><td class="num">${fmtNr(st.c)}</td><td class="num"><b>${fmtNr(st.total)}</b></td>
+      <td class="num">${fmtNr(st.km)}</td>
+      <td class="num">${st.ramase===0?'<span class="pill pill-ok">Complet</span>':`<b style="color:var(--track);">${fmtNr(st.ramase)}</b>`}</td>
+      <td style="min-width:110px;">${barProgres(st)}</td></tr>`; }).join('');
+  return `
+    <h2>Centralizator</h2>
+    <p class="tab-desc">Situația fiecărui elev față de cele ${N} ore obligatorii (simulator + conducere). Atinge un elev ca să-i vezi toate orele. <span class="pill pill-blue">■ simulator</span> <span class="pill" style="background:#F9DCCD; color:var(--track-dark);">■ conducere</span></p>
+    <div class="card"><div class="table-wrap"><table>
+      <thead><tr><th>Nr.</th><th>Elev</th><th>Clasa</th><th class="num">Simulator</th><th class="num">Conducere</th><th class="num">Total ore</th><th class="num">Km</th><th class="num">Rămase</th><th>Progres</th></tr></thead>
+      <tbody>${rows}
+      <tr class="total"><td></td><td>TOTAL</td><td></td><td class="num">${fmtNr(T.s)}</td><td class="num">${fmtNr(T.c)}</td><td class="num">${fmtNr(T.total)}</td><td class="num">${fmtNr(T.km)}</td><td class="num">${fmtNr(T.ramase)}</td><td></td></tr>
+      </tbody></table></div></div>
+    <div class="stats">
+      <div class="stat"><div class="v">${fmtNr(T.total)}</div><div class="l">Total ore general</div></div>
+      <div class="stat accent"><div class="v">${fmtNr(el.length*N - T.total)}</div><div class="l">Total ore rămase (${el.length}×${N})</div></div>
+      <div class="stat"><div class="v">${fmtNr(T.km)}</div><div class="l">Km parcurși</div></div>
+    </div>`;
+}
+
+/* ---------------- PE LUNI (STATISTICA) ---------------- */
+function tabLunar(){
+  const el=eleviAn();
+  if(!el.length) return `<h2>Pe luni</h2>${faraElevi()}`;
+  const luni=luniCuDate();
+  const ore=oreAn();
+  const cell={}; // elevId|luna|tip
+  const lunaT={};
+  ore.forEach(o=>{ const m=lunaDin(o.data); const k=`${o.elevId}|${m}|${o.tip}`; cell[k]=(cell[k]||0)+nr(o.nr); const lk=`${m}|${o.tip}`; lunaT[lk]=(lunaT[lk]||0)+nr(o.nr); const kk=`${m}|km`; lunaT[kk]=(lunaT[kk]||0)+nr(o.km); });
+  const v=x=>x?fmtNr(x):'<span class="muted">·</span>';
+  const head1=luni.map(m=>`<th colspan="2" style="text-align:center; border-left:1px solid var(--border);">${LUNI[m].slice(0,3)}</th>`).join('');
+  const head2=luni.map(()=>`<th class="num" style="border-left:1px solid var(--border); color:var(--sim);">S</th><th class="num">C</th>`).join('');
+  const rows=el.map(e=>{ let tot=0; const tds=luni.map(m=>{ const s=cell[`${e.id}|${m}|S`]||0, c=cell[`${e.id}|${m}|C`]||0; tot+=s+c; return `<td class="num" style="border-left:1px solid var(--border);">${v(s)}</td><td class="num">${v(c)}</td>`; }).join('');
+    return `<tr><td style="white-space:nowrap;">${esc(e.nume)}</td>${tds}<td class="num"><b>${fmtNr(tot)}</b></td></tr>`; }).join('');
+  let gT=0; const totRow=luni.map(m=>{ const s=lunaT[`${m}|S`]||0, c=lunaT[`${m}|C`]||0; gT+=s+c; return `<td class="num" style="border-left:1px solid var(--border);">${v(s)}</td><td class="num">${v(c)}</td>`; }).join('');
+
+  // carburant pe luni (mașina activă)
+  const m=masinaActiva(); const an=state.settings.anScolar; const norma=nr(state.settings.normaLitriPeOra);
+  let carb='';
+  if(m){
+    let sold=0;
+    const rowsC=luni.map(l=>{
+      const alim=m.alimentari.filter(a=>a.data && anDinData(a.data)===an && lunaDin(a.data)===l);
+      const litri=alim.reduce((s,a)=>s+nr(a.litri),0);
+      const oreC=lunaT[`${l}|C`]||0, km=lunaT[`${l}|km`]||0;
+      const consum=oreC*norma; sold+=litri-consum;
+      if(!litri && !oreC) return '';
+      return `<tr><td>${LUNI[l]}</td><td class="num">${alim.length||'·'}</td><td class="num">${litri?fmtNr(litri):'·'}</td><td class="num">${v(oreC)}</td><td class="num">${v(km)}</td><td class="num">${fmtNr(consum)}</td><td class="num" style="color:${sold<0?'var(--danger)':'var(--ok)'};"><b>${fmtNr(sold)}</b></td></tr>`;
+    }).join('');
+    carb=`<div class="card"><h3>Carburant — ${esc(m.nr)}</h3>
+      <p class="small muted" style="margin-top:-4px;">Consumul e estimat după norma din Setări (${fmtNr(norma)} l / oră de conducere). Alimentările le treci în tabul Mașina.</p>
+      ${rowsC?`<div class="table-wrap"><table><thead><tr><th>Luna</th><th class="num">Alimentări</th><th class="num">Litri alimentați</th><th class="num">Ore conducere</th><th class="num">Km</th><th class="num">Consum estimat (l)</th><th class="num">Sold cumulat (l)</th></tr></thead><tbody>${rowsC}</tbody></table></div>`:'<p class="muted small">Nimic de afișat încă.</p>'}</div>`;
+  }
+  return `
+    <h2>Pe luni</h2>
+    <p class="tab-desc">Orele fiecărui elev, lună de lună — <b style="color:var(--sim);">S</b> = simulator, <b>C</b> = conducere. Ca foaia „Statistica” din Excel, dar calculată automat.</p>
+    <div class="card"><div class="table-wrap"><table style="font-size:13px;">
+      <thead><tr><th rowspan="2">Elev</th>${head1}<th rowspan="2" class="num">Total</th></tr><tr>${head2}</tr></thead>
+      <tbody>${rows}<tr class="total"><td>TOTAL</td>${totRow}<td class="num">${fmtNr(gT)}</td></tr></tbody>
+    </table></div></div>
+    ${carb}`;
+}
+
+/* ---------------- PROGRAMĂRI ---------------- */
+function tabProgramari(){
+  const el=eleviAn();
+  if(!el.length) return `<h2>Programări</h2>${faraElevi()}`;
+  const s=state.settings, azi=todayISO();
+  let lista=state.programari.filter(p=>{ const e=elevById(p.elevId); return e && e.anScolar===s.anScolar; });
+  const trecute=lista.filter(p=>p.data<azi || p.efectuata).length;
+  if(!ui.progTrecute) lista=lista.filter(p=>p.data>=azi && !p.efectuata);
+  lista.sort((a,b)=>a.data.localeCompare(b.data)||a.oraStart.localeCompare(b.oraStart));
+  let html='', zi='';
+  lista.forEach(p=>{
+    if(p.data!==zi){ if(zi) html+='</table></div>'; zi=p.data; html+=`<div class="day-head">${ziDin(p.data)}, ${fmtData(p.data)}${p.data===azi?' · <span class="pill pill-yellow">azi</span>':''}</div><div class="table-wrap"><table>`; }
+    html+=`<tr><td style="white-space:nowrap; width:120px;"><b>${p.oraStart}</b>–${p.oraFinal||''}</td><td>${esc(numeElev(p.elevId))}${p.efectuata?' <span class="pill pill-ok">efectuată</span>':''}</td>
+      <td style="text-align:right; white-space:nowrap;">${!p.efectuata?`<button class="btn btn-ok" data-act="prog-done" data-id="${p.id}">Efectuată ✓</button> `:''}<button class="icon-btn del" data-act="prog-del" data-id="${p.id}" title="Șterge">${ICONS.trash}</button></td></tr>`;
+  });
+  if(zi) html+='</table></div>';
+  const optOre = s.intervale.map(i=>`<option value="${i}">`).join('');
+  return `
+    <h2>Programări</h2>
+    <p class="tab-desc">Cine vine la volan și când. „Efectuată” trece ora direct în jurnal, cu datele completate — verifici doar km.</p>
+    <div class="card">
+      <h3>Programare nouă</h3>
+      <div class="row">
+        <div class="field" style="flex:2 1 240px;"><label>Elev</label><select id="p-elev">${optElevi('')}</select></div>
+        <div class="field" style="flex:1 1 150px;"><label>Data</label><input type="date" id="p-data" value="${azi}"></div>
+        <div class="field"><label>De la</label><input type="time" id="p-start" list="p-int"><datalist id="p-int">${optOre}</datalist></div>
+        <div class="field"><label>Până la</label><input type="time" id="p-final" list="p-int"></div>
+        <button class="btn btn-primary" data-act="prog-save">Programează</button>
+      </div>
+      <p class="small muted" style="margin:10px 0 0;">Dacă lași „Până la” gol, se pune automat o oră după început.</p>
+    </div>
+    <div class="card">
+      <div style="display:flex; justify-content:space-between; align-items:center; gap:8px; margin-bottom:8px; flex-wrap:wrap;">
+        <h3 style="margin:0;">${ui.progTrecute?'Toate programările':'Programări viitoare'}</h3>
+        ${trecute?`<button class="btn btn-ghost" data-act="prog-toggle">${ui.progTrecute?'Ascunde trecutele':`Arată și trecutele (${trecute})`}</button>`:''}
+      </div>
+      ${html || '<p class="muted small" style="margin:0;">Nicio programare.</p>'}
+    </div>`;
+}
+
+/* ---------------- ELEVI ---------------- */
+function tabElevi(){
+  const el=eleviAn();
+  if(ui.elevDetaliu && elevById(ui.elevDetaliu)) return fisaElev(elevById(ui.elevDetaliu));
+  return `
+    <h2>Elevi</h2>
+    <p class="tab-desc">Elevii care fac pregătirea cu tine în ${esc(state.settings.anScolar)}. Atinge un nume ca să-i vezi fișa completă.</p>
+    <div class="card">
+      <h3>Adaugă elev</h3>
+      <div class="row">
+        <div class="field" style="flex:3 1 260px;"><label>Nume și prenume</label><input type="text" id="e-nume" placeholder="ex: POPESCU I. ANDREI"></div>
+        <div class="field" style="flex:1 1 90px;"><label>Clasa</label><input type="text" id="e-clasa" placeholder="XI F"></div>
+        <div class="field" style="flex:1 1 150px;"><label>Telefon</label><input type="tel" id="e-tel" placeholder="opțional"></div>
+        <button class="btn btn-primary" data-act="elev-add">Adaugă</button>
+      </div>
+    </div>
+    <div class="card">
+      ${el.length ? `<div class="table-wrap"><table>
+        <thead><tr><th>Nr.</th><th>Nume și prenume</th><th>Clasa</th><th>Telefon</th><th class="num">Ore</th><th>Examen</th><th></th></tr></thead>
+        <tbody>${el.map((e,i)=>{ const st=statElev(e.id); return `<tr>
+          <td class="muted">${i+1}</td><td><button class="link" data-act="elev-open" data-id="${e.id}">${esc(e.nume)}</button></td><td>${esc(e.clasa)}</td>
+          <td>${e.telefon?`<a href="tel:${esc(e.telefon)}">${esc(e.telefon)}</a>`:'<span class="muted">—</span>'}</td>
+          <td class="num">${fmtNr(st.total)}/${state.settings.oreNecesare}</td>
+          <td>${pillRez(e.examenRezultat)}</td>
+          <td style="white-space:nowrap; text-align:right;"><button class="icon-btn" data-act="elev-edit" data-id="${e.id}" title="Modifică">${ICONS.edit}</button> <button class="icon-btn del" data-act="elev-del" data-id="${e.id}" title="Șterge">${ICONS.trash}</button></td></tr>`; }).join('')}</tbody></table></div>` : gol('Niciun elev încă', 'Adaugă-i mai sus, sau importă fișierul Excel din Setări (⚙).') }
+    </div>`;
+}
+function pillRez(r){
+  if(r==='ADMIS') return '<span class="pill pill-ok">ADMIS</span>';
+  if(r==='RESPINS') return '<span class="pill pill-danger">RESPINS</span>';
+  if(r==='NEPREZENTAT') return '<span class="pill pill-yellow">NEPREZENTAT</span>';
+  return '<span class="muted small">—</span>';
+}
+function fisaElev(e){
+  const st=statElev(e.id);
+  const ore=state.ore.filter(o=>o.elevId===e.id).sort((a,b)=>a.data.localeCompare(b.data)||(a.ora||'').localeCompare(b.ora||''));
+  const med=mediaElev(e);
+  const prog=state.programari.filter(p=>p.elevId===e.id && !p.efectuata && p.data>=todayISO()).sort((a,b)=>a.data.localeCompare(b.data));
+  let cum=0;
+  return `
+    <div class="no-print" style="margin-bottom:12px;"><button class="btn btn-ghost" data-act="elev-close">← Înapoi la listă</button></div>
+    <h2>${esc(e.nume)}</h2>
+    <p class="tab-desc">Clasa ${esc(e.clasa||'—')} · ${esc(e.anScolar)}${e.telefon?` · <a href="tel:${esc(e.telefon)}">${esc(e.telefon)}</a>`:''}${e.obs?` · ${esc(e.obs)}`:''} <button class="link small" data-act="elev-edit" data-id="${e.id}" style="margin-left:6px;">modifică datele</button></p>
+    <div class="stats">
+      <div class="stat"><div class="v">${fmtNr(st.total)}<span style="font-size:16px; color:var(--muted);">/${state.settings.oreNecesare}</span></div><div class="l">Total ore</div></div>
+      <div class="stat"><div class="v" style="color:var(--sim);">${fmtNr(st.s)}</div><div class="l">Simulator</div></div>
+      <div class="stat"><div class="v">${fmtNr(st.c)}</div><div class="l">Conducere</div></div>
+      <div class="stat"><div class="v">${fmtNr(st.km)}</div><div class="l">Km</div></div>
+      <div class="stat accent"><div class="v">${fmtNr(st.ramase)}</div><div class="l">Ore rămase</div></div>
+      <div class="stat"><div class="v">${med===null?'—':fmtNr(med)}</div><div class="l">Media notelor</div></div>
+    </div>
+    <div class="card"><div style="margin-bottom:10px;">${barProgres(st)}</div>
+      <div class="row"><button class="btn btn-primary" data-act="ora-noua" data-elev="${e.id}">+ Oră pentru ${esc(e.nume.split(' ')[0])}</button>
+      ${e.examenData||e.examenRezultat?`<span style="align-self:center;">Examen: <b>${fmtData(e.examenData)}</b> ${pillRez(e.examenRezultat)}</span>`:''}</div>
+      ${prog.length?`<p class="small" style="margin:12px 0 0;">Următoarele programări: ${prog.map(p=>`<span class="pill pill-yellow">${fmtData(p.data)} ${p.oraStart}</span>`).join(' ')}</p>`:''}
+    </div>
+    <div class="card"><h3>Toate orele (${ore.length})</h3>
+      ${ore.length?`<div class="table-wrap"><table><thead><tr><th>Nr.</th><th>Data</th><th>Interval</th><th>Tip</th><th class="num">Ore</th><th class="num">Km</th><th class="num">Cumulat</th><th>Obs.</th></tr></thead><tbody>
+      ${ore.map((o,i)=>{ cum+=nr(o.nr); return `<tr><td class="muted">${i+1}</td><td style="white-space:nowrap;">${fmtData(o.data)}</td><td style="white-space:nowrap;">${intervalOrar(o)}</td><td>${pillTip(o.tip)}</td><td class="num">${fmtNr(nr(o.nr))}</td><td class="num">${o.tip==='S'?'—':fmtNr(nr(o.km))}</td><td class="num"><b>${fmtNr(cum)}</b></td><td class="small">${esc(o.obs||'')}</td></tr>`; }).join('')}
+      </tbody></table></div>`:'<p class="muted small">Nicio oră încă.</p>'}
+    </div>`;
+}
+
+/* ---------------- NOTE ---------------- */
+function tabNote(){
+  const el=eleviAn();
+  if(!el.length) return `<h2>Note</h2>${faraElevi()}`;
+  return `
+    <h2>Note</h2>
+    <p class="tab-desc">Notele de la pregătirea practică. Media se calculează din toate notele trecute (nu împarte la 2 când e doar una).</p>
+    <div class="card"><div class="table-wrap"><table>
+      <thead><tr><th>Nr.</th><th>Elev</th><th>Clasa</th><th>Note</th><th>Adaugă notă</th><th class="num">Media</th></tr></thead>
+      <tbody>${el.map((e,i)=>{ const med=mediaElev(e); return `<tr>
+        <td class="muted">${i+1}</td><td><b>${esc(e.nume)}</b></td><td>${esc(e.clasa)}</td>
+        <td>${e.note.length?e.note.map(n=>`<span class="grade" title="${n.data?fmtData(n.data):'fără dată'}">${fmtNr(nr(n.nota))}<button data-act="nota-del" data-id="${e.id}" data-nota="${n.id}" title="Șterge nota">×</button></span>`).join(''):'<span class="muted small">—</span>'}</td>
+        <td style="white-space:nowrap;"><input type="number" min="1" max="10" step="1" class="mic" id="nota-${e.id}" placeholder="1–10" style="min-height:38px; padding:6px;"> <button class="btn btn-ghost" data-act="nota-add" data-id="${e.id}">+</button></td>
+        <td class="num" style="font-size:16px;"><b>${med===null?'—':fmtNr(Math.round(med*100)/100)}</b></td></tr>`; }).join('')}</tbody>
+    </table></div></div>`;
+}
+
+/* ---------------- EXAMEN ---------------- */
+function tabExamen(){
+  const el=eleviAn();
+  const ist=[...state.istoricExamene].sort((a,b)=>b.anScolar.localeCompare(a.anScolar));
+  const ani=[...new Set(ist.map(x=>x.anScolar))];
+  const admisi=el.filter(e=>e.examenRezultat==='ADMIS').length;
+  return `
+    <h2>Examen</h2>
+    <p class="tab-desc">Data examenului la Poliție și rezultatul, pentru fiecare elev. Se salvează imediat ce alegi.</p>
+    ${el.length?`<div class="card">
+      <div style="display:flex; justify-content:space-between; align-items:center; gap:8px; flex-wrap:wrap; margin-bottom:10px;">
+        <h3 style="margin:0;">${esc(state.settings.anScolar)} · ${admisi}/${el.length} admiși</h3>
+        <button class="btn btn-ghost" data-act="arhiveaza">Trece rezultatele în istoric</button>
+      </div>
+      <div class="table-wrap"><table>
+      <thead><tr><th>Nr.</th><th>Elev</th><th>Clasa</th><th class="num">Ore</th><th>Data examinării</th><th>Rezultat</th></tr></thead>
+      <tbody>${el.map((e,i)=>{ const st=statElev(e.id); return `<tr>
+        <td class="muted">${i+1}</td><td><b>${esc(e.nume)}</b></td><td>${esc(e.clasa)}</td>
+        <td class="num">${st.ramase>0?`<span style="color:var(--track);">${fmtNr(st.total)}/${state.settings.oreNecesare}</span>`:fmtNr(st.total)}</td>
+        <td><input type="date" data-exam="data" data-id="${e.id}" value="${e.examenData||''}" style="min-height:38px; padding:6px 8px;"></td>
+        <td><select data-exam="rez" data-id="${e.id}" style="min-height:38px; padding:6px 8px;">${REZULTATE.map(r=>`<option value="${r}" ${r===(e.examenRezultat||'')?'selected':''}>${r||'—'}</option>`).join('')}</select></td></tr>`; }).join('')}</tbody>
+      </table></div></div>`:faraElevi()}
+    <div class="card"><h3>Istoric examene</h3>
+      ${ani.length?ani.map(a=>{ const r=ist.filter(x=>x.anScolar===a); const ad=r.filter(x=>x.rezultat==='ADMIS').length; return `
+        <div class="day-head">${esc(a)} · ${ad}/${r.length} admiși</div>
+        <div class="table-wrap"><table><tbody>${r.map((x,i)=>`<tr><td class="muted" style="width:36px;">${i+1}</td><td>${esc(x.nume)}</td><td>${esc(x.clasa||'')}</td><td>${x.data?fmtData(x.data):''}</td><td>${pillRez(x.rezultat)}</td><td class="small muted">${esc(x.masina||'')}</td></tr>`).join('')}</tbody></table></div>`; }).join(''):'<p class="muted small" style="margin:0;">Gol deocamdată. La final de an, apasă „Trece rezultatele în istoric”.</p>'}
+    </div>`;
+}
+
+/* ---------------- MAȘINA ---------------- */
+function tabMasina(){
+  const m=masinaActiva();
+  const sel = state.masini.length>1 ? `<select data-filter="masinaId">${state.masini.map(x=>`<option value="${x.id}" ${x.id===m.id?'selected':''}>${esc(x.nr)}</option>`).join('')}</select>` : '';
+  if(!m) return `<h2>Mașina</h2><p class="tab-desc">Actele mașinii de școală, reviziile și alimentările.</p>
+    <div class="card"><div class="row"><div class="field" style="flex:1 1 200px;"><label>Număr de înmatriculare</label><input type="text" id="m-nr" placeholder="BT.11.GSV"></div><button class="btn btn-primary" data-act="masina-add">Adaugă mașina</button></div></div>`;
+  const an=state.settings.anScolar;
+  const alim=m.alimentari.filter(a=>!a.data || anDinData(a.data)===an).sort((a,b)=>(b.data||'').localeCompare(a.data||''));
+  const totL=alim.reduce((s,a)=>s+nr(a.litri),0);
+  const revizii=[...m.revizii].sort((a,b)=>(b.data||'').localeCompare(a.data||''));
+  return `
+    <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:10px; flex-wrap:wrap;">
+      <div><h2>Mașina ${esc(m.nr)}</h2><p class="tab-desc">Acte, revizii și alimentări. Actele care expiră în mai puțin de 30 de zile apar și în tabul Azi.</p></div>
+      <div class="row">${sel}<button class="btn btn-ghost" data-act="masina-noua">+ Altă mașină</button></div>
+    </div>
+    <div class="card"><h3>Acte</h3>
+      <div class="table-wrap"><table>
+        <thead><tr><th>Document</th><th>Valabil de la</th><th>Expiră</th><th>Stare</th><th></th></tr></thead>
+        <tbody>${m.documente.map(d=>{ const st=stareDoc(d); return `<tr>
+          <td><b>${esc(d.tip)}</b></td>
+          <td><input type="date" data-doc="valabil" data-id="${d.id}" value="${d.valabil||''}" style="min-height:38px; padding:6px 8px;"></td>
+          <td><input type="date" data-doc="expira" data-id="${d.id}" value="${d.expira||''}" style="min-height:38px; padding:6px 8px;"></td>
+          <td><span class="pill ${st.cls}">${st.txt}</span></td>
+          <td style="text-align:right;"><button class="icon-btn del" data-act="doc-del" data-id="${d.id}">${ICONS.trash}</button></td></tr>`; }).join('')}</tbody></table></div>
+      <div class="row" style="margin-top:12px;">
+        <div class="field" style="flex:1 1 200px;"><label>Document nou</label><input type="text" id="d-tip" list="d-tipuri" placeholder="ex: CASCO"><datalist id="d-tipuri">${DOC_TIPURI.map(t=>`<option value="${t}">`).join('')}</datalist></div>
+        <div class="field"><label>Valabil de la</label><input type="date" id="d-val"></div>
+        <div class="field"><label>Expiră</label><input type="date" id="d-exp"></div>
+        <button class="btn btn-secondary" data-act="doc-add">Adaugă</button>
+      </div>
+    </div>
+    <div class="two-col">
+      <div class="card"><h3>Alimentări ${esc(an)} · ${fmtNr(totL)} l</h3>
+        <div class="row" style="margin-bottom:10px;">
+          <div class="field"><label>Data</label><input type="date" id="a-data" value="${todayISO()}"></div>
+          <div class="field"><label>BCF</label><input type="number" id="a-bcf" class="mic" min="0" step="1"></div>
+          <div class="field"><label>Litri</label><input type="number" id="a-litri" class="mic" min="0" step="0.01"></div>
+          <button class="btn btn-secondary" data-act="alim-add">Adaugă</button>
+        </div>
+        ${alim.length?`<div class="table-wrap"><table><thead><tr><th>Data</th><th class="num">BCF</th><th class="num">Litri</th><th></th></tr></thead><tbody>${alim.map(a=>`<tr><td>${a.data?fmtData(a.data):'—'}${a.obs?`<div class="small muted">${esc(a.obs)}</div>`:''}</td><td class="num">${a.bcf||'—'}</td><td class="num"><b>${fmtNr(nr(a.litri))}</b></td><td style="text-align:right;"><button class="icon-btn del" data-act="alim-del" data-id="${a.id}">${ICONS.trash}</button></td></tr>`).join('')}</tbody></table></div>`:'<p class="muted small">Nicio alimentare în acest an școlar.</p>'}
+      </div>
+      <div class="card"><h3>Revizii și reparații</h3>
+        <div class="row" style="margin-bottom:10px;">
+          <div class="field"><label>Data</label><input type="date" id="r-data" value="${todayISO()}"></div>
+          <div class="field"><label>Km la bord</label><input type="number" id="r-km" style="width:110px;" min="0"></div>
+          <div class="field" style="flex:1 1 180px;"><label>Ce s-a făcut</label><input type="text" id="r-desc" placeholder="Schimb ulei + filtre"></div>
+          <button class="btn btn-secondary" data-act="rev-add">Adaugă</button>
+        </div>
+        ${revizii.length?`<div class="table-wrap"><table><tbody>${revizii.map(r=>`<tr><td style="white-space:nowrap;">${r.data?fmtData(r.data):'—'}</td><td>${esc(r.descriere)}${r.km?`<div class="small muted">${Number(r.km).toLocaleString('ro-RO')} km</div>`:''}</td><td style="text-align:right;"><button class="icon-btn del" data-act="rev-del" data-id="${r.id}">${ICONS.trash}</button></td></tr>`).join('')}</tbody></table></div>`:'<p class="muted small">Nicio revizie trecută.</p>'}
+      </div>
+    </div>`;
+}
+
+/* ---------------- FIȘA ZILNICĂ (MONITORIZARE) ---------------- */
+function construiesteFisa(data, masina){
+  const s=state.settings;
+  const ore=state.ore.filter(o=>o.data===data && o.tip==='C').sort((a,b)=>(a.ora||'').localeCompare(b.ora||''));
+  const randuri=Math.max(8, ore.length);
+  let tOre=0,tKm=0; ore.forEach(o=>{ tOre+=nr(o.nr); tKm+=nr(o.km); });
+  let rows='';
+  for(let i=0;i<randuri;i++){
+    const o=ore[i];
+    rows+= o ? `<tr><td>${i+1}.</td><td>${intervalOrar(o).replace('–',' – ')}</td><td class="nume">${esc(numeElev(o.elevId))}</td><td>${fmtNr(nr(o.nr))}</td><td>${fmtNr(nr(o.km))}</td></tr>`
+             : `<tr><td>${i+1}.</td><td>&nbsp;</td><td></td><td></td><td></td></tr>`;
+  }
+  return `<div class="fisa">
+    <div class="sc">${esc(s.scoala)}</div>
+    <div class="tt">Monitorizare ore școala de șoferi</div>
+    <div class="meta"><span>Instructor auto: <b>${esc(s.instructor)}</b></span><span>An școlar: <b>${esc(anDinData(data))}</b></span></div>
+    <div class="meta"><span>Data: <b>${fmtData(data)}</b> (${ziDin(data).toLowerCase()})</span><span>Autoturism: <b>${esc(masina||'')}</b></span></div>
+    <table><thead><tr><th style="width:9%;">Nr. crt.</th><th style="width:20%;">Interval orar</th><th>Numele și prenumele cursantului</th><th style="width:11%;">Nr. ore</th><th style="width:15%;">Kilometri parcurși</th></tr></thead>
+    <tbody>${rows}<tr><td colspan="3" style="text-align:right;"><b>Total</b></td><td><b>${tOre?fmtNr(tOre):''}</b></td><td><b>${tKm?fmtNr(tKm):''}</b></td></tr></tbody></table>
+    <div class="semn">Semnătura, ..............................</div>
+  </div>`;
+}
+function tabFisa(){
+  const m=masinaActiva(); const masNr = ui.fisaMasina || (m?m.nr:'');
+  const d=ui.fisaData||todayISO();
+  let fise='';
+  if(ui.fisaLunaIntreaga){
+    const pref=d.slice(0,7);
+    const zile=[...new Set(state.ore.filter(o=>o.tip==='C' && o.data.startsWith(pref)).map(o=>o.data))].sort();
+    fise = zile.length ? zile.map(z=>construiesteFisa(z, masNr)).join('') : gol('Nicio oră de conducere în '+LUNI[lunaDin(d)].toLowerCase(),'');
+  } else fise=construiesteFisa(d, masNr);
+  const nrZile = ui.fisaLunaIntreaga ? (fise.match(/class="fisa"/g)||[]).length : 1;
+  return `
+    <div class="no-print">
+      <h2>Fișa zilnică</h2>
+      <p class="tab-desc">Fișa de monitorizare a orelor de conducere, completată automat din jurnal, gata de tipărit pe A4. Orele de simulator nu apar pe fișă.</p>
+      <div class="card"><div class="row">
+        <div class="field"><label>Ziua</label><input type="date" id="f-data" value="${d}"></div>
+        <div class="field"><label>Autoturism</label><input type="text" id="f-masina" value="${esc(masNr)}" style="width:140px;"></div>
+        <div class="field"><label>Ce tipăresc</label><div class="seg"><button type="button" data-act="fisa-mod" data-v="0" class="${!ui.fisaLunaIntreaga?'on':''}">Doar ziua</button><button type="button" data-act="fisa-mod" data-v="1" class="${ui.fisaLunaIntreaga?'on':''}">Toată luna</button></div></div>
+        <button class="btn btn-primary" data-act="print">🖨 Tipărește ${ui.fisaLunaIntreaga?`(${nrZile} ${nrZile===1?'fișă':'fișe'})`:''}</button>
+      </div></div>
+    </div>
+    ${fise}`;
+}
+
+/* ================= MODALE ================= */
+function openModal(html){
+  closeModal();
+  const b=document.createElement('div'); b.className='modal-backdrop'; b.id='modal';
+  b.innerHTML=`<div class="modal">${html}</div>`;
+  b.addEventListener('click', e=>{ if(e.target===b) closeModal(); });
+  document.body.appendChild(b);
+  return b;
+}
+function closeModal(){ const m=document.getElementById('modal'); if(m) m.remove(); }
+function confirma(msg, onYes, eticheta){
+  const b=openModal(`<h3>Sigur?</h3><p>${msg}</p><div class="row" style="justify-content:flex-end;"><button class="btn btn-ghost" id="c-no">Nu</button><button class="btn btn-primary" id="c-yes" style="${eticheta?'':'background:var(--danger);'}">${eticheta||'Da, șterge'}</button></div>`);
+  b.querySelector('#c-no').onclick=closeModal;
+  b.querySelector('#c-yes').onclick=()=>{ closeModal(); onYes(); };
+}
+function modalElev(e){
+  const b=openModal(`<h3>Modifică elevul</h3>
+    <div class="field"><label>Nume și prenume</label><input type="text" id="me-nume" value="${esc(e.nume)}"></div>
+    <div class="field"><label>Clasa</label><input type="text" id="me-clasa" value="${esc(e.clasa)}"></div>
+    <div class="field"><label>Telefon</label><input type="tel" id="me-tel" value="${esc(e.telefon)}"></div>
+    <div class="field"><label>Observații</label><input type="text" id="me-obs" value="${esc(e.obs)}" placeholder="ex: dosar depus, fișă medicală"></div>
+    <div class="field"><label>An școlar</label><input type="text" id="me-an" value="${esc(e.anScolar)}"></div>
+    <div class="row" style="justify-content:flex-end;"><button class="btn btn-ghost" id="me-x">Renunță</button><button class="btn btn-primary" id="me-ok">Salvează</button></div>`);
+  b.querySelector('#me-x').onclick=closeModal;
+  b.querySelector('#me-ok').onclick=()=>{
+    const nume=capitalizeaza(b.querySelector('#me-nume').value); if(!nume) return toast('Numele nu poate fi gol.');
+    e.nume=nume; e.clasa=capitalizeaza(b.querySelector('#me-clasa').value); e.telefon=b.querySelector('#me-tel').value.trim();
+    e.obs=b.querySelector('#me-obs').value.trim(); e.anScolar=b.querySelector('#me-an').value.trim()||e.anScolar;
+    save(); closeModal(); render(); toast('Salvat ✓');
+  };
+}
+function openSettings(){
+  const s=state.settings;
+  const b=openModal(`<h3>Setări</h3>
+    <div class="field"><label>Titlul aplicației</label><input type="text" id="s-titlu" value="${esc(s.titlu)}"></div>
+    <div class="field"><label>Școala (apare pe fișa zilnică)</label><input type="text" id="s-scoala" value="${esc(s.scoala)}"></div>
+    <div class="field"><label>Instructor auto</label><input type="text" id="s-instr" value="${esc(s.instructor)}"></div>
+    <div class="row">
+      <div class="field" style="flex:1;"><label>Ore obligatorii / elev</label><input type="number" id="s-ore" value="${s.oreNecesare}" min="1"></div>
+      <div class="field" style="flex:1;"><label>Km impliciți / oră</label><input type="number" id="s-km" value="${s.kmPeOra}" min="0"></div>
+      <div class="field" style="flex:1;"><label>Normă litri / oră</label><input type="number" id="s-norma" value="${s.normaLitriPeOra}" min="0" step="0.1"></div>
+    </div>
+    <div class="field"><label>Orele de început obișnuite (despărțite prin virgulă)</label><input type="text" id="s-int" value="${esc(s.intervale.join(', '))}"></div>
+    <div class="field"><label>An școlar nou</label><div class="row"><input type="text" id="s-an" placeholder="ex: ${anDinData(todayISO())}" style="flex:1;"><button class="btn btn-ghost" id="s-an-ok">Treci pe el</button></div></div>
+    <div class="row" style="justify-content:flex-end;"><button class="btn btn-primary" id="s-ok">Salvează setările</button></div>
+    <hr>
+    <h3 style="font-size:15px;">Sincronizare laptop ↔ tabletă</h3>
+    <p class="small muted" style="margin-top:-6px;">Datele stau doar pe dispozitivul pe care le scrii. Exportă un backup pe unul și importă-l pe celălalt (prin Drive, WhatsApp, email sau USB). Importul <b>înlocuiește</b> tot ce e pe dispozitivul respectiv.</p>
+    <div class="row"><button class="btn btn-secondary" data-act="export-json">⭳ Exportă backup</button><button class="btn btn-secondary" data-act="import-json">⭱ Importă backup</button></div>
+    <hr>
+    <h3 style="font-size:15px;">Excel</h3>
+    <p class="small muted" style="margin-top:-6px;">Importă direct fișierul tău „SCOALA_SOFERI” (foile Ore, Centralizator, NOTE, PROGRAMARE, EXAMEN, Statistica și foaia mașinii). Ce există deja nu se dublează. Exportul face un Excel nou, cu toate foile calculate.</p>
+    <div class="row"><button class="btn btn-secondary" data-act="import-xlsx">Importă din Excel</button><button class="btn btn-secondary" data-act="export-xlsx">Exportă în Excel</button></div>
+    <hr>
+    <button class="btn btn-danger" id="s-reset">Șterge toate datele de pe acest dispozitiv</button>`);
+  b.querySelector('#s-ok').onclick=()=>{
+    s.titlu=b.querySelector('#s-titlu').value.trim()||'Școala de șoferi';
+    s.scoala=b.querySelector('#s-scoala').value.trim();
+    s.instructor=capitalizeaza(b.querySelector('#s-instr').value);
+    s.oreNecesare=Math.max(1,nr(b.querySelector('#s-ore').value)||30);
+    s.kmPeOra=nr(b.querySelector('#s-km').value);
+    s.normaLitriPeOra=nr(b.querySelector('#s-norma').value);
+    s.intervale=b.querySelector('#s-int').value.split(/[,;\s]+/).map(x=>x.trim().replace('.',':')).filter(x=>/^\d{1,2}:\d{2}$/.test(x)).map(x=>x.padStart(5,'0'));
+    save(); closeModal(); render(); toast('Setări salvate ✓');
+  };
+  b.querySelector('#s-an-ok').onclick=()=>{
+    const v=b.querySelector('#s-an').value.trim();
+    if(!/^\d{4}-\d{4}$/.test(v)) return toast('Scrie anul ca 2026-2027.');
+    s.anScolar=v; save(); closeModal(); render(); toast('Lucrezi acum pe '+v);
+  };
+  b.querySelector('#s-reset').onclick=()=>confirma('Se șterg toți elevii, orele, programările și mașina de pe acest dispozitiv. Fă întâi un backup.', ()=>{ state=stareImplicita(); saveNow(); render(); toast('Date șterse.'); });
+}
+
+/* ================= EXPORT / IMPORT ================= */
+async function partajeazaSauDescarca(blob, filename, titlu){
+  try{
+    const file=new File([blob], filename, {type:blob.type});
+    if(navigator.canShare && navigator.canShare({files:[file]}) && /Android|iPhone|iPad|Mobile/i.test(navigator.userAgent)){
+      await navigator.share({files:[file], title:titlu}); return 'share';
+    }
+  }catch(e){ if(e && e.name==='AbortError') return 'cancel'; }
+  const url=URL.createObjectURL(blob); const a=document.createElement('a'); a.href=url; a.download=filename; document.body.appendChild(a); a.click(); a.remove(); setTimeout(()=>URL.revokeObjectURL(url),1000);
+  return 'download';
+}
+async function exportJson(){
+  const r=await partajeazaSauDescarca(new Blob([JSON.stringify(state,null,1)],{type:'application/json'}), `scoala-soferi-backup-${todayISO()}.json`, 'Backup Școala de șoferi');
+  if(r!=='cancel'){ state.settings.ultimulExport=todayISO(); save(); render(); toast('Backup exportat ✓'); }
+}
+function importJson(file){
+  const rd=new FileReader();
+  rd.onload=()=>{
+    try{
+      const p=JSON.parse(rd.result);
+      if(!p || !Array.isArray(p.elevi) || !Array.isArray(p.ore)) throw 0;
+      confirma(`Fișierul are ${p.elevi.length} elevi și ${p.ore.length} ore. Tot ce e acum pe acest dispozitiv va fi înlocuit.`, ()=>{
+        state=Object.assign(stareImplicita(), p); migreaza(); saveNow(); closeModal(); render(); toast('Backup importat ✓');
+      }, 'Da, importă');
+    }catch(e){ toast('Fișierul nu e un backup valid.'); }
+  };
+  rd.readAsText(file);
+}
+
+/* ---- Import din Excel (formatul fișierului SCOALA_SOFERI) ---- */
+function xlDate(v){
+  if(v===null || v===undefined || v==='') return '';
+  if(typeof v==='number' && v>20000 && v<80000){ const d=XLSX.SSF.parse_date_code(v); return `${d.y}-${pad2(d.m)}-${pad2(d.d)}`; }
+  if(v instanceof Date) return `${v.getFullYear()}-${pad2(v.getMonth()+1)}-${pad2(v.getDate())}`;
+  const m=String(v).match(/(\d{1,2})[./-](\d{1,2})[./-](\d{4})/); if(m) return `${m[3]}-${pad2(m[2])}-${pad2(m[1])}`;
+  return '';
+}
+function xlOra(v){
+  if(v===null || v===undefined || v==='') return '';
+  if(typeof v==='number'){
+    if(v<1) { const t=Math.round(v*24*60); return `${pad2(Math.floor(t/60))}:${pad2(t%60)}`; } // format oră Excel
+    const h=Math.floor(v), m=Math.round((v-h)*100); return `${pad2(h)}:${pad2(m)}`; // 8.35 -> 08:35
+  }
+  const m=String(v).match(/(\d{1,2})[:.](\d{2})/); if(m) return `${pad2(m[1])}:${m[2]}`;
+  const h=parseInt(v,10); return isNaN(h)?'':`${pad2(h)}:00`;
+}
+function rowsOf(wb, name){
+  const key=wb.SheetNames.find(n=>n.trim().toUpperCase()===name.toUpperCase());
+  if(!key) return null;
+  return XLSX.utils.sheet_to_json(wb.Sheets[key], {header:1, raw:true, defval:null});
+}
+function normNume(s){ return capitalizeaza(s).normalize('NFD').replace(/[̀-ͯ]/g,'').replace(/Ş/g,'S').replace(/Ţ/g,'T'); }
+function importXlsx(file){
+  if(typeof XLSX==='undefined') return toast('Pentru import e nevoie de internet o singură dată (se încarcă cititorul de Excel).', 3500);
+  const rd=new FileReader();
+  rd.onload=()=>{
+    try{
+      const wb=XLSX.read(new Uint8Array(rd.result), {type:'array'});
+      const rez=proceseazaExcel(wb);
+      closeModal();
+      openModal(`<h3>Import gata ✓</h3><p>An școlar <b>${esc(rez.an)}</b>:</p><ul style="line-height:1.7;">
+        <li>${rez.elevi} elevi noi</li><li>${rez.ore} ore (${rez.oreDup} existau deja)</li><li>${rez.note} note</li>
+        <li>${rez.prog} programări</li><li>${rez.istoric} rezultate în istoricul de examene</li>
+        <li>${rez.masina?`mașina ${esc(rez.masina)}: ${rez.docs} acte noi/actualizate, ${rez.alim} alimentări`:'nicio foaie de mașină găsită'}</li></ul>
+        <div class="row" style="justify-content:flex-end;"><button class="btn btn-primary" onclick="closeModal(); goTab('centralizator');">Vezi centralizatorul</button></div>`);
+      saveNow(); render();
+    }catch(e){ console.error(e); toast('Nu am putut citi fișierul: '+(e.message||e), 4000); }
+  };
+  rd.readAsArrayBuffer(file);
+}
+function proceseazaExcel(wb){
+  const rez={elevi:0,ore:0,oreDup:0,note:0,prog:0,istoric:0,docs:0,alim:0,masina:'',an:''};
+  const ore=rowsOf(wb,'Ore'); if(!ore) throw new Error('lipsește foaia „Ore”');
+  // anul școlar: după prima dată din jurnal
+  const date=ore.slice(1).map(r=>xlDate(r[1])).filter(Boolean).sort();
+  const an = date.length ? anDinData(date[0]) : state.settings.anScolar;
+  rez.an=an;
+  // clase din Centralizator / Statistica
+  const clase={};
+  ['Centralizator','Statistica','NOTE'].forEach(n=>{ const r=rowsOf(wb,n); if(!r) return; r.slice(1).forEach(x=>{ if(x[1] && typeof x[1]==='string' && x[2] && !clase[normNume(x[1])]) clase[normNume(x[1])]=capitalizeaza(x[2]).replace(/^(X{0,1}I{0,3}V?I{0,3}X?)([A-Z])$/,'$1 $2'); }); });
+  const harta={}; state.elevi.filter(e=>e.anScolar===an).forEach(e=>harta[normNume(e.nume)]=e);
+  const elev=(nume)=>{
+    const k=normNume(nume); if(!k) return null;
+    if(!harta[k]){ harta[k]={id:uid(), nume:capitalizeaza(nume), clasa:clase[k]||'', anScolar:an, telefon:'', obs:'', note:[], examenData:'', examenRezultat:''}; state.elevi.push(harta[k]); rez.elevi++; }
+    else if(!harta[k].clasa && clase[k]) harta[k].clasa=clase[k];
+    return harta[k];
+  };
+  // elevii din centralizator (chiar dacă n-au încă ore)
+  const cz=rowsOf(wb,'Centralizator'); if(cz) cz.slice(1).forEach(x=>{ if(typeof x[1]==='string' && x[1].trim() && !/TOTAL/i.test(x[1]) && (typeof x[0]==='number')) elev(x[1]); });
+  // mașina
+  const numeMas = wb.SheetNames.find(n=>/^[A-Z]{1,2}\.?\d{2,3}\.?[A-Z]{3}$/i.test(n.trim()));
+  let mas=null;
+  if(numeMas){
+    rez.masina=numeMas.trim().toUpperCase();
+    mas=state.masini.find(m=>m.nr.replace(/\W/g,'')===rez.masina.replace(/\W/g,''));
+    if(!mas){ mas={id:uid(), nr:rez.masina, documente:[], revizii:[], alimentari:[]}; state.masini.push(mas); }
+    rowsOf(wb,numeMas).forEach(r=>{
+      if(typeof r[0]!=='string') return;
+      const v=xlDate(r[1]), e=xlDate(r[2]);
+      if(v||e){ const tip=capitalizeaza(r[0]); const ex=mas.documente.find(d=>d.tip===tip); if(ex){ if(!ex.expira || (e && e>ex.expira)){ ex.valabil=v; ex.expira=e; rez.docs++; } } else { mas.documente.push({id:uid(), tip, valabil:v, expira:e}); rez.docs++; } }
+      else if(r[0].length>20 && !mas.revizii.find(x=>x.descriere===r[0].trim())){
+        const km=(r[0].match(/KM\.?\s*([\d.]+)/i)||[])[1];
+        mas.revizii.push({id:uid(), data:'', km: km?parseInt(km.replace(/\./g,''),10):'', descriere:r[0].trim()});
+      }
+    });
+  }
+  const masId = mas ? mas.id : ((masinaActiva()||{}).id||null);
+  // ore
+  const cheie=o=>`${o.elevId}|${o.data}|${o.ora}|${o.tip}|${o.nr}`;
+  const exista=new Set(state.ore.map(cheie));
+  ore.slice(1).forEach(r=>{
+    const nume=r[0], data=xlDate(r[1]); if(!nume || typeof nume!=='string' || !data) return;
+    const e=elev(nume); const ora=xlOra(r[2]);
+    const s=nr(r[3]), c=nr(r[4]), km=nr(r[5]);
+    [['S',s,0],['C',c,km]].forEach(([tip,n,k])=>{
+      if(!n) return;
+      const o={id:uid(), elevId:e.id, data, ora, tip, nr:n, km:k, obs:'', masinaId:tip==='C'?masId:null};
+      if(exista.has(cheie(o))){ rez.oreDup++; return; }
+      exista.add(cheie(o)); state.ore.push(o); rez.ore++;
+    });
+  });
+  // note
+  const note=rowsOf(wb,'NOTE');
+  if(note){
+    const h=note[0]||[]; const col=h.map((x,i)=>/^NOTA/i.test(String(x||''))?i:-1).filter(i=>i>=0);
+    note.slice(1).forEach(r=>{ if(typeof r[1]!=='string' || !r[1].trim()) return; const e=elev(r[1]);
+      col.forEach(i=>{ const v=nr(r[i]); if(v>=1 && v<=10 && !e.note.find(n=>n.src===`xl${i}`)){ e.note.push({id:uid(), nota:v, data:'', src:`xl${i}`}); rez.note++; } }); });
+  }
+  // programări
+  const pr=rowsOf(wb,'PROGRAMARE');
+  if(pr) pr.slice(1).forEach(r=>{ const d=xlDate(r[1]); if(!d || typeof r[2]!=='string') return; const e=elev(r[2]);
+    const p={id:uid(), elevId:e.id, data:d, oraStart:xlOra(r[3]), oraFinal:xlOra(r[4]), efectuata:false};
+    if(!state.programari.find(x=>x.elevId===p.elevId && x.data===p.data && x.oraStart===p.oraStart)){ state.programari.push(p); rez.prog++; } });
+  // istoric examene
+  const ex=rowsOf(wb,'EXAMEN');
+  if(ex){ let anCur='';
+    ex.slice(1).forEach(r=>{ if(r[0] && /\d{4}\s*-\s*\d{4}/.test(String(r[0]))) anCur=String(r[0]).replace(/\s/g,'');
+      const nume=r[2]; if(!anCur || typeof nume!=='string' || !nume.trim() || /INSTRUCTOR|BOTEZATU/i.test(nume)) return;
+      const x={id:uid(), anScolar:anCur, nume:capitalizeaza(nume), clasa:capitalizeaza(r[4]||''), data:xlDate(r[5]), rezultat:capitalizeaza(r[6]||''), masina:capitalizeaza(r[7]||'')};
+      if(!state.istoricExamene.find(y=>y.anScolar===x.anScolar && normNume(y.nume)===normNume(x.nume))){ state.istoricExamene.push(x); rez.istoric++; } }); }
+  // alimentări (Statistica: grupuri DATA | BCF | ALIMENTARI, eticheta lunii pe rândul 18)
+  const st=rowsOf(wb,'Statistica');
+  if(st && mas){
+    const h=st[0]||[]; const lunaRow=st.find(r=>r && r.some(x=>/^(SEPTEMBRIE|OCTOMBRIE|NOIEMBRIE|DECEMBRIE|IANUARIE|FEBRUARIE|MARTIE|APRILIE|MAI|IUNIE|IULIE|AUGUST)$/i.test(String(x||'').trim())))||[];
+    const [y1,y2]=an.split('-').map(Number);
+    for(let i=0;i<h.length;i++){
+      if(String(h[i]||'').trim().toUpperCase()!=='DATA' || String(h[i+1]||'').trim().toUpperCase()!=='BCF') continue;
+      const lit=i+2; const eticheta=String(lunaRow[lit]||'').trim().toUpperCase();
+      const lIdx=LUNI.findIndex(l=>l.toUpperCase()===eticheta);
+      for(let r=1;r<st.length;r++){
+        const row=st[r]; if(!row) continue;
+        if(typeof row[1]==='string' && /TOTAL/i.test(row[1])) break;
+        if(typeof row[0]==='string' && /TOTAL|CONSUM/i.test(row[0])) break;
+        const litri=nr(row[lit]); if(!litri) continue;
+        let d=xlDate(row[i]), obs='';
+        if(!d && lIdx>0){ d=`${lIdx>=9?y1:y2}-${pad2(lIdx)}-01`; obs='fără dată în Excel — pusă pe 1 '+LUNI[lIdx].toLowerCase(); }
+        if(mas.alimentari.find(a=>a.data===d && nr(a.litri)===litri)) continue;
+        mas.alimentari.push({id:uid(), data:d, bcf:row[i+1]||'', litri, obs}); rez.alim++;
+      }
+    }
+  }
+  state.settings.anScolar=an;
+  if(mas) ui.masinaId=mas.id;
+  return rez;
+}
+
+/* ---- Export în Excel ---- */
+async function exportXlsx(){
+  if(typeof XLSX==='undefined') return toast('Exportul Excel are nevoie de internet o singură dată.', 3000);
+  const el=eleviAn(), an=state.settings.anScolar, N=state.settings.oreNecesare;
+  const ids=new Set(el.map(e=>e.id));
+  const wb=XLSX.utils.book_new();
+  const D=iso=>{ if(!iso) return ''; const [y,m,d]=iso.split('-').map(Number); return {t:'n', v:(Date.UTC(y,m-1,d)-Date.UTC(1899,11,30))/86400000, z:'dd/mm/yyyy'}; };
+  const add=(name, aoa, cols)=>{ const ws=XLSX.utils.aoa_to_sheet(aoa,{dateNF:'dd/mm/yyyy'}); if(cols) ws['!cols']=cols.map(w=>({wch:w})); XLSX.utils.book_append_sheet(wb, ws, name); };
+  const ore=state.ore.filter(o=>ids.has(o.elevId)).sort((a,b)=>a.data.localeCompare(b.data)||(a.ora||'').localeCompare(b.ora||''));
+  add('Ore', [['ELEV','Data','Ora','Nr. ore Simulator','Nr. ore Conducere','Km','Luna','Observații'],
+    ...ore.map(o=>[numeElev(o.elevId), D(o.data), o.ora, o.tip==='S'?nr(o.nr):'', o.tip==='C'?nr(o.nr):'', o.tip==='C'?nr(o.km):'', lunaDin(o.data), o.obs||''])], [34,12,8,10,10,8,6,30]);
+  const cz=[['NO','ELEV','CLASA','Ore Simulator','Ore Conducere','Total Ore B','Km B','Rămase']]; let T=[0,0,0,0,0];
+  el.forEach((e,i)=>{ const s=statElev(e.id); cz.push([i+1,e.nume,e.clasa,s.s,s.c,s.total,s.km,s.ramase]); T=[T[0]+s.s,T[1]+s.c,T[2]+s.total,T[3]+s.km,T[4]+s.ramase]; });
+  cz.push(['TOTAL','','',...T]);
+  add('Centralizator', cz, [5,34,8,12,12,12,8,9]);
+  const luni=luniCuDate(); const h1=['ELEV','CLASA']; luni.forEach(m=>{ h1.push(LUNI[m]+' S', LUNI[m]+' C'); }); h1.push('TOTAL');
+  const stat=[h1]; el.forEach(e=>{ const r=[e.nume,e.clasa]; let t=0; luni.forEach(m=>{ ['S','C'].forEach(tp=>{ const v=state.ore.filter(o=>o.elevId===e.id && o.tip===tp && lunaDin(o.data)===m).reduce((s,o)=>s+nr(o.nr),0); r.push(v||''); t+=v; }); }); r.push(t); stat.push(r); });
+  add('Statistica', stat, [34,8,...luni.flatMap(()=>[9,9]),8]);
+  const maxN=Math.max(2,...el.map(e=>e.note.length));
+  add('NOTE', [['NO','ELEV','CLASA',...Array.from({length:maxN},(_,i)=>'NOTA '+(i+1)),'MEDIA'], ...el.map((e,i)=>{ const m=mediaElev(e); return [i+1,e.nume,e.clasa,...Array.from({length:maxN},(_,k)=>e.note[k]?nr(e.note[k].nota):''), m===null?'':Math.round(m*100)/100]; })], [5,34,8,...Array(maxN).fill(8),8]);
+  const pr=state.programari.filter(p=>ids.has(p.elevId)).sort((a,b)=>a.data.localeCompare(b.data)||a.oraStart.localeCompare(b.oraStart));
+  add('PROGRAMARE', [['ZIUA','DATA','ELEV','ORA INITIAL','ORA FINAL','EFECTUATĂ'], ...pr.map(p=>[ziDin(p.data), D(p.data), numeElev(p.elevId), p.oraStart, p.oraFinal, p.efectuata?'DA':''])], [11,12,34,11,11,10]);
+  const exRows=[['AN ȘCOLAR','NR. CRT.','NUMELE ȘI PRENUMELE','CLASA','DATA EXAMINĂRII','REZULTATUL','MAȘINA']];
+  el.forEach((e,i)=>exRows.push([an,i+1,e.nume,e.clasa,D(e.examenData),e.examenRezultat||'', (masinaActiva()||{}).nr||'']));
+  [...state.istoricExamene].sort((a,b)=>b.anScolar.localeCompare(a.anScolar)).forEach((x,i)=>{ if(x.anScolar!==an) exRows.push([x.anScolar,'',x.nume,x.clasa,D(x.data),x.rezultat,x.masina]); });
+  add('EXAMEN', exRows, [11,8,34,8,14,12,12]);
+  state.masini.forEach(m=>{
+    const r=[[m.nr],[], ['DOCUMENT','VALABILĂ','EXPIRĂ'], ...m.documente.map(d=>[d.tip, D(d.valabil), D(d.expira)]), [], ['ALIMENTĂRI','BCF','LITRI'], ...m.alimentari.slice().sort((a,b)=>(a.data||'').localeCompare(b.data||'')).map(a=>[D(a.data), a.bcf, nr(a.litri)]), [], ['REVIZII','KM','DESCRIERE'], ...m.revizii.map(x=>[D(x.data), x.km, x.descriere])];
+    add(m.nr.slice(0,31), r, [22,12,40]);
+  });
+  const out=XLSX.write(wb,{bookType:'xlsx', type:'array'});
+  await partajeazaSauDescarca(new Blob([out],{type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'}), `SCOALA_SOFERI_${an}_${todayISO()}.xlsx`, 'Școala de șoferi '+an);
+}
+
+/* ================= ACȚIUNI (delegare evenimente) ================= */
+document.addEventListener('click', e=>{
+  const tabBtn=e.target.closest('[data-tab]');
+  if(tabBtn){ ui.elevDetaliu = tabBtn.dataset.tab==='elevi' ? null : ui.elevDetaliu; goTab(tabBtn.dataset.tab); return; }
+  if(e.target.closest('#btn-settings')) return openSettings();
+  if(e.target.closest('#btn-save-now')){ const ok=saveNow(); toast(ok?'Salvat ✓':'Nu am putut salva.'); return; }
+  const a=e.target.closest('[data-act]'); if(!a) return;
+  const act=a.dataset.act, id=a.dataset.id;
+  const m=masinaActiva();
+  switch(act){
+    case 'ora-noua': ui.editOraId=null; ui.preOra={elevId:a.dataset.elev||'', data:todayISO()}; goTab('ore'); break;
+    case 'ora-save': salveazaOra(); break;
+    case 'ora-cancel': ui.editOraId=null; ui.preOra=null; render(); break;
+    case 'ora-edit': ui.editOraId=id; ui.preOra=null; render(); document.getElementById('main').scrollTop=0; break;
+    case 'ora-del': { const o=state.ore.find(x=>x.id===id); confirma(`Ștergi ora din ${fmtData(o.data)} a lui ${esc(numeElev(o.elevId))}?`, ()=>{ state.ore=state.ore.filter(x=>x.id!==id); if(ui.editOraId===id) ui.editOraId=null; save(); render(); toast('Ora a fost ștearsă.'); }); break; }
+    case 'prog-save': {
+      const elevId=document.getElementById('p-elev').value, data=document.getElementById('p-data').value, st=document.getElementById('p-start').value;
+      let fin=document.getElementById('p-final').value;
+      if(!elevId||!data||!st) return toast('Completează elevul, data și ora de început.');
+      if(!fin) fin=adunaOre(st,1);
+      state.programari.push({id:uid(), elevId, data, oraStart:st, oraFinal:fin, efectuata:false}); save(); render(); toast('Programat ✓'); break; }
+    case 'prog-done': {
+      const p=state.programari.find(x=>x.id===id);
+      const [h1,m1]=p.oraStart.split(':').map(Number); const [h2,m2]=(p.oraFinal||p.oraStart).split(':').map(Number);
+      const durata=Math.max(1, Math.round(((h2*60+m2)-(h1*60+m1))/60*2)/2 || 1);
+      ui.editOraId=null; ui.preOra={elevId:p.elevId, data:p.data, ora:p.oraStart, tip:'C', nr:durata, progId:p.id};
+      goTab('ore'); toast('Verifică km și apasă „Adaugă ora”.'); break; }
+    case 'prog-del': state.programari=state.programari.filter(x=>x.id!==id); save(); render(); break;
+    case 'prog-toggle': ui.progTrecute=!ui.progTrecute; render(); break;
+    case 'elev-add': {
+      const nume=capitalizeaza(document.getElementById('e-nume').value); if(!nume) return toast('Scrie numele elevului.');
+      if(eleviAn().find(x=>normNume(x.nume)===normNume(nume))) return toast('Elevul există deja.');
+      state.elevi.push({id:uid(), nume, clasa:capitalizeaza(document.getElementById('e-clasa').value), telefon:document.getElementById('e-tel').value.trim(), obs:'', anScolar:state.settings.anScolar, note:[], examenData:'', examenRezultat:''});
+      save(); render(); toast('Elev adăugat ✓'); document.getElementById('e-nume').focus(); break; }
+    case 'elev-edit': modalElev(elevById(id)); break;
+    case 'elev-del': { const ev=elevById(id); const n=state.ore.filter(o=>o.elevId===id).length;
+      confirma(`Ștergi elevul ${esc(ev.nume)}${n?` și cele ${n} ore ale lui`:''}? Nu se poate anula.`, ()=>{ state.elevi=state.elevi.filter(x=>x.id!==id); state.ore=state.ore.filter(o=>o.elevId!==id); state.programari=state.programari.filter(p=>p.elevId!==id); save(); render(); toast('Elev șters.'); }); break; }
+    case 'elev-open': ui.elevDetaliu=id; currentTab='elevi'; render(); document.getElementById('main').scrollTop=0; break;
+    case 'elev-close': ui.elevDetaliu=null; render(); break;
+    case 'nota-add': { const inp=document.getElementById('nota-'+id); const v=nr(inp.value); if(v<1||v>10) return toast('Nota trebuie să fie între 1 și 10.'); elevById(id).note.push({id:uid(), nota:v, data:todayISO()}); save(); render(); toast('Notă adăugată ✓'); break; }
+    case 'nota-del': { const ev=elevById(id); ev.note=ev.note.filter(n=>n.id!==a.dataset.nota); save(); render(); break; }
+    case 'arhiveaza': {
+      const el=eleviAn().filter(e=>e.examenRezultat||e.examenData);
+      if(!el.length) return toast('Niciun rezultat completat încă.');
+      confirma(`Treci în istoric ${el.length} rezultate din ${state.settings.anScolar}? Elevii rămân și în anul lor.`, ()=>{
+        el.forEach(e=>{ const ex=state.istoricExamene.find(y=>y.anScolar===e.anScolar && normNume(y.nume)===normNume(e.nume)); const x={anScolar:e.anScolar, nume:e.nume, clasa:e.clasa, data:e.examenData, rezultat:e.examenRezultat, masina:(m||{}).nr||''}; if(ex) Object.assign(ex,x); else state.istoricExamene.push({id:uid(),...x}); });
+        save(); render(); toast('Trecute în istoric ✓'); }, 'Da'); break; }
+    case 'masina-add': case 'masina-noua': {
+      if(act==='masina-noua'){ const b=openModal(`<h3>Altă mașină</h3><div class="field"><label>Număr de înmatriculare</label><input type="text" id="mm-nr" placeholder="BT.11.GSV"></div><div class="row" style="justify-content:flex-end;"><button class="btn btn-primary" id="mm-ok">Adaugă</button></div>`);
+        b.querySelector('#mm-ok').onclick=()=>{ const v=capitalizeaza(b.querySelector('#mm-nr').value); if(!v) return; const nm={id:uid(), nr:v, documente:DOC_TIPURI.slice(0,3).map(t=>({id:uid(),tip:t,valabil:'',expira:''})), revizii:[], alimentari:[]}; state.masini.push(nm); ui.masinaId=nm.id; save(); closeModal(); render(); }; break; }
+      const v=capitalizeaza(document.getElementById('m-nr').value); if(!v) return toast('Scrie numărul mașinii.');
+      const nm={id:uid(), nr:v, documente:DOC_TIPURI.slice(0,3).map(t=>({id:uid(),tip:t,valabil:'',expira:''})), revizii:[], alimentari:[]}; state.masini.push(nm); ui.masinaId=nm.id; save(); render(); break; }
+    case 'doc-add': { const tip=capitalizeaza(document.getElementById('d-tip').value); if(!tip) return toast('Scrie numele documentului.'); m.documente.push({id:uid(), tip, valabil:document.getElementById('d-val').value, expira:document.getElementById('d-exp').value}); save(); render(); break; }
+    case 'doc-del': confirma('Ștergi documentul?', ()=>{ m.documente=m.documente.filter(d=>d.id!==id); save(); render(); }); break;
+    case 'alim-add': { const l=nr(document.getElementById('a-litri').value); const d=document.getElementById('a-data').value; if(!l||!d) return toast('Completează data și litrii.'); m.alimentari.push({id:uid(), data:d, bcf:document.getElementById('a-bcf').value, litri:l, obs:''}); save(); render(); toast('Alimentare adăugată ✓'); break; }
+    case 'alim-del': m.alimentari=m.alimentari.filter(x=>x.id!==id); save(); render(); break;
+    case 'rev-add': { const ds=document.getElementById('r-desc').value.trim(); if(!ds) return toast('Scrie ce s-a făcut.'); m.revizii.push({id:uid(), data:document.getElementById('r-data').value, km:document.getElementById('r-km').value, descriere:ds}); save(); render(); break; }
+    case 'rev-del': m.revizii=m.revizii.filter(x=>x.id!==id); save(); render(); break;
+    case 'fisa-mod': ui.fisaLunaIntreaga = a.dataset.v==='1'; render(); break;
+    case 'print': window.print(); break;
+    case 'export-json': exportJson(); break;
+    case 'import-json': document.getElementById('file-json').click(); break;
+    case 'import-xlsx': document.getElementById('file-xlsx').click(); break;
+    case 'export-xlsx': exportXlsx(); break;
+  }
+});
+document.addEventListener('change', e=>{
+  const t=e.target;
+  if(t.id==='an-select'){ state.settings.anScolar=t.value; ui.elevDetaliu=null; ui.oreElev='all'; save(); render(); return; }
+  if(t.dataset.filter){ ui[t.dataset.filter]=t.value; render(); return; }
+  if(t.dataset.exam){ const ev=elevById(t.dataset.id); if(t.dataset.exam==='data') ev.examenData=t.value; else ev.examenRezultat=t.value; save(); toast('Salvat ✓', 900); if(t.dataset.exam==='rez') render(); return; }
+  if(t.dataset.doc){ const m=masinaActiva(); const d=m.documente.find(x=>x.id===t.dataset.id); d[t.dataset.doc]=t.value; save(); render(); toast('Salvat ✓', 900); return; }
+  if(t.id==='f-data'){ ui.fisaData=t.value||todayISO(); render(); return; }
+  if(t.id==='f-masina'){ ui.fisaMasina=t.value; render(); return; }
+  if(t.id==='file-json' && t.files[0]){ importJson(t.files[0]); t.value=''; return; }
+  if(t.id==='file-xlsx' && t.files[0]){ importXlsx(t.files[0]); t.value=''; return; }
+  if(t.id==='p-start'){ const f=document.getElementById('p-final'); if(f && !f.value && t.value){ const i=state.settings.intervale.indexOf(t.value); f.value = i>=0 && state.settings.intervale[i+1] ? state.settings.intervale[i+1] : adunaOre(t.value,1); } }
+});
+document.addEventListener('keydown', e=>{
+  if(e.key==='Escape') closeModal();
+  if(e.key==='Enter' && e.target.id && e.target.id.startsWith('nota-')){ const id=e.target.id.slice(5); document.querySelector(`[data-act="nota-add"][data-id="${id}"]`).click(); }
+});
+
+/* ================= PORNIRE ================= */
+loadState();
+render();
+if('serviceWorker' in navigator && location.protocol.startsWith('http')){
+  window.addEventListener('load', ()=>navigator.serviceWorker.register('service-worker.js').catch(()=>{}));
+}
+</script>
+</body>
+</html>
