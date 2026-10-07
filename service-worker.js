@@ -1,6 +1,6 @@
 // Service worker pentru Școala de șoferi — face aplicația disponibilă offline,
 // oricât timp a trecut de la ultima deschidere cu internet.
-const CACHE_NAME = 'scoala-soferi-cache-v4';
+const CACHE_NAME = 'scoala-soferi-cache-v5';
 const FILES_DE_CACHE = [
   './',
   './index.html',
@@ -37,6 +37,10 @@ self.addEventListener('fetch', (event) => {
         caches.open(CACHE_NAME).then((cache) => cache.put(event.request, copie));
         return raspuns;
       })
-      .catch(() => caches.match(event.request).then((r) => r || caches.match('./index.html')))
+      .catch(() => caches.match(event.request).then((r) => {
+        if (r) return r;
+        // pagina principală doar pentru navigare; pentru scripturi/fonturi lipsă nu întoarcem HTML
+        return event.request.mode === 'navigate' ? caches.match('./index.html') : Response.error();
+      }))
   );
 });
