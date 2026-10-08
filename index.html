@@ -6,6 +6,7 @@
 <title>Școala de șoferi</title>
 <link rel="manifest" href="manifest.json">
 <meta name="theme-color" content="#23303B">
+<meta name="mobile-web-app-capable" content="yes">
 <link rel="apple-touch-icon" href="icon-192.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Oswald:wght@500;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -487,6 +488,15 @@ function faraElevi(){
 }
 
 /* ---------------- AZI ---------------- */
+let promptInstalare=null;
+window.addEventListener('beforeinstallprompt', e=>{ e.preventDefault(); promptInstalare=e; if(currentTab==='azi') render(); });
+window.addEventListener('appinstalled', ()=>{ promptInstalare=null; toast('Aplicația a fost instalată ✓', 3000); render(); });
+function eAplicatie(){ return (window.matchMedia && window.matchMedia('(display-mode: standalone)').matches) || window.navigator.standalone===true; }
+function bannerInstalare(){
+  if(eAplicatie()) return '';
+  if(promptInstalare) return `<div class="alert alert-blue"><div>📲 <b>Poți instala aplicația pe tabletă</b>, ca să se deschidă singură, fără Chrome.</div><button class="btn btn-primary" data-act="instaleaza">Instalează aplicația</button></div>`;
+  return '';
+}
 function tabAzi(){
   const azi=todayISO();
   const s=state.settings;
@@ -506,6 +516,7 @@ function tabAzi(){
   return `
     <h2>${ziDin(azi)}, ${fmtData(azi)}</h2>
     <p class="tab-desc">Programările de azi, orele trecute deja și ce trebuie urmărit. An școlar ${esc(s.anScolar)}.</p>
+    ${bannerInstalare()}
     ${alerte}
     <div class="stats">
       <div class="stat"><div class="v">${el.length}</div><div class="l">Elevi</div></div>
@@ -1650,6 +1661,7 @@ document.addEventListener('click', e=>{
     case 'fisa-mod': ui.fisaMod = a.dataset.v; render(); break;
     case 'fisa-tip': ui.fisaVedere = a.dataset.v; render(); break;
     case 'filtru-regim': ui.eleviRegim = a.dataset.v; render(); break;
+    case 'instaleaza': if(promptInstalare){ const pr=promptInstalare; promptInstalare=null; pr.prompt(); pr.userChoice.then(()=>render()); } break;
     case 'lunar-luna': ui.lunarLuna = parseInt(a.dataset.l,10); render(); setTimeout(()=>{ const d=document.getElementById('detalii-luna'); if(d) d.scrollIntoView({behavior:'smooth', block:'start'}); },30); break;
     case 'foaie-save': {
       const d=ui.fisaData||todayISO();
