@@ -10,7 +10,7 @@
 <link rel="apple-touch-icon" href="icon-192.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Oswald:wght@500;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js" defer></script>
 <style>
   :root{
     --track:#D9480F;
@@ -220,6 +220,8 @@ function stareImplicita(){
       consumIP: 1,
       simulatorSS: 5,
       simulatorIP: 7,
+      chestionarTotal: 26,
+      chestionarMinim: 22,
       valoareBon: 50,
       taburiAscunse: [],
       intervale: ['07:40','08:35','09:30','10:30','11:25','12:20','13:15','14:00','14:50'],
@@ -274,6 +276,10 @@ function migreaza(){
   const d = stareImplicita();
   state.settings = Object.assign(d.settings, state.settings||{});
   ['masini','elevi','ore','programari','istoricExamene','foi'].forEach(k=>{ if(!Array.isArray(state[k])) state[k]=[]; });
+  state.elevi.forEach(e=>{
+    if(!e.examene){ e.examene={tsc:[], psc:[], tpol:[], ppol:[]}; if(e.examenData||e.examenRezultat) e.examene.ppol.push({data:e.examenData||'', rezultat:e.examenRezultat||''}); }
+    ['tsc','psc','tpol','ppol'].forEach(k=>{ if(!Array.isArray(e.examene[k])) e.examene[k]=[]; });
+  });
   state.elevi.forEach(e=>{ if(!e.regim){ const oc=state.ore.filter(o=>o.elevId===e.id && o.tip==='C'); e.regim = oc.length && oc.filter(o=>o.regim==='IP').length*2>oc.length ? 'IP' : 'SS'; } if(e.grupa===undefined) e.grupa=''; if(e.registru===undefined) e.registru=''; if(!e.note) e.note=[]; if(e.telefon===undefined) e.telefon=''; if(e.obs===undefined) e.obs=''; });
   state.masini.forEach(m=>{ ['documente','revizii','alimentari'].forEach(k=>{ if(!m[k]) m[k]=[]; });
     if(!m.regimImplicit) m.regimImplicit = /11\W*GSV/i.test(m.nr) ? 'IP' : 'SS';
@@ -934,9 +940,38 @@ function tabElevi(){
           <td class="muted">${i+1}</td><td><button class="link" data-act="elev-open" data-id="${e.id}">${esc(e.nume)}</button></td><td>${esc(e.clasa)}</td><td>${pillRegim(e.regim||'SS')}</td>
           <td>${e.telefon?`<a href="tel:${esc(e.telefon)}">${esc(e.telefon)}</a>`:'<span class="muted">—</span>'}</td>
           <td class="num">${fmtNr(st.total)}/${state.settings.oreNecesare}</td>
-          <td>${pillRez(e.examenRezultat)}</td>
+          <td>${(()=>{ const sd=stadiuExamen(e); return `<span class="pill ${sd.c}">${sd.t}</span>`; })()}</td>
           <td style="white-space:nowrap; text-align:right;"><button class="icon-btn" data-act="elev-edit" data-id="${e.id}" title="Modifică">${ICONS.edit}</button> <button class="icon-btn del" data-act="elev-del" data-id="${e.id}" title="Șterge">${ICONS.trash}</button></td></tr>`; }).join('')}</tbody></table></div>` : gol('Niciun elev încă', 'Adaugă-i mai sus, sau importă fișierul Excel din Setări (⚙).') }
     </div>`;
+}
+const ETAPE=[
+  {k:'tsc', t:'Teoretic — școală', sub:'chestionar', tip:'puncte'},
+  {k:'psc', t:'Practic — școală', sub:'cu instructorul', tip:'rez'},
+  {k:'tpol', t:'Teoretic — Poliție', sub:'examinator extern', tip:'rez'},
+  {k:'ppol', t:'Practic — Poliție', sub:'examinator extern', tip:'rez'},
+];
+function exList(e,k){ if(!e.examene) e.examene={tsc:[],psc:[],tpol:[],ppol:[]}; if(!Array.isArray(e.examene[k])) e.examene[k]=[]; return e.examene[k]; }
+function exUltim(e,k){ const l=exList(e,k); return l[l.length-1]||null; }
+function rezExamen(e,k){
+  const u=exUltim(e,k); if(!u) return '';
+  if(k==='tsc'){ if(u.puncte===''||u.puncte===undefined||u.puncte===null) return ''; return nr(u.puncte)>=nr(state.settings.chestionarMinim)?'ADMIS':'RESPINS'; }
+  return u.rezultat||'';
+}
+function conditieEtapa(e,k){
+  const st=statElev(e.id), N=state.settings.oreNecesare;
+  if(k==='psc' && st.total<N) return `după cele ${N} ore (are ${fmtNr(st.total)})`;
+  if(k==='tpol'){ if(rezExamen(e,'tsc')!=='ADMIS') return 'după teoreticul din școală ADMIS'; if(rezExamen(e,'psc')!=='ADMIS') return 'după practicul cu instructorul ADMIS'; }
+  if(k==='ppol' && rezExamen(e,'tpol')!=='ADMIS') return 'după teoreticul la Poliție ADMIS';
+  return '';
+}
+function stadiuExamen(e){
+  if(regimElev(e)==='IP') return {t:'IP — fără examen', c:'pill-ghost'};
+  if(rezExamen(e,'ppol')==='ADMIS') return {t:'🏁 Permis obținut', c:'pill-ok'};
+  if(rezExamen(e,'tpol')==='ADMIS') return {t:'Practic la Poliție', c:'pill-blue'};
+  if(rezExamen(e,'psc')==='ADMIS' && rezExamen(e,'tsc')==='ADMIS') return {t:'Gata pentru Poliție', c:'pill-blue'};
+  const st=statElev(e.id);
+  if(st.total>=state.settings.oreNecesare) return {t:'Examen cu instructorul', c:'pill-yellow'};
+  return {t:'În pregătire', c:'pill-ghost'};
 }
 function pillRez(r){
   if(r==='ADMIS') return '<span class="pill pill-ok">ADMIS</span>';
@@ -964,7 +999,7 @@ function fisaElev(e){
     </div>
     <div class="card"><div style="margin-bottom:10px;">${barProgres(st)}</div>
       <div class="row"><button class="btn btn-primary" data-act="ora-noua" data-elev="${e.id}">+ Oră pentru ${esc(e.nume.split(' ')[0])}</button>
-      ${e.examenData||e.examenRezultat?`<span style="align-self:center;">Examen: <b>${fmtData(e.examenData)}</b> ${pillRez(e.examenRezultat)}</span>`:''}</div>
+      <span style="align-self:center;">Examen: <span class="pill ${stadiuExamen(e).c}">${stadiuExamen(e).t}</span></span></div>
       ${prog.length?`<p class="small" style="margin:12px 0 0;">Următoarele programări: ${prog.map(p=>`<span class="pill pill-yellow">${fmtData(p.data)} ${p.oraStart}</span>`).join(' ')}</p>`:''}
     </div>
     <div class="card"><h3>Toate orele (${ore.length})</h3>
@@ -993,30 +1028,55 @@ function tabNote(){
 
 /* ---------------- EXAMEN ---------------- */
 function tabExamen(){
-  const el=eleviAn();
+  const s=state.settings;
+  const toti=eleviAn();
+  if(!toti.length) return `<h2>Examen</h2>${faraElevi()}`;
+  const el=toti.filter(e=>regimElev(e)==='SS');
+  const nIP=toti.length-el.length;
+  const cnt=k=>el.filter(e=>rezExamen(e,k)==='ADMIS').length;
+  const gata=el.filter(e=>rezExamen(e,'psc')==='ADMIS' && rezExamen(e,'tsc')==='ADMIS' && rezExamen(e,'ppol')!=='ADMIS').length;
   const ist=[...state.istoricExamene].sort((a,b)=>b.anScolar.localeCompare(a.anScolar));
   const ani=[...new Set(ist.map(x=>x.anScolar))];
-  const admisi=el.filter(e=>e.examenRezultat==='ADMIS').length;
+  const bloc=(e,et)=>{
+    const lista=exList(e,et.k), u=exUltim(e,et.k), i=lista.length-1, cond=conditieEtapa(e,et.k), rez=rezExamen(e,et.k);
+    const blocat=!!cond && !u;
+    let corp='';
+    if(blocat) corp=`<div class="small muted" style="padding:8px 0;">🔒 ${cond}</div>`;
+    else if(!u) corp=`<button class="btn btn-ghost" data-act="ex-add" data-id="${e.id}" data-k="${et.k}" style="width:100%;">+ Trece examenul</button>`;
+    else corp=`<input type="date" data-ex="${et.k}" data-f="data" data-i="${i}" data-id="${e.id}" value="${u.data||''}" style="width:100%; min-height:38px; padding:5px 8px; margin-bottom:6px;">
+      ${et.tip==='puncte'
+        ? `<div style="display:flex; align-items:center; gap:6px;"><input type="number" min="0" max="${nr(s.chestionarTotal)}" step="1" data-ex="${et.k}" data-f="puncte" data-i="${i}" data-id="${e.id}" value="${u.puncte??''}" placeholder="puncte" style="width:80px; min-height:38px; padding:5px 8px; text-align:center;"><span class="small muted">/ ${nr(s.chestionarTotal)} (min. ${nr(s.chestionarMinim)})</span></div>`
+        : `<select data-ex="${et.k}" data-f="rezultat" data-i="${i}" data-id="${e.id}" style="width:100%; min-height:38px; padding:5px 8px;">${['','ADMIS','RESPINS','NEPREZENTAT'].map(r=>`<option value="${r}" ${r===(u.rezultat||'')?'selected':''}>${r||'— rezultat —'}</option>`).join('')}</select>`}
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-top:6px; gap:6px;">
+        <span>${rez?pillRez(rez):''}${lista.length>1?` <span class="small muted">încercarea ${lista.length}</span>`:''}</span>
+        ${rez==='RESPINS'||u.rezultat==='NEPREZENTAT'?`<button class="btn btn-ghost" data-act="ex-add" data-id="${e.id}" data-k="${et.k}" style="min-height:30px; padding:4px 8px; font-size:12px;">+ Reexaminare</button>`:''}
+      </div>
+      ${lista.length>1?`<div class="small muted" style="margin-top:4px;">Anterior: ${lista.slice(0,-1).map(x=>`${x.data?fmtData(x.data):'—'} ${et.tip==='puncte'?(x.puncte??'')+'p':(x.rezultat||'')}`).join(' · ')}</div>`:''}`;
+    return `<div style="border:1px solid var(--border); border-radius:8px; padding:10px; background:${rez==='ADMIS'?'#F2F8F3':blocat?'#FAF9F6':'#fff'};">
+      <div style="font-weight:700; font-size:13px; color:var(--infield);">${et.t}</div><div class="small muted" style="margin-bottom:6px;">${et.sub}</div>${corp}</div>`;
+  };
   return `
     <h2>Examen</h2>
-    <p class="tab-desc">Data examenului la Poliție și rezultatul, pentru fiecare elev. Se salvează imediat ce alegi.</p>
-    ${el.length?`<div class="card">
+    <p class="tab-desc">Etapele elevilor de la școala de șoferi (SS): chestionarul din școală (${nr(s.chestionarTotal)} întrebări, minim ${nr(s.chestionarMinim)} pentru admis) → practicul cu instructorul după cele ${s.oreNecesare} de ore → examenul pentru permis la Poliție, teoretic și practic. Fiecare etapă se deblochează după cea dinainte. Se salvează imediat.</p>
+    <div class="stats">
+      <div class="stat"><div class="v">${el.length}</div><div class="l">Elevi SS${nIP?` · ${nIP} IP fără examen`:''}</div></div>
+      <div class="stat"><div class="v">${cnt('tsc')}</div><div class="l">Admiși teoretic școală</div></div>
+      <div class="stat"><div class="v">${cnt('psc')}</div><div class="l">Admiși practic școală</div></div>
+      <div class="stat"><div class="v">${gata}</div><div class="l">Gata / la Poliție</div></div>
+      <div class="stat accent"><div class="v">${cnt('ppol')}</div><div class="l">Permis obținut</div></div>
+    </div>
+    ${el.length?el.map((e,i)=>{ const st=statElev(e.id), sd=stadiuExamen(e); return `<div class="card" style="padding:14px;">
       <div style="display:flex; justify-content:space-between; align-items:center; gap:8px; flex-wrap:wrap; margin-bottom:10px;">
-        <h3 style="margin:0;">${esc(state.settings.anScolar)} · ${admisi}/${el.length} admiși</h3>
-        <button class="btn btn-ghost" data-act="arhiveaza">Trece rezultatele în istoric</button>
+        <div><b style="font-size:16px;">${i+1}. ${esc(e.nume)}</b> <span class="muted small">${esc(e.clasa||'')} · ${fmtNr(st.total)}/${s.oreNecesare} ore</span></div>
+        <span class="pill ${sd.c}">${sd.t}</span>
       </div>
-      <div class="table-wrap"><table>
-      <thead><tr><th>Nr.</th><th>Elev</th><th>Clasa</th><th class="num">Ore</th><th>Data examinării</th><th>Rezultat</th></tr></thead>
-      <tbody>${el.map((e,i)=>{ const st=statElev(e.id); return `<tr>
-        <td class="muted">${i+1}</td><td><b>${esc(e.nume)}</b></td><td>${esc(e.clasa)}</td>
-        <td class="num">${st.ramase>0?`<span style="color:var(--track);">${fmtNr(st.total)}/${state.settings.oreNecesare}</span>`:fmtNr(st.total)}</td>
-        <td><input type="date" data-exam="data" data-id="${e.id}" value="${e.examenData||''}" style="min-height:38px; padding:6px 8px;"></td>
-        <td><select data-exam="rez" data-id="${e.id}" style="min-height:38px; padding:6px 8px;">${REZULTATE.map(r=>`<option value="${r}" ${r===(e.examenRezultat||'')?'selected':''}>${r||'—'}</option>`).join('')}</select></td></tr>`; }).join('')}</tbody>
-      </table></div></div>`:faraElevi()}
-    <div class="card"><h3>Istoric examene</h3>
+      <div style="display:grid; grid-template-columns:repeat(auto-fill,minmax(190px,1fr)); gap:10px;">${ETAPE.map(et=>bloc(e,et)).join('')}</div>
+    </div>`; }).join(''):gol('Niciun elev SS','Examenele sunt doar pentru elevii de la școala de șoferi (SS).')}
+    <div class="card">
+      <div style="display:flex; justify-content:space-between; align-items:center; gap:8px; flex-wrap:wrap; margin-bottom:6px;"><h3 style="margin:0;">Istoric examene Poliție</h3><button class="btn btn-ghost" data-act="arhiveaza">Trece rezultatele anului în istoric</button></div>
       ${ani.length?ani.map(a=>{ const r=ist.filter(x=>x.anScolar===a); const ad=r.filter(x=>x.rezultat==='ADMIS').length; return `
         <div class="day-head">${esc(a)} · ${ad}/${r.length} admiși</div>
-        <div class="table-wrap"><table><tbody>${r.map((x,i)=>`<tr><td class="muted" style="width:36px;">${i+1}</td><td>${esc(x.nume)}</td><td>${esc(x.clasa||'')}</td><td>${x.data?fmtData(x.data):''}</td><td>${pillRez(x.rezultat)}</td><td class="small muted">${esc(x.masina||'')}</td></tr>`).join('')}</tbody></table></div>`; }).join(''):'<p class="muted small" style="margin:0;">Gol deocamdată. La final de an, apasă „Trece rezultatele în istoric”.</p>'}
+        <div class="table-wrap"><table><tbody>${r.map((x,i)=>`<tr><td class="muted" style="width:36px;">${i+1}</td><td>${esc(x.nume)}</td><td>${esc(x.clasa||'')}</td><td>${x.data?fmtData(x.data):''}</td><td>${pillRez(x.rezultat)}</td><td class="small muted">${esc(x.masina||'')}</td></tr>`).join('')}</tbody></table></div>`; }).join(''):'<p class="muted small" style="margin:0;">Gol deocamdată. La final de an, apasă „Trece rezultatele anului în istoric”.</p>'}
     </div>`;
 }
 
@@ -1134,6 +1194,35 @@ function construiesteFisa(data, masinaId, pana){
     <div class="semn">Semnătura, ..............................</div>
   </div>`;
 }
+async function salveazaPDF(){
+  if(typeof html2pdf==='undefined') return toast('Pentru PDF e nevoie de internet o singură dată (se încarcă generatorul de PDF). Încearcă din nou cu internet.', 4000);
+  const foi=[...document.querySelectorAll('#main .fisa, #main .foaie')];
+  if(!foi.length) return toast('Nimic de salvat.');
+  const eFoaie = !!document.querySelector('#main .foaie');
+  const box=document.createElement('div');
+  box.style.cssText='width:'+(eFoaie?'150mm':'190mm')+'; background:#fff;';
+  foi.forEach((f,i)=>{
+    const c=f.cloneNode(true);
+    c.style.border='none'; c.style.boxShadow='none'; c.style.margin='0'; c.style.maxWidth='none';
+    if(!eFoaie){ c.style.padding='0'; c.style.width='190mm'; }
+    else { c.style.height='149mm'; }
+    box.appendChild(c);
+    if(i<foi.length-1){ const br=document.createElement('div'); br.className='html2pdf__page-break'; box.appendChild(br); }
+  });
+  const v=ui.fisaVedere||'monit';
+  const nume = (v==='consum' ? 'Consum-'+(ui.consumLuna||todayISO().slice(0,7)) : v==='foaie' ? 'Foaie-parcurs-'+(ui.fisaData||todayISO()) : 'Monitorizare-ore-'+(ui.fisaMod==='lista'?(ui.fisaDe||'')+'_'+(ui.fisaPana||''):(ui.fisaData||todayISO())))+'.pdf';
+  toast('Se creează PDF-ul…', 1500);
+  try{
+    const blob = await html2pdf().set({
+      margin: eFoaie ? 0 : 10, filename:nume,
+      image:{type:'jpeg', quality:0.96},
+      html2canvas:{scale:2, backgroundColor:'#ffffff', useCORS:true},
+      jsPDF:{unit:'mm', format: eFoaie ? [150,150] : 'a4', orientation:'portrait'},
+      pagebreak:{mode:['css','legacy'], avoid:'tr'}
+    }).from(box).outputPdf('blob');
+    await partajeazaSauDescarca(new Blob([blob],{type:'application/pdf'}), nume, nume);
+  }catch(e){ console.error(e); toast('Nu am putut crea PDF-ul.'); }
+}
 function tabFisa(){
   const v=ui.fisaVedere||'monit';
   const opt=[['monit','Monitorizare (A4)'],['consum','Consum lunar'],['foaie','Foaie de parcurs']];
@@ -1145,7 +1234,7 @@ function selMasinaFisa(cuToate){
   if(!state.masini.length) return '';
   return `<div class="field"><label>Mașina</label><select id="f-mas">${optMasini(ui.fisaMasinaId||(cuToate?'all':(state.masini[0]||{}).id), cuToate)}</select></div>`;
 }
-const PRINT_HINT='<p class="small muted no-print" style="margin:8px 0 0;">Pe tabletă fără imprimantă: în fereastra de tipărire alege sus <b>„Salvează ca PDF”</b>, apoi trimite PDF-ul pe laptop. Ca să ieși din fereastră fără să tipărești: butonul <b>Înapoi</b> al tabletei.</p>';
+const PRINT_HINT='<p class="small muted no-print" style="margin:8px 0 0;"><b>📄 Salvează PDF</b> face fișierul direct, fără fereastra de tipărire — îl trimiți apoi pe WhatsApp, în Drive sau la imprimantă de pe laptop.</p>';
 
 function tabMonitorizare(){
   const masId = ui.fisaMasinaId || 'all';
@@ -1172,6 +1261,7 @@ function tabMonitorizare(){
       <div class="row" style="margin-top:12px;">
         ${mod==='lista'?`<div class="field"><label>De la</label><input type="date" id="f-de" value="${ui.fisaDe||d.slice(0,7)+'-01'}"></div><div class="field"><label>Până la</label><input type="date" id="f-pana" value="${ui.fisaPana||todayISO()}"></div>`:`<div class="field"><label>${mod==='luna'?'O zi din luna dorită':'Ziua'}</label><input type="date" id="f-data" value="${d}"></div>`}
         <button class="btn btn-primary" data-act="print">🖨 Tipărește${mod==='luna'?` (${nrFise} ${nrFise===1?'fișă':'fișe'})`:''}</button>
+        <button class="btn btn-secondary" data-act="pdf">📄 Salvează PDF</button>
       </div>${PRINT_HINT}</div>
     </div>
     ${fise}`;
@@ -1196,6 +1286,7 @@ function tabConsumLunar(){
         <div class="field"><label>Luna</label><input type="month" id="c-luna" value="${luna}"></div>
         ${selMasinaFisa(false)}
         <button class="btn btn-primary" data-act="print">🖨 Tipărește</button>
+        <button class="btn btn-secondary" data-act="pdf">📄 Salvează PDF</button>
       </div>${PRINT_HINT}</div>
     </div>
     <div class="fisa">
@@ -1313,6 +1404,7 @@ function tabFoaie(){
         <div class="field"><label>Mută la dreapta (mm)</label><input type="number" id="fp-ox" value="${s.foaieOffsetX}" step="0.5" style="width:90px;"></div>
         <div class="field"><label>Mută în jos (mm)</label><input type="number" id="fp-oy" value="${s.foaieOffsetY}" step="0.5" style="width:90px;"></div>
         <button class="btn btn-secondary" data-act="print">🖨 Tipărește (față + verso)</button>
+        <button class="btn btn-secondary" data-act="pdf">📄 Salvează PDF</button>
       </div><p class="small muted no-print" style="margin:8px 0 0;">Pe tabletă fără imprimantă: în fereastra de tipărire alege sus <b>„Salvează ca PDF”</b>, apoi trimite PDF-ul pe laptop. Ca să ieși din fereastră fără să tipărești: butonul <b>Înapoi</b> al tabletei.</p></div>
     </div>
     <div class="foi-wrap">
@@ -1374,6 +1466,8 @@ function openSettings(){
     <div class="row">
       <div class="field" style="flex:1;"><label>Ore simulator SS</label><input type="number" id="s-sss" value="${s.simulatorSS}" min="0" step="1"></div>
       <div class="field" style="flex:1;"><label>Ore simulator IP</label><input type="number" id="s-sip" value="${s.simulatorIP}" min="0" step="1"></div>
+      <div class="field" style="flex:1;"><label>Chestionar: întrebări</label><input type="number" id="s-cht" value="${s.chestionarTotal}" min="1"></div>
+      <div class="field" style="flex:1;"><label>Chestionar: minim admis</label><input type="number" id="s-chm" value="${s.chestionarMinim}" min="1"></div>
       <div class="field" style="flex:1;"><label>Valoare bon (lei)</label><input type="number" id="s-bon" value="${s.valoareBon}" min="0" step="1"></div>
     </div>
     <div class="field"><label>Norme de consum (litri / oră de conducere)</label>
@@ -1404,7 +1498,7 @@ function openSettings(){
     s.oreNecesare=Math.max(1,nr(b.querySelector('#s-ore').value)||30);
     s.kmPeOra=nr(b.querySelector('#s-km').value);
     b.querySelectorAll('.s-norma').forEach(x=>{ const n=s.norme.find(y=>y.id===x.dataset.id); if(n) n[x.dataset.k]=nr(x.value); });
-    s.valoareBon=nr(b.querySelector('#s-bon').value); s.simulatorSS=nr(b.querySelector('#s-sss').value); s.simulatorIP=nr(b.querySelector('#s-sip').value);
+    s.valoareBon=nr(b.querySelector('#s-bon').value); s.simulatorSS=nr(b.querySelector('#s-sss').value); s.chestionarTotal=nr(b.querySelector('#s-cht').value)||26; s.chestionarMinim=nr(b.querySelector('#s-chm').value)||22; s.simulatorIP=nr(b.querySelector('#s-sip').value);
     const ascunse=[...b.querySelectorAll('.s-tab')].filter(x=>!x.checked).map(x=>x.value);
     s.taburiAscunse = ascunse.length>=TABS.length ? [] : ascunse;
     s.intervale=b.querySelector('#s-int').value.split(/[,;\s]+/).map(x=>x.trim().replace('.',':')).filter(x=>/^\d{1,2}:\d{2}$/.test(x)).map(x=>x.padStart(5,'0'));
@@ -1683,11 +1777,12 @@ document.addEventListener('click', e=>{
     case 'elev-close': ui.elevDetaliu=null; render(); break;
     case 'nota-add': { const inp=document.getElementById('nota-'+id); const v=nr(inp.value); if(v<1||v>10) return toast('Nota trebuie să fie între 1 și 10.'); elevById(id).note.push({id:uid(), nota:v, data:todayISO()}); save(); render(); toast('Notă adăugată ✓'); break; }
     case 'nota-del': { const ev=elevById(id); ev.note=ev.note.filter(n=>n.id!==a.dataset.nota); save(); render(); break; }
+    case 'ex-add': { const ev=elevById(id); exList(ev,a.dataset.k).push(a.dataset.k==='tsc'?{data:todayISO(), puncte:''}:{data:todayISO(), rezultat:''}); save(); render(); break; }
     case 'arhiveaza': {
-      const el=eleviAn().filter(e=>e.examenRezultat||e.examenData);
+      const el=eleviAn().filter(e=>exUltim(e,'ppol'));
       if(!el.length) return toast('Niciun rezultat completat încă.');
       confirma(`Treci în istoric ${el.length} rezultate din ${state.settings.anScolar}? Elevii rămân și în anul lor.`, ()=>{
-        el.forEach(e=>{ const ex=state.istoricExamene.find(y=>y.anScolar===e.anScolar && normNume(y.nume)===normNume(e.nume)); const x={anScolar:e.anScolar, nume:e.nume, clasa:e.clasa, data:e.examenData, rezultat:e.examenRezultat, masina:(m||{}).nr||''}; if(ex) Object.assign(ex,x); else state.istoricExamene.push({id:uid(),...x}); });
+        el.forEach(e=>{ const ex=state.istoricExamene.find(y=>y.anScolar===e.anScolar && normNume(y.nume)===normNume(e.nume)); const u=exUltim(e,'ppol')||{}; const x={anScolar:e.anScolar, nume:e.nume, clasa:e.clasa, data:u.data||'', rezultat:u.rezultat||'', masina:(m||{}).nr||''}; if(ex) Object.assign(ex,x); else state.istoricExamene.push({id:uid(),...x}); });
         save(); render(); toast('Trecute în istoric ✓'); }, 'Da'); break; }
     case 'masina-add': {
       const v=capitalizeaza(document.getElementById('m-nr').value); if(!v) return toast('Scrie numărul mașinii.');
@@ -1718,6 +1813,7 @@ document.addEventListener('click', e=>{
     case 'foaie-open': ui.fisaData=a.dataset.d; render(); document.getElementById('main').scrollTop=0; break;
     case 'foaie-del': e.stopPropagation(); confirma(`Ștergi foaia de parcurs din ${fmtData(a.dataset.d)}? Orele elevilor rămân.`, ()=>{ state.foi=state.foi.filter(x=>x.data!==a.dataset.d); save(); render(); }); break;
     case 'print': window.print(); break;
+    case 'pdf': salveazaPDF(); break;
     case 'export-json': exportJson(); break;
     case 'import-json': document.getElementById('file-json').click(); break;
     case 'import-xlsx': document.getElementById('file-xlsx').click(); break;
@@ -1728,6 +1824,7 @@ document.addEventListener('change', e=>{
   const t=e.target;
   if(t.id==='an-select'){ state.settings.anScolar=t.value; ui.elevDetaliu=null; ui.oreElev='all'; save(); render(); return; }
   if(t.dataset.filter){ ui[t.dataset.filter]=t.value; render(); return; }
+  if(t.dataset.ex){ const ev=elevById(t.dataset.id); const x=exList(ev,t.dataset.ex)[parseInt(t.dataset.i,10)]; if(x){ x[t.dataset.f]= t.dataset.f==='puncte' ? (t.value===''?'':Math.max(0,Math.min(nr(state.settings.chestionarTotal), Math.round(nr(t.value))))) : t.value; save(); render(); toast('Salvat ✓', 900); } return; }
   if(t.dataset.exam){ const ev=elevById(t.dataset.id); if(t.dataset.exam==='data') ev.examenData=t.value; else ev.examenRezultat=t.value; save(); toast('Salvat ✓', 900); if(t.dataset.exam==='rez') render(); return; }
   if(t.dataset.doc){ const m=masinaById(t.dataset.m); const d=m.documente.find(x=>x.id===t.dataset.id); d[t.dataset.doc]=t.value; save(); render(); toast('Salvat ✓', 900); return; }
   if(t.dataset.mreg){ masinaById(t.dataset.mreg).regimImplicit=t.value; save(); render(); toast('Salvat ✓', 900); return; }
