@@ -202,7 +202,8 @@ const ZILE = ['DUMINICĂ','LUNI','MARȚI','MIERCURI','JOI','VINERI','SÂMBĂTĂ'
 const LUNI = ['','Ianuarie','Februarie','Martie','Aprilie','Mai','Iunie','Iulie','August','Septembrie','Octombrie','Noiembrie','Decembrie'];
 const LUNI_AN = [9,10,11,12,1,2,3,4,5,6,7,8];
 const REZULTATE = ['', 'ADMIS', 'RESPINS', 'NEPREZENTAT'];
-const DOC_TIPURI = ['ASIGURARE PERSOANE','ASIGURARE RCA','I.T.P.','CASCO','ROVINIETĂ','AUTORIZAȚIE ȘCOALĂ','TRUSĂ MEDICALĂ','EXTINCTOR'];
+const DOC_TIPURI = ['ASIGURARE PERSOANE','ASIGURARE RCA','I.T.P.','CASCO','AUTORIZAȚIE ȘCOALĂ','TRUSĂ MEDICALĂ','EXTINCTOR'];
+const ROV_PERIOADE = [{k:'1z',t:'1 zi',zile:1},{k:'7z',t:'7 zile',zile:7},{k:'30z',t:'30 de zile',zile:30},{k:'90z',t:'90 de zile',zile:90},{k:'12l',t:'12 luni',luni:12}];
 
 function stareImplicita(){
   return {
@@ -288,7 +289,10 @@ function migreaza(){
     ['tsc','psc','tpol','ppol'].forEach(k=>{ if(!Array.isArray(e.examene[k])) e.examene[k]=[]; });
   });
   state.elevi.forEach(e=>{ if(!e.regim){ const oc=state.ore.filter(o=>o.elevId===e.id && o.tip==='C'); e.regim = oc.length && oc.filter(o=>o.regim==='IP').length*2>oc.length ? 'IP' : 'SS'; } if(e.grupa===undefined) e.grupa=''; if(e.registru===undefined) e.registru=''; if(!e.note) e.note=[]; if(e.telefon===undefined) e.telefon=''; if(e.obs===undefined) e.obs=''; });
-  state.masini.forEach(m=>{ ['documente','revizii','alimentari'].forEach(k=>{ if(!m[k]) m[k]=[]; });
+  state.masini.forEach(m=>{ ['documente','revizii','alimentari','roviniete'].forEach(k=>{ if(!m[k]) m[k]=[]; });
+    // rovinieta avea înainte un rând în Acte -> o mutăm în secțiunea ei
+    m.documente.filter(d=>/^ROVINIET/i.test(d.tip||'')).forEach(d=>{ if(d.valabil||d.expira) m.roviniete.push({id:d.id, de:d.valabil||'', perioada:'12l', expira:d.expira||'', serie:'', cost:''}); });
+    m.documente = m.documente.filter(d=>!/^ROVINIET/i.test(d.tip||''));
     if(!m.regimImplicit) m.regimImplicit = /11\W*GSV/i.test(m.nr) ? 'IP' : 'SS';
     if(m.stocInitial===undefined) m.stocInitial=0; });
   if(!Array.isArray(state.settings.taburiAscunse)) state.settings.taburiAscunse=[];
@@ -474,6 +478,26 @@ function stareDoc(doc){
   if(z<=30) return {cls:'pill-yellow', txt:`Expiră în ${z} ${z===1?'zi':'zile'}`, zile:z};
   return {cls:'pill-ok', txt:'Valabil', zile:z};
 }
+function rovExpira(de, perioada){
+  if(!de) return '';
+  const p=ROV_PERIOADE.find(x=>x.k===perioada)||ROV_PERIOADE[4];
+  if(p.luni){ const d=new Date(de+'T12:00:00'); const zi=d.getDate(); d.setMonth(d.getMonth()+p.luni); if(d.getDate()!==zi) d.setDate(0); return d.toISOString().slice(0,10); }
+  return plusZile(de, p.zile-1);
+}
+function rovinietaLa(m, data){ // rovinieta valabilă la data dată (sau null)
+  return (m.roviniete||[]).filter(r=>r.de && r.expira && r.de<=data && r.expira>=data).sort((a,b)=>b.expira.localeCompare(a.expira))[0]||null;
+}
+function stareRovinieta(m){
+  const azi=todayISO(), l=(m.roviniete||[]).filter(r=>r.expira);
+  if(!l.length) return {cls:'pill-ghost', txt:'Nicio rovinietă trecută', zile:null};
+  const ult=l.slice().sort((a,b)=>b.expira.localeCompare(a.expira))[0];
+  if(ult.de && ult.de>azi) return {cls:'pill-ok', txt:`Începe pe ${fmtData(ult.de)}`, zile:zileIntre(azi, ult.expira), r:ult};
+  const z=zileIntre(azi, ult.expira);
+  const prag = ult.perioada==='12l'?30 : ult.perioada==='90z'?10 : 3;
+  if(z<0) return {cls:'pill-danger', txt:`Expirată de ${-z} ${-z===1?'zi':'zile'}`, zile:z, r:ult, alerta:true};
+  if(z<=prag) return {cls:'pill-yellow', txt:`Expiră în ${z} ${z===1?'zi':'zile'}`, zile:z, r:ult, alerta:true};
+  return {cls:'pill-ok', txt:`Valabilă până la ${fmtData(ult.expira)}`, zile:z, r:ult};
+}
 function aniDisponibili(){
   const s=new Set(state.elevi.map(e=>e.anScolar)); s.add(state.settings.anScolar); s.add(anDinData(todayISO()));
   return [...s].filter(Boolean).sort().reverse();
@@ -584,6 +608,7 @@ function tabAzi(){
   const oreAzi=state.ore.filter(o=>o.data===azi).sort((a,b)=>(a.ora||'').localeCompare(b.ora||''));
   const el=eleviAn();
   let alerte='';
+  state.masini.forEach(m=>{ const sr=stareRovinieta(m); if(sr.alerta) alerte+=`<div class="alert ${sr.zile<0?'alert-danger':'alert-yellow'}"><div><b>${esc(m.nr)} — ROVINIETĂ:</b> ${sr.txt.toLowerCase()} (${fmtData(sr.r.expira)}).</div><button class="btn btn-ghost" data-tab="masina" style="background:#fff;">Actualizează</button></div>`; });
   state.masini.forEach(m=>m.documente.forEach(d=>{
     const st=stareDoc(d);
     if(st.zile!==null && st.zile<=30) alerte+=`<div class="alert ${st.zile<0?'alert-danger':'alert-yellow'}"><div><b>${esc(m.nr)} — ${esc(d.tip)}:</b> ${st.txt.toLowerCase()} (${fmtData(d.expira)}).</div><button class="btn btn-ghost" data-tab="masina" style="background:#fff;">Actualizează</button></div>`;
@@ -1311,11 +1336,28 @@ function tabMasina(){
           </div>
         </div>
       </div>
+      ${(()=>{ const sr=stareRovinieta(m); const rl=[...m.roviniete].sort((a,b)=>(b.de||'').localeCompare(a.de||''));
+        return `<div class="day-head" style="display:flex; align-items:center; gap:10px; flex-wrap:wrap;">Rovinietă <span class="pill ${sr.cls}" style="text-transform:none; font-family:inherit; letter-spacing:0;">${sr.txt}</span></div>
+        ${rl.length?`<div class="table-wrap"><table><thead><tr><th>De la</th><th>Perioada</th><th>Expiră</th><th>Serie / nr.</th><th class="num">Cost (lei)</th><th></th></tr></thead><tbody>${rl.map(r=>`<tr>
+          <td><input type="date" data-rov="de" data-m="${m.id}" data-id="${r.id}" value="${r.de||''}" style="min-height:36px; padding:5px 6px;"></td>
+          <td><select data-rov="perioada" data-m="${m.id}" data-id="${r.id}" style="min-height:36px; padding:5px 6px;">${ROV_PERIOADE.map(p=>`<option value="${p.k}" ${p.k===r.perioada?'selected':''}>${p.t}</option>`).join('')}</select></td>
+          <td><input type="date" data-rov="expira" data-m="${m.id}" data-id="${r.id}" value="${r.expira||''}" style="min-height:36px; padding:5px 6px;"></td>
+          <td><input type="text" data-rov="serie" data-m="${m.id}" data-id="${r.id}" value="${esc(r.serie||'')}" style="min-height:36px; padding:5px 6px; width:130px;"></td>
+          <td class="num"><input type="number" data-rov="cost" data-m="${m.id}" data-id="${r.id}" value="${r.cost||''}" step="0.01" min="0" style="min-height:36px; padding:5px 6px; width:90px;"></td>
+          <td style="text-align:right;"><button class="icon-btn del" data-act="rov-del" data-m="${m.id}" data-id="${r.id}">${ICONS.trash}</button></td></tr>`).join('')}</tbody></table></div>`:'<p class="muted small">Nicio rovinietă trecută.</p>'}
+        <div class="row" style="margin-top:10px;">
+          <div class="field"><label>Valabilă de la</label><input type="date" id="rv-de-${m.id}" value="${todayISO()}"></div>
+          <div class="field"><label>Perioada</label><select id="rv-per-${m.id}">${ROV_PERIOADE.map(p=>`<option value="${p.k}" ${p.k==='12l'?'selected':''}>${p.t}</option>`).join('')}</select></div>
+          <div class="field"><label>Serie / nr. (opțional)</label><input type="text" id="rv-serie-${m.id}" style="width:140px;"></div>
+          <div class="field"><label>Cost lei (opțional)</label><input type="number" id="rv-cost-${m.id}" step="0.01" min="0" style="width:100px;"></div>
+          <button class="btn btn-secondary" data-act="rov-add" data-m="${m.id}">Adaugă</button>
+        </div>
+        <p class="small muted" style="margin:6px 0 0;">Data de expirare se calculează singură din perioadă; o poți corecta în tabel. Verificare oficială: erovinieta.ro.</p>`; })()}
     </div>`;
   };
   return `
     <h2>Mașini</h2>
-    <p class="tab-desc">Sus alimentările, pe mașini. Jos actele și reviziile fiecărei mașini. Actele care expiră în mai puțin de 30 de zile apar și în tabul Azi.</p>
+    <p class="tab-desc">Sus alimentările, pe mașini. Jos actele, reviziile și rovinieta fiecărei mașini. Actele și rovinieta care expiră în curând apar și în tabul Azi.</p>
     <div class="card">
       <h3>Alimentări ${esc(an)}</h3>
       <div class="row" style="margin-bottom:6px;">
@@ -1932,7 +1974,8 @@ document.addEventListener('click', e=>{
       const pmb=document.querySelector('#p-mas button.on'); const pm=pmb?masinaById(pmb.dataset.masval):null;
       const np={id:uid(), elevId, data, oraStart:st, oraFinal:fin, efectuata:false, masinaId:pm?pm.id:null};
       let avert='';
-      if(pm){ const stoc=stocPana(pm,data)-consumProgramat(pm,data,st); const nec=durataProg(np)*consumPeOra(regimElev(elevById(elevId)),data); if(stoc-nec<0) avert=` — ATENȚIE: pe ${pm.nr} ${stoc<=0?'rezervorul e gol după calcul':'sunt ~'+fmtNr(stoc)+' l'}, ora are nevoie de ${fmtNr(nec)} l`; ui.ultimaMasinaId=pm.id; }
+      if(pm){ const stoc=stocPana(pm,data)-consumProgramat(pm,data,st); const nec=durataProg(np)*consumPeOra(regimElev(elevById(elevId)),data); if(stoc-nec<0) avert=` — ATENȚIE: pe ${pm.nr} ${stoc<=0?'rezervorul e gol după calcul':'sunt ~'+fmtNr(stoc)+' l'}, ora are nevoie de ${fmtNr(nec)} l`; ui.ultimaMasinaId=pm.id;
+        if(regimElev(elevById(elevId))==='SS' && (pm.roviniete||[]).length && !rovinietaLa(pm,data)) avert+=` — ATENȚIE: ${pm.nr} nu are rovinietă valabilă pe ${fmtData(data)}`; }
       state.programari.push(np); save(); render(); toast('Programat ✓'+avert, avert?4500:2000); break; }
     case 'prog-done': {
       const p=state.programari.find(x=>x.id===id);
@@ -1977,6 +2020,11 @@ document.addEventListener('click', e=>{
     case 'masina-del': { const mm=masinaById(a.dataset.m); const n=state.ore.filter(o=>o.masinaId===mm.id).length;
       confirma(`Ștergi mașina ${esc(mm.nr)} cu actele, reviziile și alimentările ei?${n?` Cele ${n} ore făcute pe ea rămân la elevi, dar fără mașină.`:''}`, ()=>{ state.masini=state.masini.filter(x=>x.id!==mm.id); state.ore.forEach(o=>{ if(o.masinaId===mm.id) o.masinaId=null; }); save(); render(); }); break; }
     case 'doc-add': { const mm=masinaById(a.dataset.m); const tip=capitalizeaza(document.getElementById('d-tip-'+mm.id).value); if(!tip) return toast('Scrie numele actului.'); mm.documente.push({id:uid(), tip, valabil:document.getElementById('d-val-'+mm.id).value, expira:document.getElementById('d-exp-'+mm.id).value}); save(); render(); break; }
+    case 'rov-add': { const mm=masinaById(a.dataset.m); const de=document.getElementById('rv-de-'+mm.id).value, per=document.getElementById('rv-per-'+mm.id).value;
+      if(!de) return toast('Alege data de la care e valabilă.');
+      mm.roviniete.push({id:uid(), de, perioada:per, expira:rovExpira(de,per), serie:document.getElementById('rv-serie-'+mm.id).value.trim(), cost:document.getElementById('rv-cost-'+mm.id).value});
+      save(); render(); toast('Rovinietă adăugată ✓'); break; }
+    case 'rov-del': { const mm=masinaById(a.dataset.m); confirma('Ștergi rovinieta?', ()=>{ mm.roviniete=mm.roviniete.filter(r=>r.id!==id); save(); render(); }); break; }
     case 'doc-del': { const mm=masinaById(a.dataset.m); confirma('Ștergi actul?', ()=>{ mm.documente=mm.documente.filter(d=>d.id!==id); save(); render(); }); break; }
     case 'alim-add': { const mm=masinaById(document.getElementById('a-mas').value); const l=nr(document.getElementById('a-litri').value); const d=document.getElementById('a-data').value; if(!mm) return toast('Alege mașina.'); if(!l||!d) return toast('Completează data și litrii.'); mm.alimentari.push({id:uid(), data:d, bcf:document.getElementById('a-bcf').value, litri:l, obs:''}); ui.ultimaMasinaId=mm.id; save(); render(); toast('Alimentare adăugată ✓'); break; }
     case 'alim-del': { const mm=masinaById(a.dataset.m); confirma('Ștergi alimentarea?', ()=>{ mm.alimentari=mm.alimentari.filter(x=>x.id!==id); save(); render(); }); break; }
@@ -2014,6 +2062,9 @@ document.addEventListener('change', e=>{
   if(t.dataset.tema){ const x=planTeme(t.dataset.tema).find(y=>y.nr===parseInt(t.dataset.nr,10)); if(x && t.value.trim()){ x.titlu=t.value.trim(); save(); toast('Salvat ✓', 900); } return; }
   if(t.dataset.ex){ const ev=elevById(t.dataset.id); const x=exList(ev,t.dataset.ex)[parseInt(t.dataset.i,10)]; if(x){ x[t.dataset.f]= t.dataset.f==='puncte' ? (t.value===''?'':Math.max(0,Math.min(nr(state.settings.chestionarTotal), Math.round(nr(t.value))))) : t.value; const avea=!!ev.transferIP, era=regimElev(ev); if(t.dataset.ex==='tsc') verificaTransfer(ev); save(); render(); if(regimElev(ev)===era) toast('Salvat ✓', 900); } return; }
   if(t.dataset.exam){ const ev=elevById(t.dataset.id); if(t.dataset.exam==='data') ev.examenData=t.value; else ev.examenRezultat=t.value; save(); toast('Salvat ✓', 900); if(t.dataset.exam==='rez') render(); return; }
+  if(t.dataset.rov){ const m=masinaById(t.dataset.m); const r=m.roviniete.find(x=>x.id===t.dataset.id); const k=t.dataset.rov; r[k]=t.value;
+    if(k==='de'||k==='perioada') r.expira=rovExpira(r.de, r.perioada);
+    save(); render(); toast('Salvat ✓', 900); return; }
   if(t.dataset.doc){ const m=masinaById(t.dataset.m); const d=m.documente.find(x=>x.id===t.dataset.id); d[t.dataset.doc]=t.value; save(); render(); toast('Salvat ✓', 900); return; }
   if(t.dataset.mreg){ masinaById(t.dataset.mreg).regimImplicit=t.value; save(); render(); toast('Salvat ✓', 900); return; }
   if(t.dataset.mstoc){ masinaById(t.dataset.mstoc).stocInitial=nr(t.value); save(); toast('Salvat ✓', 900); return; }
