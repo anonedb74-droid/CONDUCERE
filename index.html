@@ -233,8 +233,10 @@ function stareImplicita(){
     programari: [],
     istoricExamene: [],
     foi: [],
+    teme: JSON.parse(JSON.stringify(TEME_IMPLICITE)),
   };
 }
+const TEME_IMPLICITE = {"SS": [{"nr": 1, "etapa": "Simulator", "titlu": "Postul de conducere: reglaje, centura, comenzile, bordul și martorii, pornirea și oprirea motorului"}, {"nr": 2, "etapa": "Simulator", "titlu": "Pornirea de pe loc și oprirea, coordonarea ambreiaj–accelerație–frână, schimbarea treptelor"}, {"nr": 3, "etapa": "Simulator", "titlu": "Dirijarea autovehiculului: virarea, traiectoria în curbe, adaptarea vitezei, mersul înapoi"}, {"nr": 4, "etapa": "Simulator", "titlu": "Circulația în trafic simulat: indicatoare, marcaje, semafoare, intersecții, prioritate, sens giratoriu"}, {"nr": 5, "etapa": "Simulator", "titlu": "Situații dificile și de risc: condiții meteo, noapte, frânarea de urgență, reacția la pericole"}, {"nr": 6, "etapa": "Etapa I — manevre de bază și primii pași în trafic", "titlu": "Verificări înainte de plecare, postul de conducere în autoturism, pornirea și oprirea motorului"}, {"nr": 7, "etapa": "Etapa I — manevre de bază și primii pași în trafic", "titlu": "Pornirea de pe loc în treapta I, oprirea lină, folosirea ambreiajului"}, {"nr": 8, "etapa": "Etapa I — manevre de bază și primii pași în trafic", "titlu": "Schimbarea treptelor în sus și în jos, dozarea accelerației, frâna de motor"}, {"nr": 9, "etapa": "Etapa I — manevre de bază și primii pași în trafic", "titlu": "Virarea la stânga și la dreapta, traiectoria, semnalizarea, oglinzile"}, {"nr": 10, "etapa": "Etapa I — manevre de bază și primii pași în trafic", "titlu": "Mersul înapoi în linie dreaptă și cu virare"}, {"nr": 11, "etapa": "Etapa I — manevre de bază și primii pași în trafic", "titlu": "Pornirea din rampă și oprirea în pantă, frâna de mână"}, {"nr": 12, "etapa": "Etapa I — manevre de bază și primii pași în trafic", "titlu": "Recapitularea manevrelor de bază în spațiu închis"}, {"nr": 13, "etapa": "Etapa I — manevre de bază și primii pași în trafic", "titlu": "Intrarea în trafic: încadrarea pe bandă, distanța față de vehiculul din față, viteza legală (trafic redus)"}, {"nr": 14, "etapa": "Etapa I — manevre de bază și primii pași în trafic", "titlu": "Intersecții nedirijate: prioritatea de dreapta, indicatoarele de prioritate"}, {"nr": 15, "etapa": "Etapa I — manevre de bază și primii pași în trafic", "titlu": "Intersecții dirijate prin semafoare și de agent, virarea la stânga"}, {"nr": 16, "etapa": "Etapa a II-a — circulația în localitate și în afara ei", "titlu": "Sensul giratoriu: intrarea, încadrarea, ieșirea"}, {"nr": 17, "etapa": "Etapa a II-a — circulația în localitate și în afara ei", "titlu": "Schimbarea benzii, drumurile cu mai multe benzi, unghiul mort"}, {"nr": 18, "etapa": "Etapa a II-a — circulația în localitate și în afara ei", "titlu": "Parcarea laterală, cu spatele"}, {"nr": 19, "etapa": "Etapa a II-a — circulația în localitate și în afara ei", "titlu": "Parcarea perpendiculară și oblică, cu fața și cu spatele"}, {"nr": 20, "etapa": "Etapa a II-a — circulația în localitate și în afara ei", "titlu": "Întoarcerea autovehiculului din trei manevre"}, {"nr": 21, "etapa": "Etapa a II-a — circulația în localitate și în afara ei", "titlu": "Trecerile de pietoni, stațiile de transport în comun, zonele școlare, bicicliștii"}, {"nr": 22, "etapa": "Etapa a II-a — circulația în localitate și în afara ei", "titlu": "Traficul urban intens: anticiparea, orele de vârf"}, {"nr": 23, "etapa": "Etapa a II-a — circulația în localitate și în afara ei", "titlu": "Oprirea, staționarea și parcarea regulamentară în oraș"}, {"nr": 24, "etapa": "Etapa a II-a — circulația în localitate și în afara ei", "titlu": "Circulația în afara localității: vitezele, depășirea și revenirea pe bandă"}, {"nr": 25, "etapa": "Etapa a II-a — circulația în localitate și în afara ei", "titlu": "Trecerile la nivel cu calea ferată, curbele periculoase, podurile, vehiculele cu regim prioritar"}, {"nr": 26, "etapa": "Etapa a III-a — consolidare și examen", "titlu": "Conducerea defensivă și economică (eco-driving)"}, {"nr": 27, "etapa": "Etapa a III-a — consolidare și examen", "titlu": "Condițiile dificile: ploaia, vizibilitatea redusă, amurgul și noaptea, folosirea luminilor"}, {"nr": 28, "etapa": "Etapa a III-a — consolidare și examen", "titlu": "Recapitularea manevrelor în trafic real: parcare, întoarcere, rampă"}, {"nr": 29, "etapa": "Etapa a III-a — consolidare și examen", "titlu": "Simularea traseului de examen, corectarea greșelilor"}, {"nr": 30, "etapa": "Etapa a III-a — consolidare și examen", "titlu": "Examen practic în vederea absolvirii"}], "IP": [{"nr": 1, "etapa": "Simulator", "titlu": "Postul de conducere: reglaje, centura, comenzile, bordul și martorii"}, {"nr": 2, "etapa": "Simulator", "titlu": "Pornirea și oprirea motorului, pornirea de pe loc și oprirea"}, {"nr": 3, "etapa": "Simulator", "titlu": "Schimbarea treptelor, coordonarea ambreiaj–accelerație"}, {"nr": 4, "etapa": "Simulator", "titlu": "Virarea, traiectoria, controlul volanului"}, {"nr": 5, "etapa": "Simulator", "titlu": "Mersul înapoi, folosirea oglinzilor"}, {"nr": 6, "etapa": "Simulator", "titlu": "Indicatoare, marcaje și reguli de bază de circulație"}, {"nr": 7, "etapa": "Simulator", "titlu": "Situații de risc, frânarea de urgență, recapitulare"}, {"nr": 8, "etapa": "Etapa I — stăpânirea autoturismului", "titlu": "Verificări înainte de plecare, postul de conducere în autoturism, pornirea și oprirea motorului"}, {"nr": 9, "etapa": "Etapa I — stăpânirea autoturismului", "titlu": "Pornirea de pe loc și oprirea lină"}, {"nr": 10, "etapa": "Etapa I — stăpânirea autoturismului", "titlu": "Schimbarea treptelor (I–III), dozarea accelerației"}, {"nr": 11, "etapa": "Etapa I — stăpânirea autoturismului", "titlu": "Virarea la stânga și la dreapta, traiectoria"}, {"nr": 12, "etapa": "Etapa I — stăpânirea autoturismului", "titlu": "Mersul înapoi în linie dreaptă"}, {"nr": 13, "etapa": "Etapa I — stăpânirea autoturismului", "titlu": "Mersul înapoi cu virare"}, {"nr": 14, "etapa": "Etapa I — stăpânirea autoturismului", "titlu": "Slalom printre jaloane, controlul volanului la viteză redusă"}, {"nr": 15, "etapa": "Etapa I — stăpânirea autoturismului", "titlu": "Frânarea progresivă și oprirea la un punct fix"}, {"nr": 16, "etapa": "Etapa I — stăpânirea autoturismului", "titlu": "Pornirea în pantă (unde terenul permite), controlul ambreiajului la viteză foarte mică"}, {"nr": 17, "etapa": "Etapa I — stăpânirea autoturismului", "titlu": "Recapitularea etapei I"}, {"nr": 18, "etapa": "Etapa a II-a — manevre în curte", "titlu": "Parcarea laterală cu spatele, între jaloane"}, {"nr": 19, "etapa": "Etapa a II-a — manevre în curte", "titlu": "Parcarea laterală: exersare și corectarea poziției"}, {"nr": 20, "etapa": "Etapa a II-a — manevre în curte", "titlu": "Parcarea perpendiculară cu fața"}, {"nr": 21, "etapa": "Etapa a II-a — manevre în curte", "titlu": "Parcarea perpendiculară cu spatele"}, {"nr": 22, "etapa": "Etapa a II-a — manevre în curte", "titlu": "Parcarea oblică"}, {"nr": 23, "etapa": "Etapa a II-a — manevre în curte", "titlu": "Întoarcerea autovehiculului din trei manevre"}, {"nr": 24, "etapa": "Etapa a II-a — manevre în curte", "titlu": "Intrarea și ieșirea prin spații înguste (poartă, garaj)"}, {"nr": 25, "etapa": "Etapa a II-a — manevre în curte", "titlu": "Trasee cu jaloane: cerc, „opt”, combinații de manevre"}, {"nr": 26, "etapa": "Etapa a II-a — manevre în curte", "titlu": "Aplicarea regulilor de circulație în curte: semnalizarea, prioritatea, indicatoarele improvizate"}, {"nr": 27, "etapa": "Etapa a II-a — manevre în curte", "titlu": "Recapitularea manevrelor"}, {"nr": 28, "etapa": "Etapa a III-a — consolidare și evaluare", "titlu": "Traseu complex în curte, cu toate manevrele"}, {"nr": 29, "etapa": "Etapa a III-a — consolidare și evaluare", "titlu": "Verificările tehnice zilnice: lichide, anvelope, lumini, schimbarea roții"}, {"nr": 30, "etapa": "Etapa a III-a — consolidare și evaluare", "titlu": "Evaluarea practică finală"}]};
 let state = stareImplicita();
 let currentTab = 'azi';
 let ui = {
@@ -290,6 +292,7 @@ function migreaza(){
     if(!m.regimImplicit) m.regimImplicit = /11\W*GSV/i.test(m.nr) ? 'IP' : 'SS';
     if(m.stocInitial===undefined) m.stocInitial=0; });
   if(!Array.isArray(state.settings.taburiAscunse)) state.settings.taburiAscunse=[];
+  if(!state.teme || !Array.isArray(state.teme.SS) || !Array.isArray(state.teme.IP)) state.teme=JSON.parse(JSON.stringify(TEME_IMPLICITE));
   if(!Array.isArray(state.settings.norme) || !state.settings.norme.length)
     state.settings.norme=[{id:'n0', deLa:'2000-01-01', ss:nr(state.settings.consumSS)||1.8, ip:nr(state.settings.consumIP)||1}];
   const m0 = state.masini[0];
@@ -341,6 +344,51 @@ function simLimita(e){ return regimElev(e)==='IP' ? nr(state.settings.simulatorI
 function simFacut(elevId, exceptId){ return state.ore.filter(o=>o.elevId===elevId && o.tip==='S' && o.id!==exceptId).reduce((a,o)=>a+nr(o.nr),0); }
 function pillFel(e){ if(!e) return '<span class="pill pill-ghost" style="font-size:14px; padding:8px 14px;">alege elevul</span>'; const r=regimElev(e); return `<span class="pill ${r==='IP'?'pill-yellow':'pill-ok'}" style="font-size:15px; padding:8px 14px;">${r} · ${r==='IP'?'instruire practică':'școala de șoferi'}</span>`; }
 function regimOra(o){ if(o.tip==='S') return ''; if(o.regim) return o.regim; const e=elevById(o.elevId); return (e&&e.regim) || 'SS'; }
+/* ---------- TEME (planificarea celor 30 de ore) ---------- */
+function planTeme(r){ return state.teme[r==='IP'?'IP':'SS']; }
+function nrSimPlan(r){ return planTeme(r).filter(t=>t.etapa==='Simulator').length; }
+function temaObj(r, n){ return planTeme(r).find(t=>t.nr===n) || null; }
+function temaText(r, n){ const t=temaObj(r,n); return t ? `${n}. ${t.titlu}` : `Tema ${n}`; }
+function oreTipElev(elevId, tip, exceptId){ return state.ore.filter(o=>o.elevId===elevId && o.tip===tip && o.id!==exceptId).sort((a,b)=>a.data.localeCompare(b.data)||(a.ora||'').localeCompare(b.ora||'')); }
+/* tema la care a ajuns elevul pentru simulator (S) sau conducere (C); ține cont de „rămâne la tema” */
+function temaUrmatoare(e, tip, exceptId){
+  const r=regimElev(e), nSim=nrSimPlan(r), max = tip==='S' ? nSim : planTeme(r).length;
+  let next = tip==='S' ? 1 : nSim+1;
+  oreTipElev(e.id, tip, exceptId).forEach(o=>{
+    const n=Math.max(1, Math.ceil(nr(o.nr)));
+    const acop = (o.teme && o.teme.length) ? o.teme : Array.from({length:n},(_,i)=>next+i);
+    next = o.ramaneLa ? o.ramaneLa : Math.max(...acop)+1;
+  });
+  return Math.min(next, max);
+}
+/* tema următoare a elevului: simulator până își face orele (și cât conducerea e blocată), apoi conducere */
+function temaCurenta(e){
+  const simGata=simFacut(e.id)>=simLimita(e);
+  if(!simGata && (conducereBlocata(e) || oreTipElev(e.id,'C').length===0)) return temaUrmatoare(e,'S');
+  if(conducereBlocata(e)) return null;
+  return temaUrmatoare(e,'C');
+}
+function temeOra(o){
+  if(o.teme && o.teme.length) return o.teme;
+  // ore vechi fără temă salvată: le calculăm din ordinea orelor
+  const e=elevById(o.elevId); if(!e) return [];
+  const r=regimElev(e), nSim=nrSimPlan(r);
+  let next = o.tip==='S' ? 1 : nSim+1;
+  for(const x of oreTipElev(e.id, o.tip)){
+    const n=Math.max(1, Math.ceil(nr(x.nr)));
+    const acop=(x.teme&&x.teme.length)?x.teme:Array.from({length:n},(_,i)=>next+i);
+    if(x.id===o.id) return acop;
+    next = x.ramaneLa ? x.ramaneLa : Math.max(...acop)+1;
+  }
+  return [];
+}
+function planOra(o){ return o.planTip || (o.tip==='C' ? regimOra(o) : regimElev(elevById(o.elevId))); }
+function htmlTemaOra(o){
+  const t=temeOra(o); if(!t.length) return '';
+  const r=planOra(o);
+  return `<div class="small" style="color:var(--infield); margin-top:2px;">📘 ${t.map(n=>esc(temaText(r,n))).join(' · ')}${o.ramaneLa?` <span class="pill pill-yellow" title="Elevul nu și-a însușit tema">↺ rămâne la tema ${o.ramaneLa}</span>`:''}</div>`;
+}
+
 /* elevul SS face conducere doar după chestionarul din școală ADMIS */
 function conducereBlocata(e){ return !!e && regimElev(e)==='SS' && rezExamen(e,'tsc')!=='ADMIS'; }
 function pillRegimElev(e){ return pillRegim(regimElev(e)) + (e && e.transferIP ? ' <span class="small muted" title="Trecut automat la IP după chestionarul din școală">din SS</span>' : ''); }
@@ -384,7 +432,7 @@ function durataProg(p){ if(!p.oraStart) return 1; const [h1,m1]=p.oraStart.split
 function boxCombustibil(stoc, necesar, masNr){
   const ram=stoc-necesar;
   const cls = ram<0 ? 'alert-danger' : ram<5 ? 'alert-yellow' : 'alert-blue';
-  const txt = ram<0 ? `⚠ <b>Combustibil insuficient!</b> În rezervor ~${fmtNr(stoc)} l, ora are nevoie de ${fmtNr(necesar)} l. Alimentează înainte.` :
+  const txt = ram<0 ? `⚠ <b>Combustibil insuficient!</b> ${stoc<=0?`Rezervorul e gol după calcul (${fmtNr(stoc)} l) — verifică alimentările.`:`În rezervor ~${fmtNr(stoc)} l`}, ora are nevoie de ${fmtNr(necesar)} l. Alimentează înainte.` :
     `⛽ În rezervor (${esc(masNr)}): <b>~${fmtNr(stoc)} l</b> · ora asta consumă ${fmtNr(necesar)} l · rămân <b>~${fmtNr(ram)} l</b>${ram<5?' — alimentează curând':''}.`;
   return `<div class="alert ${cls}" style="margin:12px 0 0;">${txt}</div>`;
 }
@@ -443,6 +491,7 @@ const ICONS = {
   ore:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="2.5"/><path d="M12 14.5V21"/><path d="M9.6 11.3L3.3 9.8"/><path d="M14.4 11.3l6.3-1.5"/></svg>',
   centralizator:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 20V10"/><path d="M12 20V4"/><path d="M20 20v-7"/></svg>',
   lunar:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="17" rx="2"/><path d="M3 9h18"/><path d="M8 2v4"/><path d="M16 2v4"/><path d="M8 13h2"/><path d="M14 13h2"/><path d="M8 17h2"/><path d="M14 17h2"/></svg>',
+  teme:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 19.5A2.5 2.5 0 016.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 014 19.5v-15A2.5 2.5 0 016.5 2z"/><path d="M9 7h8"/><path d="M9 11h8"/></svg>',
   programari:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4.5" width="18" height="16" rx="2"/><path d="M3 9.5h18"/><path d="M8 2.5v4"/><path d="M16 2.5v4"/><path d="M9 14l2 2 4-4"/></svg>',
   elevi:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="9" cy="8" r="3.2"/><path d="M2.5 20c0-3.5 3-6 6.5-6s6.5 2.5 6.5 6"/><circle cx="17.5" cy="9" r="2.4"/><path d="M15 20c0-2.6 1-4.6 3-5.5"/></svg>',
   note:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 3h9l4 4v14H6z"/><path d="M9 11l2 2 4-4"/></svg>',
@@ -460,6 +509,7 @@ const TABS = [
   {id:'centralizator', label:'Centralizator'},
   {id:'lunar', label:'Pe luni'},
   {id:'programari', label:'Programări'},
+  {id:'teme', label:'Teme'},
   {id:'elevi', label:'Elevi'},
   {id:'note', label:'Note'},
   {id:'examen', label:'Examen'},
@@ -501,7 +551,7 @@ function render(){
 }
 function renderTab(){
   const main=document.getElementById('main');
-  const f = {azi:tabAzi, ore:tabOre, centralizator:tabCentralizator, lunar:tabLunar, programari:tabProgramari, elevi:tabElevi, note:tabNote, examen:tabExamen, masina:tabMasina, fisa:tabFisa}[currentTab];
+  const f = {azi:tabAzi, ore:tabOre, centralizator:tabCentralizator, lunar:tabLunar, programari:tabProgramari, teme:tabTeme, elevi:tabElevi, note:tabNote, examen:tabExamen, masina:tabMasina, fisa:tabFisa}[currentTab];
   main.innerHTML = f();
   if(currentTab==='ore') initFormOra();
 }
@@ -529,6 +579,7 @@ function bannerInstalare(){
 function tabAzi(){
   const azi=todayISO();
   const s=state.settings;
+  const projAzi={};
   const progAzi=state.programari.filter(p=>p.data===azi && !p.efectuata).sort((a,b)=>a.oraStart.localeCompare(b.oraStart));
   const oreAzi=state.ore.filter(o=>o.data===azi).sort((a,b)=>(a.ora||'').localeCompare(b.ora||''));
   const el=eleviAn();
@@ -556,7 +607,7 @@ function tabAzi(){
     <div class="two-col">
       <div class="card">
         <div style="display:flex; justify-content:space-between; align-items:center; gap:8px; margin-bottom:10px;"><h3 style="margin:0;">Programați azi</h3><button class="btn btn-ghost" data-tab="programari">+ Programare</button></div>
-        ${progAzi.length ? `<div class="table-wrap"><table>${progAzi.map(p=>`<tr><td style="white-space:nowrap;"><b>${p.oraStart}</b>–${p.oraFinal||''}</td><td>${esc(numeElev(p.elevId))}</td><td style="text-align:right;"><button class="btn btn-ok" data-act="prog-done" data-id="${p.id}">Efectuată ✓</button></td></tr>`).join('')}</table></div>` : `<p class="muted small" style="margin:0;">Nicio programare pentru azi.</p>`}
+        ${progAzi.length ? `<div class="table-wrap"><table>${progAzi.map(p=>`<tr><td style="white-space:nowrap;"><b>${p.oraStart}</b>–${p.oraFinal||''}</td><td>${esc(numeElev(p.elevId))}${temaProgramare(p, projAzi)}</td><td style="text-align:right;"><button class="btn btn-ok" data-act="prog-done" data-id="${p.id}">Efectuată ✓</button></td></tr>`).join('')}</table></div>` : `<p class="muted small" style="margin:0;">Nicio programare pentru azi.</p>`}
       </div>
       <div class="card">
         <div style="display:flex; justify-content:space-between; align-items:center; gap:8px; margin-bottom:10px;"><h3 style="margin:0;">Ore trecute azi</h3><button class="btn btn-primary" data-act="ora-noua">+ Oră</button></div>
@@ -615,6 +666,7 @@ function tabOre(){
         <div class="field"><label>Km</label><input type="number" id="o-km" class="mic" min="0" step="1" value="${kmV}" data-manual="${ed?1:0}" ${tip==='S'?'disabled':''}></div>
         <div class="field" style="flex:1 1 200px;"><label>Observații (traseu, manevre)</label><input type="text" id="o-obs" value="${esc(pre.obs||'')}" placeholder="opțional"></div>
       </div>
+      <div id="o-tema" style="margin-top:12px;"></div>
       <div id="o-stoc"></div>
       <div class="row" style="margin-top:14px;">
         <button class="btn btn-primary" data-act="ora-save">${ed?'Salvează modificarea':'Adaugă ora'}</button>
@@ -634,7 +686,7 @@ function tabOre(){
         <tbody>${lista.map(o=>`<tr>
           <td style="white-space:nowrap;">${fmtData(o.data)}</td>
           <td style="white-space:nowrap;">${o.ora||''}</td>
-          <td>${esc(numeElev(o.elevId))}${o.obs?`<div class="small muted">${esc(o.obs)}</div>`:''}</td>
+          <td>${esc(numeElev(o.elevId))}${htmlTemaOra(o)}${o.obs?`<div class="small muted">${esc(o.obs)}</div>`:''}</td>
           <td style="white-space:nowrap;">${pillOra(o)}${o.tip==='C'&&o.masinaId?`<div class="small muted">${esc(nrMasina(o.masinaId))}</div>`:''}</td>
           <td class="num">${fmtNr(nr(o.nr))}</td>
           <td class="num">${o.tip==='S'?'—':fmtNr(nr(o.km))}</td>
@@ -699,6 +751,32 @@ function initFormOra(){
     stocBox.innerHTML=boxCombustibil(stoc, nr(document.getElementById('o-nr').value)*consumPeOra(regimElev(e), data), m.nr);
   };
   ['o-elev','o-data','o-nr'].forEach(id=>{ const x=document.getElementById(id); if(x){ x.addEventListener('change',updStoc); x.addEventListener('input',updStoc); } });
+  const temaBox=document.getElementById('o-tema');
+  const updTema=()=>{
+    if(!temaBox) return;
+    const e=elevById(es.value), tb=document.querySelector('#o-tip button.on'); if(!e || !tb){ temaBox.innerHTML=''; return; }
+    const tip=tb.dataset.tipval, ed=ui.editOraId?state.ore.find(o=>o.id===ui.editOraId):null;
+    const r = (ed && ed.elevId===e.id && ed.tip===tip) ? planOra(ed) : regimElev(e);
+    const plan=planTeme(r), nSim=nrSimPlan(r);
+    const lista = tip==='S' ? plan.filter(t=>t.nr<=nSim) : plan.filter(t=>t.nr>nSim);
+    const implicit = (ed && ed.elevId===e.id && ed.tip===tip) ? temeOra(ed)[0] : temaUrmatoare(e, tip, ui.editOraId);
+    const n=Math.max(1, Math.ceil(nr(document.getElementById('o-nr').value)));
+    const ramane = ed && ed.elevId===e.id ? ed.ramaneLa : null;
+    const opt = sel => lista.map(t=>`<option value="${t.nr}" ${t.nr===sel?'selected':''}>${esc(temaText(r,t.nr))}</option>`).join('');
+    const ultim=Math.min(implicit+n-1, lista.length?lista[lista.length-1].nr:implicit);
+    temaBox.innerHTML=`<div style="border:1px solid var(--border); border-left:4px solid var(--infield); border-radius:8px; padding:10px 12px; background:#F7F9FB;">
+      <div class="field" style="margin-bottom:8px;"><label>📘 Tema orei ${n>1?`(${n} ore: temele ${implicit}–${ultim})`:''} · planificare ${r}</label><select id="o-tema-sel" style="width:100%;">${opt(implicit)}</select></div>
+      <label style="display:flex; gap:8px; align-items:center; font-size:14px; cursor:pointer;"><input type="checkbox" id="o-ramane" ${ramane?'checked':''} style="width:18px; height:18px;"> Elevul nu și-a însușit tema — data viitoare rămâne la tema:</label>
+      <select id="o-ramane-la" style="width:100%; margin-top:6px; ${ramane?'':'display:none;'}">${opt(ramane||ultim)}</select>
+    </div>`;
+    const sel=document.getElementById('o-tema-sel'), ck=document.getElementById('o-ramane'), rl=document.getElementById('o-ramane-la');
+    ck.addEventListener('change',()=>{ rl.style.display=ck.checked?'':'none'; });
+    sel.addEventListener('change',()=>{ if(!ck.checked){ const v=parseInt(sel.value,10)+n-1; rl.value=String(Math.min(v, lista[lista.length-1].nr)); } });
+  };
+  ['o-elev','o-nr'].forEach(id=>{ const x=document.getElementById(id); if(x) x.addEventListener('change',updTema); });
+  document.getElementById('o-nr').addEventListener('input',updTema);
+  document.querySelectorAll('#o-tip button').forEach(b=>b.addEventListener('click',()=>setTimeout(updTema,0)));
+  updTema();
   document.querySelectorAll('#o-mas button, #o-tip button').forEach(b=>b.addEventListener('click',()=>setTimeout(updStoc,0)));
   updStoc();
 }
@@ -723,12 +801,22 @@ function salveazaOra(){
   const edVechi = ui.editOraId ? state.ore.find(x=>x.id===ui.editOraId) : null;
   const regim = tip==='C' ? ((edVechi && edVechi.elevId===elevId && edVechi.regim) ? edVechi.regim : ((elevById(elevId)||{}).regim || 'SS')) : '';
   if(masinaId) ui.ultimaMasinaId = masinaId;
+  const ev=elevById(elevId);
+  const planTip = (edVechi && edVechi.elevId===elevId && edVechi.tip===tip) ? planOra(edVechi) : regimElev(ev);
+  const tSel=document.getElementById('o-tema-sel');
+  let teme=[], ramaneLa=null;
+  if(tSel){
+    const start=parseInt(tSel.value,10), n=Math.max(1, Math.ceil(nrO)), maxT = tip==='S' ? nrSimPlan(planTip) : planTeme(planTip).length;
+    for(let i=0;i<n;i++) teme.push(Math.min(start+i, maxT));
+    teme=[...new Set(teme)];
+    const ck=document.getElementById('o-ramane'); if(ck && ck.checked) ramaneLa=parseInt(document.getElementById('o-ramane-la').value,10);
+  }
   if(ui.editOraId){
     const o=state.ore.find(x=>x.id===ui.editOraId);
-    Object.assign(o,{elevId,data,ora,tip,nr:nrO,km,obs,masinaId,regim});
+    Object.assign(o,{elevId,data,ora,tip,nr:nrO,km,obs,masinaId,regim,teme,ramaneLa,planTip});
     toast('Ora a fost modificată ✓');
   }else{
-    state.ore.push({id:uid(), elevId, data, ora, tip, nr:nrO, km, obs, masinaId, regim});
+    state.ore.push({id:uid(), elevId, data, ora, tip, nr:nrO, km, obs, masinaId, regim, teme, ramaneLa, planTip});
     if(ui.preOra && ui.preOra.progId){ const p=state.programari.find(x=>x.id===ui.preOra.progId); if(p) p.efectuata=true; }
     const st=statElev(elevId);
     toast(`Adăugată ✓ — ${numeElev(elevId).split(' ')[0]}: ${fmtNr(st.total)} din ${state.settings.oreNecesare} ore`, 2600);
@@ -895,6 +983,14 @@ function programariViitoare(){
   return state.programari.filter(p=>!p.efectuata && p.data>=azi && elevById(p.elevId)).sort((a,b)=>a.data.localeCompare(b.data)||a.oraStart.localeCompare(b.oraStart));
 }
 function plusZile(iso, n){ const d=new Date(iso+'T12:00:00'); d.setDate(d.getDate()+n); return `${d.getFullYear()}-${pad2(d.getMonth()+1)}-${pad2(d.getDate())}`; }
+function temaProgramare(p, proj){
+  const e=elevById(p.elevId); if(!e || p.efectuata) return '';
+  if(!(p.elevId in proj)) proj[p.elevId]=temaUrmatoare(e, conducereBlocata(e)?'S':'C');
+  const r=regimElev(e), t=proj[p.elevId], n=Math.max(1, durataProg(p)), max=planTeme(r).length;
+  const txt=Array.from({length:n},(_,i)=>Math.min(t+i,max)).filter((v,i,a)=>a.indexOf(v)===i).map(x=>temaText(r,x)).join(' · ');
+  proj[p.elevId]=Math.min(t+n, max);
+  return `<div class="small" style="color:var(--infield); margin-top:2px;">📘 ${esc(txt)}</div>`;
+}
 function tabProgramari(){
   const el=eleviAn();
   if(!el.length) return `<h2>Programări</h2>${faraElevi()}`;
@@ -903,10 +999,10 @@ function tabProgramari(){
   const trecute=lista.filter(p=>p.data<azi || p.efectuata).length;
   if(!ui.progTrecute) lista=lista.filter(p=>p.data>=azi && !p.efectuata);
   lista.sort((a,b)=>a.data.localeCompare(b.data)||a.oraStart.localeCompare(b.oraStart));
-  let html='', zi='';
+  let html='', zi=''; const proj={};
   lista.forEach(p=>{
     if(p.data!==zi){ if(zi) html+='</table></div>'; zi=p.data; html+=`<div class="day-head" style="display:flex; justify-content:space-between; align-items:center; gap:8px;"><span>${ziDin(p.data)}, ${fmtData(p.data)}${p.data===azi?' · <span class="pill pill-yellow">azi</span>':''}</span>${p.data>=azi?`<button class="btn btn-wa mic" data-act="wa-zi" data-d="${p.data}" title="Trimite programările zilei pe WhatsApp">${ICON_WA} Trimite ziua</button>`:''}</div><div class="table-wrap"><table>`; }
-    html+=`<tr><td style="white-space:nowrap; width:120px;"><b>${p.oraStart}</b>–${p.oraFinal||''}</td><td>${esc(numeElev(p.elevId))} ${pillRegim(regimElev(elevById(p.elevId)))}${p.masinaId?` <span class="small muted">${esc(nrMasina(p.masinaId))}</span>`:''}${p.efectuata?' <span class="pill pill-ok">efectuată</span>':''}${!p.efectuata&&p.masinaId&&masinaById(p.masinaId)&&p.data>=azi?(()=>{ const m=masinaById(p.masinaId); const st=stocPana(m,p.data)-consumProgramat(m,p.data,p.oraStart,p.id); const nec=durataProg(p)*consumPeOra(regimElev(elevById(p.elevId)),p.data); return st-nec<0?' <span class="pill pill-danger">⚠ combustibil insuficient</span>':''; })():''}</td>
+    html+=`<tr><td style="white-space:nowrap; width:120px;"><b>${p.oraStart}</b>–${p.oraFinal||''}</td><td>${esc(numeElev(p.elevId))} ${pillRegim(regimElev(elevById(p.elevId)))}${temaProgramare(p, proj)}${p.masinaId?` <span class="small muted">${esc(nrMasina(p.masinaId))}</span>`:''}${p.efectuata?' <span class="pill pill-ok">efectuată</span>':''}${!p.efectuata&&p.masinaId&&masinaById(p.masinaId)&&p.data>=azi?(()=>{ const m=masinaById(p.masinaId); const st=stocPana(m,p.data)-consumProgramat(m,p.data,p.oraStart,p.id); const nec=durataProg(p)*consumPeOra(regimElev(elevById(p.elevId)),p.data); return st-nec<0?' <span class="pill pill-danger">⚠ combustibil insuficient</span>':''; })():''}</td>
       <td style="text-align:right; white-space:nowrap;">${!p.efectuata?`<button class="btn btn-ok" data-act="prog-done" data-id="${p.id}">Efectuată ✓</button> `:''}<button class="icon-btn del" data-act="prog-del" data-id="${p.id}" title="Șterge">${ICONS.trash}</button></td></tr>`;
   });
   if(zi) html+='</table></div>';
@@ -944,6 +1040,27 @@ function tabProgramari(){
         ${trecute?`<button class="btn btn-ghost" data-act="prog-toggle">${ui.progTrecute?'Ascunde trecutele':`Arată și trecutele (${trecute})`}</button>`:''}
       </div>
       ${html || '<p class="muted small" style="margin:0;">Nicio programare.</p>'}
+    </div>`;
+}
+
+/* ---------------- TEME ---------------- */
+function tabTeme(){
+  const r=ui.temeRegim||'SS', plan=planTeme(r);
+  let html='', et='';
+  plan.forEach(t=>{
+    if(t.etapa!==et){ if(et) html+='</tbody></table></div>'; et=t.etapa; html+=`<div class="day-head">${esc(et)}</div><div class="table-wrap"><table><tbody>`; }
+    html+=`<tr><td style="width:48px;"><b>${t.nr}</b></td><td><input type="text" data-tema="${r}" data-nr="${t.nr}" value="${esc(t.titlu)}" style="width:100%; min-height:38px; padding:6px 10px;"></td></tr>`;
+  });
+  if(et) html+='</tbody></table></div>';
+  const el=eleviAn().filter(e=>regimElev(e)===r);
+  return `
+    <h2>Teme — planificarea celor 30 de ore</h2>
+    <p class="tab-desc">La fiecare oră, aplicația propune tema la care a ajuns elevul. Dacă elevul nu și-a însușit tema, bifezi la oră „rămâne la tema …”, iar data viitoare tema se repetă. Textul temelor îl poți modifica aici; se salvează imediat.</p>
+    <div class="seg" style="margin-bottom:14px;">${[['SS','SS — școala de șoferi'],['IP','IP — instruire practică']].map(([k,t])=>`<button type="button" data-act="teme-regim" data-v="${k}" class="${r===k?'on':''}">${t}</button>`).join('')}</div>
+    ${el.length?`<div class="card"><h3>Unde a ajuns fiecare elev ${r}</h3><div class="table-wrap"><table><tbody>${el.map(e=>{ const t=temaCurenta(e);
+      return `<tr class="clickable" data-act="elev-open" data-id="${e.id}"><td><b>${esc(e.nume)}</b></td><td class="small">${t?`→ ${esc(temaText(r,t))}`:'<span class="muted">simulator complet — așteaptă chestionarul</span>'}</td></tr>`; }).join('')}</tbody></table></div></div>`:''}
+    <div class="card">${html}
+      <div class="row" style="margin-top:14px;"><button class="btn btn-ghost" data-act="teme-reset" data-v="${r}">Revino la temele inițiale ${r}</button></div>
     </div>`;
 }
 
@@ -1038,11 +1155,27 @@ function fisaElev(e){
       <span style="align-self:center;">Examen: <span class="pill ${stadiuExamen(e).c}">${stadiuExamen(e).t}</span></span></div>
       ${prog.length?`<p class="small" style="margin:12px 0 0;">Următoarele programări: ${prog.map(p=>`<span class="pill pill-yellow">${fmtData(p.data)} ${p.oraStart}</span>`).join(' ')}</p>`:''}
     </div>
+    ${cardProgresTeme(e)}
     <div class="card"><h3>Toate orele (${ore.length})</h3>
-      ${ore.length?`<div class="table-wrap"><table><thead><tr><th>Nr.</th><th>Data</th><th>Interval</th><th>Tip</th><th class="num">Ore</th><th class="num">Km</th><th class="num">Cumulat</th><th>Obs.</th></tr></thead><tbody>
-      ${ore.map((o,i)=>{ cum+=nr(o.nr); return `<tr><td class="muted">${i+1}</td><td style="white-space:nowrap;">${fmtData(o.data)}</td><td style="white-space:nowrap;">${intervalOrar(o)}</td><td style="white-space:nowrap;">${pillOra(o)}${o.masinaId?` <span class="small muted">${esc(nrMasina(o.masinaId))}</span>`:''}</td><td class="num">${fmtNr(nr(o.nr))}</td><td class="num">${o.tip==='S'?'—':fmtNr(nr(o.km))}</td><td class="num"><b>${fmtNr(cum)}</b></td><td class="small">${esc(o.obs||'')}</td></tr>`; }).join('')}
+      ${ore.length?`<div class="table-wrap"><table><thead><tr><th>Nr.</th><th>Data</th><th>Interval</th><th>Tip</th><th class="num">Ore</th><th class="num">Km</th><th class="num">Cumulat</th><th>Tema</th><th>Obs.</th></tr></thead><tbody>
+      ${ore.map((o,i)=>{ cum+=nr(o.nr); return `<tr><td class="muted">${i+1}</td><td style="white-space:nowrap;">${fmtData(o.data)}</td><td style="white-space:nowrap;">${intervalOrar(o)}</td><td style="white-space:nowrap;">${pillOra(o)}${o.masinaId?` <span class="small muted">${esc(nrMasina(o.masinaId))}</span>`:''}</td><td class="num">${fmtNr(nr(o.nr))}</td><td class="num">${o.tip==='S'?'—':fmtNr(nr(o.km))}</td><td class="num"><b>${fmtNr(cum)}</b></td><td>${htmlTemaOra(o)}</td><td class="small">${esc(o.obs||'')}</td></tr>`; }).join('')}
       </tbody></table></div>`:'<p class="muted small">Nicio oră încă.</p>'}
     </div>`;
+}
+
+function cardProgresTeme(e){
+  const r=regimElev(e), plan=planTeme(r);
+  const parcurse={}; state.ore.filter(o=>o.elevId===e.id).forEach(o=>{ const pr=planOra(o); if(pr!==r) return; temeOra(o).forEach(n=>parcurse[n]=(parcurse[n]||0)+1); });
+  const urmS=temaUrmatoare(e,'S'), urmC=temaUrmatoare(e,'C'), nSim=nrSimPlan(r);
+  const simGata = simFacut(e.id) >= simLimita(e);
+  let html='', et='';
+  plan.forEach(t=>{
+    if(t.etapa!==et){ if(et) html+='</div>'; et=t.etapa; html+=`<div class="day-head">${esc(et)}</div><div>`; }
+    const c=parcurse[t.nr]||0, urm = (t.nr<=nSim ? (!simGata && t.nr===urmS) : t.nr===urmC);
+    html+=`<div style="display:flex; gap:8px; align-items:flex-start; padding:4px 0; ${urm?'font-weight:700; color:var(--track);':''}"><span style="width:22px; flex-shrink:0;">${c?'✓':urm?'→':'○'}</span><span>${esc(temaText(r,t.nr))}${c>1?` <span class="pill pill-yellow">${c}×</span>`:''}</span></div>`;
+  });
+  if(et) html+='</div>';
+  return `<div class="card"><h3>Progres pe teme — planificare ${r}</h3><p class="small muted" style="margin-top:-4px;">✓ parcursă · → următoarea · ${'○'} neparcursă · 2× = repetată</p>${html}</div>`;
 }
 
 /* ---------------- NOTE ---------------- */
@@ -1799,7 +1932,7 @@ document.addEventListener('click', e=>{
       const pmb=document.querySelector('#p-mas button.on'); const pm=pmb?masinaById(pmb.dataset.masval):null;
       const np={id:uid(), elevId, data, oraStart:st, oraFinal:fin, efectuata:false, masinaId:pm?pm.id:null};
       let avert='';
-      if(pm){ const stoc=stocPana(pm,data)-consumProgramat(pm,data,st); const nec=durataProg(np)*consumPeOra(regimElev(elevById(elevId)),data); if(stoc-nec<0) avert=` — ATENȚIE: pe ${pm.nr} sunt ~${fmtNr(stoc)} l, ora are nevoie de ${fmtNr(nec)} l`; ui.ultimaMasinaId=pm.id; }
+      if(pm){ const stoc=stocPana(pm,data)-consumProgramat(pm,data,st); const nec=durataProg(np)*consumPeOra(regimElev(elevById(elevId)),data); if(stoc-nec<0) avert=` — ATENȚIE: pe ${pm.nr} ${stoc<=0?'rezervorul e gol după calcul':'sunt ~'+fmtNr(stoc)+' l'}, ora are nevoie de ${fmtNr(nec)} l`; ui.ultimaMasinaId=pm.id; }
       state.programari.push(np); save(); render(); toast('Programat ✓'+avert, avert?4500:2000); break; }
     case 'prog-done': {
       const p=state.programari.find(x=>x.id===id);
@@ -1853,6 +1986,8 @@ document.addEventListener('click', e=>{
     case 'fisa-mod': ui.fisaMod = a.dataset.v; render(); break;
     case 'fisa-tip': ui.fisaVedere = a.dataset.v; render(); break;
     case 'filtru-regim': ui.eleviRegim = a.dataset.v; render(); break;
+    case 'teme-regim': ui.temeRegim = a.dataset.v; render(); break;
+    case 'teme-reset': confirma(`Readuci temele ${a.dataset.v} la textul inițial? Modificările tale de text se pierd (orele elevilor rămân).`, ()=>{ state.teme[a.dataset.v]=JSON.parse(JSON.stringify(TEME_IMPLICITE[a.dataset.v])); save(); render(); toast('Teme readuse ✓'); }, 'Da'); break;
     case 'instaleaza': if(promptInstalare){ const pr=promptInstalare; promptInstalare=null; pr.prompt(); pr.userChoice.then(()=>render()); } break;
     case 'lunar-luna': ui.lunarLuna = parseInt(a.dataset.l,10); render(); setTimeout(()=>{ const d=document.getElementById('detalii-luna'); if(d) d.scrollIntoView({behavior:'smooth', block:'start'}); },30); break;
     case 'foaie-save': {
@@ -1876,6 +2011,7 @@ document.addEventListener('change', e=>{
   const t=e.target;
   if(t.id==='an-select'){ state.settings.anScolar=t.value; ui.elevDetaliu=null; ui.oreElev='all'; save(); render(); return; }
   if(t.dataset.filter){ ui[t.dataset.filter]=t.value; render(); return; }
+  if(t.dataset.tema){ const x=planTeme(t.dataset.tema).find(y=>y.nr===parseInt(t.dataset.nr,10)); if(x && t.value.trim()){ x.titlu=t.value.trim(); save(); toast('Salvat ✓', 900); } return; }
   if(t.dataset.ex){ const ev=elevById(t.dataset.id); const x=exList(ev,t.dataset.ex)[parseInt(t.dataset.i,10)]; if(x){ x[t.dataset.f]= t.dataset.f==='puncte' ? (t.value===''?'':Math.max(0,Math.min(nr(state.settings.chestionarTotal), Math.round(nr(t.value))))) : t.value; const avea=!!ev.transferIP, era=regimElev(ev); if(t.dataset.ex==='tsc') verificaTransfer(ev); save(); render(); if(regimElev(ev)===era) toast('Salvat ✓', 900); } return; }
   if(t.dataset.exam){ const ev=elevById(t.dataset.id); if(t.dataset.exam==='data') ev.examenData=t.value; else ev.examenRezultat=t.value; save(); toast('Salvat ✓', 900); if(t.dataset.exam==='rez') render(); return; }
   if(t.dataset.doc){ const m=masinaById(t.dataset.m); const d=m.documente.find(x=>x.id===t.dataset.id); d[t.dataset.doc]=t.value; save(); render(); toast('Salvat ✓', 900); return; }
