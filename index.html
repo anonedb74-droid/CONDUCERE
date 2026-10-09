@@ -544,6 +544,7 @@ const TABS = [
 /* ================= RANDARE ================= */
 function tabsVizibile(){ const v=TABS.filter(t=>!(state.settings.taburiAscunse||[]).includes(t.id)); return v.length?v:TABS.slice(0,1); }
 function render(){
+  const _m=document.getElementById('main'), _y=_m?_m.scrollTop:0, _t=currentTab; // păstrăm poziția în pagină
   if(!tabsVizibile().find(t=>t.id===currentTab) && !(currentTab==='elevi' && ui.elevDetaliu)) currentTab=tabsVizibile()[0].id;
   const app=document.getElementById('app');
   const navBtns = tabsVizibile().map(t=>`<button data-tab="${t.id}" class="${currentTab===t.id?'active':''}">${ICONS[t.id]}<span>${t.label}</span></button>`).join('');
@@ -572,6 +573,7 @@ function render(){
   const activ=document.querySelector('nav.bottombar button.active');
   if(activ) activ.scrollIntoView({inline:'center', block:'nearest'});
   saveUI();
+  const _n=document.getElementById('main'); if(_n && _t===currentTab) _n.scrollTop=_y;
 }
 function renderTab(){
   const main=document.getElementById('main');
