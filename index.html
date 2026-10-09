@@ -1505,6 +1505,8 @@ function tabConsumLunar(){
         <button class="btn btn-primary" data-act="print">🖨 Tipărește</button>
         <button class="btn btn-secondary" data-act="pdf">📄 Salvează PDF</button>
       </div>${PRINT_HINT}</div>
+      <div class="card"><div class="row" style="justify-content:space-between;"><div><b>Pentru administrator (Parc auto)</b><div class="small muted">Toate orele de conducere din ${LUNI[parseInt(luna.slice(5,7),10)].toLowerCase()}, pe toate mașinile: data, ora, SS/IP, nr. ore, km. Fără numele elevilor.</div></div>
+        <button class="btn btn-primary" data-act="export-parc">📤 Trimite orele lunii</button></div></div>
     </div>
     <div class="fisa">
       <div class="sc">${esc(s.scoala)}</div>
@@ -1755,6 +1757,18 @@ async function partajeazaSauDescarca(blob, filename, titlu){
   }catch(e){ if(e && e.name==='AbortError') return 'cancel'; }
   const url=URL.createObjectURL(blob); const a=document.createElement('a'); a.href=url; a.download=filename; document.body.appendChild(a); a.click(); a.remove(); setTimeout(()=>URL.revokeObjectURL(url),1000);
   return 'download';
+}
+async function exportParcAuto(){
+  const s=state.settings, luna=ui.consumLuna||todayISO().slice(0,7);
+  const ore=state.ore.filter(o=>o.tip==='C' && (o.data||'').slice(0,7)===luna).sort((a,b)=>(a.data+(a.ora||'')).localeCompare(b.data+(b.ora||'')));
+  if(!ore.length) return toast('Nicio oră de conducere în luna aleasă.');
+  const faraMas=ore.filter(o=>!nrMasina(o.masinaId)).length;
+  const date={tip:'export-ore-conducere', versiune:1, aplicatie:'Școala de șoferi', instructor:s.instructor, scoala:s.scoala, luna, generat:new Date().toISOString(),
+    ore:ore.map(o=>({id:o.id, data:o.data, ora:o.ora||'', nrOre:nr(o.nr), regim:regimOra(o)||'SS', masina:nrMasina(o.masinaId), km:nr(o.km)}))};
+  const slug=String(s.instructor||'instructor').normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^A-Za-z0-9]+/g,'-').replace(/^-|-$/g,'');
+  const nume=`ore-conducere-${luna}-${slug}.json`;
+  const r=await partajeazaSauDescarca(new Blob([JSON.stringify(date,null,1)],{type:'application/json'}), nume, 'Ore conducere '+luna);
+  if(r!=='cancel') toast(`${ore.length} ore exportate ✓`+(faraMas?` — atenție: ${faraMas} fără mașină aleasă`:''), faraMas?4500:2500);
 }
 async function exportJson(){
   const r=await partajeazaSauDescarca(new Blob([JSON.stringify(state,null,1)],{type:'application/json'}), `scoala-soferi-backup-${todayISO()}.json`, 'Backup Școala de șoferi');
@@ -2050,6 +2064,7 @@ document.addEventListener('click', e=>{
     case 'print': window.print(); break;
     case 'pdf': salveazaPDF(); break;
     case 'export-json': exportJson(); break;
+    case 'export-parc': exportParcAuto(); break;
     case 'import-json': document.getElementById('file-json').click(); break;
     case 'import-xlsx': document.getElementById('file-xlsx').click(); break;
     case 'export-xlsx': exportXlsx(); break;
