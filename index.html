@@ -11,6 +11,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Oswald:wght@500;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js" defer></script>
+<script src="xlsx.full.min.js" defer></script>
 <style>
   :root{
     --track:#D9480F;
@@ -616,7 +617,7 @@ function tabAzi(){
     if(st.zile!==null && st.zile<=30) alerte+=`<div class="alert ${st.zile<0?'alert-danger':'alert-yellow'}"><div><b>${esc(m.nr)} — ${esc(d.tip)}:</b> ${st.txt.toLowerCase()} (${fmtData(d.expira)}).</div><button class="btn btn-ghost" data-tab="masina" style="background:#fff;">Actualizează</button></div>`;
   }));
   const zExp = s.ultimulExport ? zileIntre(s.ultimulExport, azi) : null;
-  if(zExp===null || zExp>=7) alerte+=`<div class="alert alert-blue"><div>💾 ${zExp===null?'<b>N-ai făcut încă niciun backup.</b> Dacă pierzi tableta, pierzi tot.':`<b>Ultimul backup a fost acum ${zExp} zile.</b>`}</div><button class="btn btn-primary" data-act="export-json">Exportă acum</button></div>`;
+  if(zExp===null || zExp>=7) alerte+=`<div class="alert alert-blue"><div>💾 ${zExp===null?'<b>N-ai făcut încă niciun backup.</b> Dacă pierzi tableta, pierzi tot.':`<b>Ultimul backup a fost acum ${zExp} zile.</b>`}</div><div class="row" style="gap:6px;"><button class="btn btn-primary" data-act="export-json">Exportă backup</button><button class="btn btn-secondary" data-act="export-xlsx">Exportă Excel</button></div></div>`;
   let totS=0,totC=0,termin=0;
   el.forEach(e=>{ const st=statElev(e.id); totS+=st.s; totC+=st.c; if(st.ramase===0) termin++; });
   const rami=el.map(e=>({e,st:statElev(e.id)})).filter(x=>x.st.ramase>0).sort((a,b)=>b.st.ramase-a.st.ramase).slice(0,5);
@@ -1718,6 +1719,9 @@ function openSettings(){
     <h3 style="font-size:15px;">Sincronizare laptop ↔ tabletă</h3>
     <p class="small muted" style="margin-top:-6px;">Datele stau doar pe dispozitivul pe care le scrii. Exportă un backup pe unul și importă-l pe celălalt (prin Drive, WhatsApp, email sau USB). Importul <b>înlocuiește</b> tot ce e pe dispozitivul respectiv.</p>
     <div class="row"><button class="btn btn-secondary" data-act="export-json">⭳ Exportă backup</button><button class="btn btn-secondary" data-act="import-json">⭱ Importă backup</button></div>
+    <h3 style="font-size:15px; margin-top:14px;">Export Excel (pentru citit și justificare)</h3>
+    <p class="small muted" style="margin-top:-6px;">Un fișier Excel nou, cu toate datele anului școlar până azi: ore, centralizator, consum, statistică, note, programări, examen și mașini. E pentru tine; pentru readucerea datelor în aplicație folosește backup-ul de mai sus.</p>
+    <div class="row"><button class="btn btn-secondary" data-act="export-xlsx">⭳ Exportă Excel</button></div>
     <hr>
     <button class="btn btn-danger" id="s-reset">Șterge toate datele de pe acest dispozitiv</button>`);
   b.querySelector('#s-ok').onclick=()=>{
@@ -1814,7 +1818,7 @@ function rowsOf(wb, name){
 }
 function normNume(s){ return capitalizeaza(s).normalize('NFD').replace(/[̀-ͯ]/g,'').replace(/Ş/g,'S').replace(/Ţ/g,'T'); }
 function importXlsx(file){
-  if(typeof XLSX==='undefined') return toast('Pentru import e nevoie de internet o singură dată (se încarcă cititorul de Excel).', 3500);
+  if(typeof XLSX==='undefined') return toast('Biblioteca Excel nu s-a încărcat. Deschide aplicația o dată cu internet și încearcă din nou.', 4000);
   const rd=new FileReader();
   rd.onload=()=>{
     try{
@@ -1929,7 +1933,7 @@ function proceseazaExcel(wb){
 
 /* ---- Export în Excel ---- */
 async function exportXlsx(){
-  if(typeof XLSX==='undefined') return toast('Exportul Excel are nevoie de internet o singură dată.', 3000);
+  if(typeof XLSX==='undefined') return toast('Biblioteca Excel nu s-a încărcat. Deschide aplicația o dată cu internet și încearcă din nou.', 4000);
   const el=eleviAn(), an=state.settings.anScolar, N=state.settings.oreNecesare;
   const ids=new Set(el.map(e=>e.id));
   const wb=XLSX.utils.book_new();
