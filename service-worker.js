@@ -7,7 +7,6 @@ const FILES_DE_CACHE = [
   './manifest.json',
   './icon-192.png',
   './icon-512.png',
-  './xlsx.full.min.js',
 ];
 
 self.addEventListener('install', (event) => {
@@ -31,6 +30,9 @@ self.addEventListener('activate', (event) => {
 // deschide oricum, chiar și fără nicio conexiune.
 self.addEventListener('fetch', (event) => {
   if (event.request.method !== 'GET') return;
+  // Conexiunile cu contul Google și baza de date (Firebase) nu trec prin cache
+  const gazda = new URL(event.request.url).hostname;
+  if ((gazda.endsWith('googleapis.com') && !gazda.startsWith('fonts.')) || gazda.endsWith('google.com') || gazda.endsWith('firebaseapp.com')) return;
   event.respondWith(
     fetch(event.request)
       .then((raspuns) => {

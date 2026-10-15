@@ -11,7 +11,6 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Oswald:wght@500;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js" defer></script>
-<script src="xlsx.full.min.js" defer></script>
 <style>
   :root{
     --track:#D9480F;
@@ -123,6 +122,9 @@
   .alert-blue{background:#D9E6F5; color:#123E70;}
   .toast{position:fixed; bottom:24px; left:50%; transform:translateX(-50%); background:var(--infield); color:#fff; padding:10px 20px; border-radius:30px; font-size:14px; font-weight:600; box-shadow:0 6px 18px rgba(0,0,0,0.2); z-index:200; opacity:0; pointer-events:none; transition:opacity .25s ease, transform .25s ease; max-width:90vw; text-align:center;}
   .toast.show{opacity:1; transform:translateX(-50%) translateY(-6px);}
+  .sync-btn{background:transparent; border:1px solid #4A5A68; color:#D9DEE3; border-radius:8px; padding:6px 10px; font-size:12.5px; font-weight:600; cursor:pointer; white-space:nowrap; font-family:'Inter',sans-serif;}
+  .sync-btn.ok{border-color:#3D7A4E; color:#BFE3C8;}
+  @media (max-width:760px){ .sync-btn{padding:5px 7px; font-size:11px;} header .an-select{max-width:96px;} } .sync-btn.err{border-color:var(--danger); color:#F6C9C5;}
   .settings-btn{background:transparent; border:none; color:#C3CCD4; cursor:pointer; padding:6px;}
   .modal-backdrop{position:fixed; inset:0; background:rgba(0,0,0,0.45); display:flex; align-items:center; justify-content:center; z-index:100; padding:16px;}
   .modal{background:#fff; border-radius:12px; padding:22px; width:min(520px,100%); max-height:92vh; overflow-y:auto;}
@@ -309,9 +311,12 @@ function migreaza(){
   });
 }
 let ultimaSalvare = null, saveTimer = null;
+let ultimJsonSalvat = null;
 function saveNow(){
   clearTimeout(saveTimer);
-  try{ localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); ultimaSalvare=new Date(); actualizeazaIndicator(); return true; }
+  try{ const j=JSON.stringify(state); localStorage.setItem(STORAGE_KEY, j); ultimaSalvare=new Date(); actualizeazaIndicator();
+    if(ultimJsonSalvat!==null && j!==ultimJsonSalvat && typeof marcheazaModificat==='function') marcheazaModificat();
+    ultimJsonSalvat=j; return true; }
   catch(e){ return false; }
 }
 function save(){
@@ -322,6 +327,8 @@ function saveUI(){ try{ localStorage.setItem(UI_STORAGE_KEY, JSON.stringify({cur
 function actualizeazaIndicator(){
   const el=document.getElementById('save-indicator');
   if(el) el.textContent = ultimaSalvare ? 'Salvat '+ultimaSalvare.toLocaleTimeString('ro-RO',{hour:'2-digit',minute:'2-digit'}) : '';
+  const sb=document.getElementById('sync-ind');
+  if(sb && typeof textSync==='function'){ const t=textSync(); sb.textContent=t; sb.style.display=t?'':'none'; sb.className='sync-btn'+(sync.stare==='eroare'?' err':sync.stare==='sincronizat'?' ok':''); }
 }
 window.addEventListener('beforeunload', saveNow);
 document.addEventListener('visibilitychange', ()=>{ if(document.visibilityState==='hidden') saveNow(); });
@@ -557,6 +564,7 @@ function render(){
       </div>
       <div style="display:flex; align-items:center; gap:10px;">
         <span class="date" id="save-indicator"></span>
+        <button class="sync-btn" id="sync-ind" data-act="sync-info" style="display:none;"></button>
         <select class="an-select" id="an-select" title="An școlar">
           ${aniDisponibili().map(a=>`<option value="${a}" ${a===state.settings.anScolar?'selected':''}>${a}</option>`).join('')}
         </select>
@@ -617,7 +625,7 @@ function tabAzi(){
     if(st.zile!==null && st.zile<=30) alerte+=`<div class="alert ${st.zile<0?'alert-danger':'alert-yellow'}"><div><b>${esc(m.nr)} — ${esc(d.tip)}:</b> ${st.txt.toLowerCase()} (${fmtData(d.expira)}).</div><button class="btn btn-ghost" data-tab="masina" style="background:#fff;">Actualizează</button></div>`;
   }));
   const zExp = s.ultimulExport ? zileIntre(s.ultimulExport, azi) : null;
-  if(zExp===null || zExp>=7) alerte+=`<div class="alert alert-blue"><div>💾 ${zExp===null?'<b>N-ai făcut încă niciun backup.</b> Dacă pierzi tableta, pierzi tot.':`<b>Ultimul backup a fost acum ${zExp} zile.</b>`}</div><div class="row" style="gap:6px;"><button class="btn btn-primary" data-act="export-json">Exportă backup</button><button class="btn btn-secondary" data-act="export-xlsx">Exportă Excel</button></div></div>`;
+  if(zExp===null || zExp>=7) alerte+=`<div class="alert alert-blue"><div>💾 ${zExp===null?'<b>N-ai făcut încă niciun backup.</b> Dacă pierzi tableta, pierzi tot.':`<b>Ultimul backup a fost acum ${zExp} zile.</b>`}</div><button class="btn btn-primary" data-act="export-json">Exportă acum</button></div>`;
   let totS=0,totC=0,termin=0;
   el.forEach(e=>{ const st=statElev(e.id); totS+=st.s; totC+=st.c; if(st.ramase===0) termin++; });
   const rami=el.map(e=>({e,st:statElev(e.id)})).filter(x=>x.st.ramase>0).sort((a,b)=>b.st.ramase-a.st.ramase).slice(0,5);
@@ -625,6 +633,7 @@ function tabAzi(){
     <h2>${ziDin(azi)}, ${fmtData(azi)}</h2>
     <p class="tab-desc">Programările de azi, orele trecute deja și ce trebuie urmărit. An școlar ${esc(s.anScolar)}.</p>
     ${bannerInstalare()}
+    ${bannerSync()}
     ${alerte}
     <div class="stats">
       <div class="stat"><div class="v">${el.length}</div><div class="l">Elevi</div></div>
@@ -1716,14 +1725,13 @@ function openSettings(){
     <div class="field"><label>An școlar nou</label><div class="row"><input type="text" id="s-an" placeholder="ex: ${anDinData(todayISO())}" style="flex:1;"><button class="btn btn-ghost" id="s-an-ok">Treci pe el</button></div></div>
     <div class="row" style="justify-content:flex-end;"><button class="btn btn-primary" id="s-ok">Salvează setările</button></div>
     <hr>
-    <h3 style="font-size:15px;">Sincronizare laptop ↔ tabletă</h3>
-    <p class="small muted" style="margin-top:-6px;">Datele stau doar pe dispozitivul pe care le scrii. Exportă un backup pe unul și importă-l pe celălalt (prin Drive, WhatsApp, email sau USB). Importul <b>înlocuiește</b> tot ce e pe dispozitivul respectiv.</p>
+    <h3 style="font-size:15px;">Sincronizare telefon ↔ laptop</h3>
+    <p class="small muted" style="margin-top:-6px;">${sync.uid?`Conectat ca <b>${esc(sync.email)}</b> — datele se sincronizează singure pe toate dispozitivele unde intri cu acest cont.`:'Intră cu contul Google ca datele să fie aceleași pe toate dispozitivele tale. Fiecare cont își vede doar datele lui.'}</p>
+    <div class="row" style="margin-bottom:12px;">${sync.uid?'<button class="btn btn-ghost" data-act="sync-info">Contul meu</button>':'<button class="btn btn-primary" data-act="sync-in">Intră cu Google</button>'}</div>
+    <p class="small muted">Backup de siguranță (un fișier pe care îl păstrezi tu). Importul <b>înlocuiește</b> tot ce e în aplicație${sync.uid?' și în cont':''}.</p>
     <div class="row"><button class="btn btn-secondary" data-act="export-json">⭳ Exportă backup</button><button class="btn btn-secondary" data-act="import-json">⭱ Importă backup</button></div>
-    <h3 style="font-size:15px; margin-top:14px;">Export Excel (pentru citit și justificare)</h3>
-    <p class="small muted" style="margin-top:-6px;">Un fișier Excel nou, cu toate datele anului școlar până azi: ore, centralizator, consum, statistică, note, programări, examen și mașini. E pentru tine; pentru readucerea datelor în aplicație folosește backup-ul de mai sus.</p>
-    <div class="row"><button class="btn btn-secondary" data-act="export-xlsx">⭳ Exportă Excel</button></div>
     <hr>
-    <button class="btn btn-danger" id="s-reset">Șterge toate datele de pe acest dispozitiv</button>`);
+    <button class="btn btn-danger" id="s-reset">${sync.uid?'Șterge toate datele (și din cont)':'Șterge toate datele de pe acest dispozitiv'}</button>`);
   b.querySelector('#s-ok').onclick=()=>{
     s.titlu=b.querySelector('#s-titlu').value.trim()||'Școala de șoferi';
     s.scoala=b.querySelector('#s-scoala').value.trim();
@@ -1818,7 +1826,7 @@ function rowsOf(wb, name){
 }
 function normNume(s){ return capitalizeaza(s).normalize('NFD').replace(/[̀-ͯ]/g,'').replace(/Ş/g,'S').replace(/Ţ/g,'T'); }
 function importXlsx(file){
-  if(typeof XLSX==='undefined') return toast('Biblioteca Excel nu s-a încărcat. Deschide aplicația o dată cu internet și încearcă din nou.', 4000);
+  if(typeof XLSX==='undefined') return toast('Pentru import e nevoie de internet o singură dată (se încarcă cititorul de Excel).', 3500);
   const rd=new FileReader();
   rd.onload=()=>{
     try{
@@ -1933,7 +1941,7 @@ function proceseazaExcel(wb){
 
 /* ---- Export în Excel ---- */
 async function exportXlsx(){
-  if(typeof XLSX==='undefined') return toast('Biblioteca Excel nu s-a încărcat. Deschide aplicația o dată cu internet și încearcă din nou.', 4000);
+  if(typeof XLSX==='undefined') return toast('Exportul Excel are nevoie de internet o singură dată.', 3000);
   const el=eleviAn(), an=state.settings.anScolar, N=state.settings.oreNecesare;
   const ids=new Set(el.map(e=>e.id));
   const wb=XLSX.utils.book_new();
@@ -2071,6 +2079,9 @@ document.addEventListener('click', e=>{
     case 'pdf': salveazaPDF(); break;
     case 'export-json': exportJson(); break;
     case 'export-parc': exportParcAuto(); break;
+    case 'sync-info': modalCont(); break;
+    case 'sync-in': closeModal(); intraCont(); break;
+    case 'sync-nu': syncLocal.faraBanner=true; salveazaSyncLocal(); render(); break;
     case 'import-json': document.getElementById('file-json').click(); break;
     case 'import-xlsx': document.getElementById('file-xlsx').click(); break;
     case 'export-xlsx': exportXlsx(); break;
@@ -2108,9 +2119,162 @@ document.addEventListener('keydown', e=>{
   if(e.key==='Enter' && e.target.id && e.target.id.startsWith('nota-')){ const id=e.target.id.slice(5); document.querySelector(`[data-act="nota-add"][data-id="${id}"]`).click(); }
 });
 
+/* ================= SINCRONIZARE (cont Google + Firebase) =================
+   Fiecare utilizator își vede doar datele lui: utilizatori/{uid}/date/...
+   Regula de securitate din Firebase lasă doar contul proprietar să citească/scrie. */
+const FIREBASE_CONFIG = {
+  apiKey: "AIzaSyD1-HQQntx3v66fERfjxFZverIEvCYIpQ4",
+  authDomain: "scoala-soferi-9a750.firebaseapp.com",
+  projectId: "scoala-soferi-9a750",
+  storageBucket: "scoala-soferi-9a750.firebasestorage.app",
+  messagingSenderId: "969178093301",
+  appId: "1:969178093301:web:04ea77974b0248b61797bc"
+};
+const FB_VER='10.12.2', SYNC_KEY='scoala-soferi-sync-v1', PARTE=300000;
+const sync={disponibil:false, uid:null, email:'', stare:'neconectat', auth:null, db:null, unsub:null, inLucru:false, iarDupa:false, suprim:false, t:null, ultimaSinc:null};
+let syncLocal={}; try{ syncLocal=JSON.parse(localStorage.getItem(SYNC_KEY)||'{}')||{}; }catch(e){ syncLocal={}; }
+if(!syncLocal.deviceId){ syncLocal.deviceId=uid(); try{ localStorage.setItem(SYNC_KEY, JSON.stringify(syncLocal)); }catch(e){} }
+function salveazaSyncLocal(){ try{ localStorage.setItem(SYNC_KEY, JSON.stringify(syncLocal)); }catch(e){} }
+function seteazaStareSync(s){ sync.stare=s; if(s==='sincronizat') sync.ultimaSinc=new Date(); actualizeazaIndicator(); }
+function textSync(){
+  return ({neconectat: sync.disponibil?'☁ Conectează':'', trimite:'☁ Se trimite…', sincronizat:'☁ Sincronizat', offline:'☁ Fără internet', eroare:'⚠ Sincronizare', asteapta:'☁ Se conectează…'})[sync.stare]||'';
+}
+function areDate(){ return state.elevi.length>0 || state.ore.length>0 || state.masini.length>0 || state.programari.length>0; }
+function refMeta(){ return sync.db.collection('utilizatori').doc(sync.uid).collection('date').doc('meta'); }
+function incarcaScript(src){ return new Promise((res,rej)=>{ const s=document.createElement('script'); s.src=src; s.onload=res; s.onerror=rej; document.head.appendChild(s); }); }
+async function initSync(){
+  if(!location.protocol.startsWith('http')) return;
+  if(syncLocal.uid) seteazaStareSync('asteapta');
+  try{
+    const b=`https://www.gstatic.com/firebasejs/${FB_VER}/`;
+    await incarcaScript(b+'firebase-app-compat.js');
+    await Promise.all([incarcaScript(b+'firebase-auth-compat.js'), incarcaScript(b+'firebase-firestore-compat.js')]);
+    firebase.initializeApp(FIREBASE_CONFIG);
+    sync.auth=firebase.auth(); sync.db=firebase.firestore(); sync.disponibil=true;
+  }catch(e){ console.warn('Firebase indisponibil', e); seteazaStareSync(syncLocal.uid?'offline':'neconectat'); return; }
+  sync.auth.getRedirectResult().catch(e=>{ if(e && e.code) toast('Intrarea în cont n-a reușit ('+e.code+').', 4500); });
+  sync.auth.onAuthStateChanged(u=>{ if(u) laConectare(u); else laDeconectare(); });
+}
+function intraCont(){
+  if(!sync.disponibil) return toast('Pentru conectare e nevoie de internet. Încearcă din nou.', 3500);
+  const p=new firebase.auth.GoogleAuthProvider(); p.setCustomParameters({prompt:'select_account'});
+  sync.auth.signInWithPopup(p).catch(e=>{
+    const c=e&&e.code;
+    if(['auth/popup-blocked','auth/operation-not-supported-in-this-environment','auth/web-storage-unsupported'].includes(c)) return sync.auth.signInWithRedirect(p);
+    if(c!=='auth/popup-closed-by-user' && c!=='auth/cancelled-popup-request') toast('Nu am putut intra în cont ('+c+').', 4500);
+  });
+}
+function iesiCont(){
+  confirma('Ieși din cont pe acest dispozitiv? Datele rămân aici, dar nu se mai sincronizează până intri din nou.', ()=>{ sync.auth.signOut(); toast('Ai ieșit din cont.'); }, 'Da, ieși');
+}
+function laDeconectare(){ if(sync.unsub){ sync.unsub(); sync.unsub=null; } sync.uid=null; sync.email=''; seteazaStareSync('neconectat'); render(); }
+async function laConectare(u){
+  sync.uid=u.uid; sync.email=u.email||''; seteazaStareSync('asteapta');
+  let snap; try{ snap=await refMeta().get(); }catch(e){ console.warn(e); seteazaStareSync(e&&e.code==='permission-denied'?'eroare':'offline'); setTimeout(()=>{ if(sync.uid===u.uid && sync.stare!=='sincronizat') laConectare(u); }, 20000); return; }
+  const m=snap.exists?snap.data():null;
+  try{
+    if(!m){ syncLocal.uid=u.uid; salveazaSyncLocal(); await urca(); if(areDate()) toast('Datele de pe acest dispozitiv au fost urcate în contul tău ✓', 3500); }
+    else if(syncLocal.uid!==u.uid){
+      if(areDate()){ alegeLaPrimaConectare(m); return; }
+      await descarca(m); toast('Datele din contul tău au fost aduse pe acest dispozitiv ✓', 3500);
+    } else {
+      if(syncLocal.dirty && m.versiune!==syncLocal.baza){ if((m.actualizat||0) > (syncLocal.modificat||0)) await descarca(m); else await urca(); }
+      else if(syncLocal.dirty) await urca();
+      else if(m.versiune!==syncLocal.baza) await descarca(m);
+      else seteazaStareSync('sincronizat');
+    }
+  }catch(e){ console.error(e); seteazaStareSync('eroare'); }
+  asculta(); render();
+}
+function alegeLaPrimaConectare(m){
+  const cand=m.actualizat?new Date(m.actualizat).toLocaleString('ro-RO',{day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'}):'';
+  const b=openModal(`<h3>Ce date păstrezi?</h3>
+    <p>În contul tău există deja date${cand?` (ultima modificare: <b>${cand}</b>)`:''}. Pe acest dispozitiv sunt și date salvate local.</p>
+    <p class="small muted">De obicei alegi datele din cont: sunt cele pe care le-ai trecut pe celălalt dispozitiv.</p>
+    <div style="display:flex; flex-direction:column; gap:8px; margin-top:12px;">
+      <button class="btn btn-primary" id="pc-cont">Folosește datele din cont (recomandat)</button>
+      <button class="btn btn-secondary" id="pc-local">Păstrează datele de pe acest dispozitiv</button>
+    </div>`);
+  let ales=false;
+  b.addEventListener('click', e=>{ if(e.target===b && !ales){ sync.auth.signOut(); } });
+  b.querySelector('#pc-cont').onclick=async()=>{ ales=true; closeModal(); try{ await descarca(m); }catch(e){ seteazaStareSync('eroare'); } asculta(); render(); toast('Datele din cont au fost aduse ✓', 3000); };
+  b.querySelector('#pc-local').onclick=()=>{ ales=true; confirma('Datele din cont vor fi <b>înlocuite</b> cu cele de pe acest dispozitiv. Continui?', async()=>{ syncLocal.uid=sync.uid; salveazaSyncLocal(); await urca(); asculta(); render(); toast('Datele de pe acest dispozitiv au fost urcate ✓', 3000); }, 'Da, înlocuiește'); };
+}
+function asculta(){
+  if(sync.unsub) sync.unsub();
+  sync.unsub=refMeta().onSnapshot(snap=>{
+    if(!snap.exists) return;
+    const m=snap.data();
+    if(m.versiune===syncLocal.baza){ if(!syncLocal.dirty && !sync.inLucru) seteazaStareSync('sincronizat'); return; }
+    if(m.dispozitiv===syncLocal.deviceId || syncLocal.dirty || sync.inLucru) return;
+    descarca(m).then(()=>{ render(); toast('Actualizat cu ce ai trecut pe celălalt dispozitiv ✓', 2500); }).catch(e=>{ console.error(e); seteazaStareSync('eroare'); });
+  }, e=>{ console.warn(e); seteazaStareSync('offline'); });
+}
+async function urca(){
+  if(!sync.uid || !sync.db) return;
+  if(sync.inLucru){ sync.iarDupa=true; return; }
+  sync.inLucru=true; sync.iarDupa=false; seteazaStareSync(navigator.onLine===false?'offline':'trimite');
+  const json=JSON.stringify(state), parti=[];
+  for(let i=0;i<json.length;i+=PARTE) parti.push(json.slice(i,i+PARTE));
+  if(!parti.length) parti.push('{}');
+  const versiune=Date.now().toString(36)+'-'+String(syncLocal.deviceId).slice(-5);
+  const col=refMeta().parent, b=sync.db.batch();
+  parti.forEach((p,i)=>b.set(col.doc('p'+i), {s:p}));
+  for(let i=parti.length; i<Math.max(parti.length, syncLocal.partiAnterioare||0); i++) b.delete(col.doc('p'+i));
+  b.set(refMeta(), {versiune, parti:parti.length, actualizat:Date.now(), dispozitiv:syncLocal.deviceId, marime:json.length});
+  try{
+    await b.commit();
+    syncLocal.baza=versiune; syncLocal.partiAnterioare=parti.length; syncLocal.uid=sync.uid;
+    if(!sync.iarDupa) syncLocal.dirty=false;
+    salveazaSyncLocal(); seteazaStareSync('sincronizat');
+  }catch(e){ console.error(e); seteazaStareSync(e&&e.code==='permission-denied'?'eroare':'offline'); }
+  sync.inLucru=false;
+  if(sync.iarDupa){ sync.iarDupa=false; urca(); }
+}
+async function descarca(m){
+  const col=refMeta().parent;
+  const docs=await Promise.all(Array.from({length:m.parti||1},(_,i)=>col.doc('p'+i).get()));
+  const p=JSON.parse(docs.map(d=>d.exists?d.data().s:'').join('')||'{}');
+  sync.suprim=true;
+  state=Object.assign(stareImplicita(), p); migreaza(); saveNow();
+  sync.suprim=false;
+  syncLocal.baza=m.versiune; syncLocal.dirty=false; syncLocal.uid=sync.uid; syncLocal.partiAnterioare=m.parti||1; salveazaSyncLocal();
+  seteazaStareSync('sincronizat');
+}
+function marcheazaModificat(){
+  if(sync.suprim) return;
+  syncLocal.dirty=true; syncLocal.modificat=Date.now(); salveazaSyncLocal();
+  if(sync.uid){ clearTimeout(sync.t); sync.t=setTimeout(urca, 1200); }
+}
+window.addEventListener('online', ()=>{ if(sync.uid && syncLocal.dirty) urca(); });
+function modalCont(){
+  if(!sync.uid){
+    const b=openModal(`<h3>Sincronizare telefon ↔ laptop</h3>
+      <p>Intră cu contul tău Google și ai aceleași date pe toate dispozitivele tale. Fiecare cont își vede <b>doar datele lui</b> — un coleg care intră cu contul lui nu vede nimic din ale tale.</p>
+      <p class="small muted">${areDate()?'Datele de pe acest dispozitiv se urcă în cont la prima conectare (sau alegi ce păstrezi, dacă în cont există deja date).':''}</p>
+      <div class="row" style="justify-content:flex-end;"><button class="btn btn-ghost" id="mc-x">Nu acum</button><button class="btn btn-primary" id="mc-in">Intră cu Google</button></div>`);
+    b.querySelector('#mc-x').onclick=closeModal; b.querySelector('#mc-in').onclick=()=>{ closeModal(); intraCont(); };
+    return;
+  }
+  const b=openModal(`<h3>Contul tău</h3>
+    <p>Conectat ca <b>${esc(sync.email)}</b>.</p>
+    <p>Stare: <b>${esc(textSync().replace('☁ ','').replace('⚠ ',''))}</b>${sync.ultimaSinc?` · ultima sincronizare ${sync.ultimaSinc.toLocaleTimeString('ro-RO',{hour:'2-digit',minute:'2-digit'})}`:''}</p>
+    ${sync.stare==='eroare'?'<p class="small" style="color:var(--danger);">Serverul a refuzat datele. Verifică regulile din Firebase (Firestore → Rules) sau trimite-mi o poză.</p>':''}
+    ${sync.stare==='offline'?'<p class="small muted">Nu e internet acum. Ce scrii se păstrează pe acest dispozitiv și se trimite singur când revine conexiunea.</p>':''}
+    <div class="row" style="justify-content:space-between;"><button class="btn btn-ghost" id="mc-out">Ieși din cont</button><button class="btn btn-primary" id="mc-now">Sincronizează acum</button></div>`);
+  b.querySelector('#mc-out').onclick=()=>{ closeModal(); iesiCont(); };
+  b.querySelector('#mc-now').onclick=async()=>{ closeModal(); await laConectare(sync.auth.currentUser||{uid:sync.uid, email:sync.email}); toast('Sincronizat ✓'); };
+}
+function bannerSync(){
+  if(!sync.disponibil || sync.uid || syncLocal.uid || syncLocal.faraBanner) return '';
+  return `<div class="alert alert-blue"><div>☁ <b>Aceleași date pe telefon și pe laptop:</b> intră cu contul tău Google. Colegii care folosesc aplicația nu vor vedea datele tale.</div><div class="row"><button class="btn btn-ghost" data-act="sync-nu" style="background:#fff;">Nu acum</button><button class="btn btn-primary" data-act="sync-in">Intră cu Google</button></div></div>`;
+}
+
 /* ================= PORNIRE ================= */
 loadState();
+ultimJsonSalvat=JSON.stringify(state);
 render();
+initSync();
 if('serviceWorker' in navigator && location.protocol.startsWith('http')){
   window.addEventListener('load', ()=>navigator.serviceWorker.register('service-worker.js').catch(()=>{}));
 }
