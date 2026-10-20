@@ -11,6 +11,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Oswald:wght@500;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js" defer></script>
+<script src="xlsx.full.min.js" defer></script>
 <style>
   :root{
     --track:#D9480F;
@@ -625,7 +626,7 @@ function tabAzi(){
     if(st.zile!==null && st.zile<=30) alerte+=`<div class="alert ${st.zile<0?'alert-danger':'alert-yellow'}"><div><b>${esc(m.nr)} — ${esc(d.tip)}:</b> ${st.txt.toLowerCase()} (${fmtData(d.expira)}).</div><button class="btn btn-ghost" data-tab="masina" style="background:#fff;">Actualizează</button></div>`;
   }));
   const zExp = s.ultimulExport ? zileIntre(s.ultimulExport, azi) : null;
-  if(zExp===null || zExp>=7) alerte+=`<div class="alert alert-blue"><div>💾 ${zExp===null?'<b>N-ai făcut încă niciun backup.</b> Dacă pierzi tableta, pierzi tot.':`<b>Ultimul backup a fost acum ${zExp} zile.</b>`}</div><button class="btn btn-primary" data-act="export-json">Exportă acum</button></div>`;
+  if(zExp===null || zExp>=7) alerte+=`<div class="alert alert-blue"><div>💾 ${zExp===null?'<b>N-ai făcut încă niciun backup.</b> Dacă pierzi tableta, pierzi tot.':`<b>Ultimul backup a fost acum ${zExp} zile.</b>`}</div><div class="row" style="gap:6px;"><button class="btn btn-primary" data-act="export-json">Exportă backup</button><button class="btn btn-secondary" data-act="export-xlsx">Exportă Excel</button></div></div>`;
   let totS=0,totC=0,termin=0;
   el.forEach(e=>{ const st=statElev(e.id); totS+=st.s; totC+=st.c; if(st.ramase===0) termin++; });
   const rami=el.map(e=>({e,st:statElev(e.id)})).filter(x=>x.st.ramase>0).sort((a,b)=>b.st.ramase-a.st.ramase).slice(0,5);
@@ -1439,7 +1440,7 @@ async function salveazaPDF(){
     if(i<foi.length-1){ const br=document.createElement('div'); br.className='html2pdf__page-break'; box.appendChild(br); }
   });
   const v=ui.fisaVedere||'monit';
-  const nume = (v==='consum' ? 'Consum-'+(ui.consumLuna||todayISO().slice(0,7)) : v==='foaie' ? 'Foaie-parcurs-'+(ui.fisaData||todayISO()) : 'Monitorizare-ore-'+(ui.fisaMod==='lista'?(ui.fisaDe||'')+'_'+(ui.fisaPana||''):(ui.fisaData||todayISO())))+'.pdf';
+  const nume = (v==='zilnic' ? 'Raport-zilnic-'+(ui.rzMod==='luna'?(ui.fisaData||todayISO()).slice(0,7):(ui.fisaData||todayISO())) : v==='consum' ? 'Consum-'+(ui.consumLuna||todayISO().slice(0,7)) : v==='foaie' ? 'Foaie-parcurs-'+(ui.fisaData||todayISO()) : 'Monitorizare-ore-'+(ui.fisaMod==='lista'?(ui.fisaDe||'')+'_'+(ui.fisaPana||''):(ui.fisaData||todayISO())))+'.pdf';
   toast('Se creează PDF-ul…', 1500);
   try{
     const blob = await html2pdf().set({
@@ -1454,9 +1455,9 @@ async function salveazaPDF(){
 }
 function tabFisa(){
   const v=ui.fisaVedere||'monit';
-  const opt=[['monit','Monitorizare (A4)'],['consum','Consum lunar'],['foaie','Foaie de parcurs']];
+  const opt=[['zilnic','Raport zilnic (A4)'],['monit','Monitorizare conducere'],['consum','Consum lunar'],['foaie','Foaie de parcurs']];
   const seg=`<div class="seg" style="margin-bottom:14px;">${opt.map(([k,t])=>`<button type="button" data-act="fisa-tip" data-v="${k}" class="${v===k?'on':''}">${t}</button>`).join('')}</div>`;
-  const corp = v==='foaie' ? tabFoaie() : v==='consum' ? tabConsumLunar() : tabMonitorizare();
+  const corp = v==='foaie' ? tabFoaie() : v==='consum' ? tabConsumLunar() : v==='zilnic' ? tabRaportZilnic() : tabMonitorizare();
   return `<div class="no-print">${seg}</div>` + corp;
 }
 function selMasinaFisa(cuToate){
@@ -1489,6 +1490,63 @@ function tabMonitorizare(){
       </div>
       <div class="row" style="margin-top:12px;">
         ${mod==='lista'?`<div class="field"><label>De la</label><input type="date" id="f-de" value="${ui.fisaDe||d.slice(0,7)+'-01'}"></div><div class="field"><label>Până la</label><input type="date" id="f-pana" value="${ui.fisaPana||todayISO()}"></div>`:`<div class="field"><label>${mod==='luna'?'O zi din luna dorită':'Ziua'}</label><input type="date" id="f-data" value="${d}"></div>`}
+        <button class="btn btn-primary" data-act="print">🖨 Tipărește${mod==='luna'?` (${nrFise} ${nrFise===1?'fișă':'fișe'})`:''}</button>
+        <button class="btn btn-secondary" data-act="pdf">📄 Salvează PDF</button>
+      </div>${PRINT_HINT}</div>
+    </div>
+    ${fise}`;
+}
+/* ---------------- RAPORT ZILNIC: toate orele zilei, simulator + conducere ---------------- */
+// Mașina apare doar dacă e bifată și doar la orele de conducere (simulatorul n-are mașină).
+function construiesteRaportZi(data){
+  const s=state.settings;
+  const ore=state.ore.filter(o=>o.data===data).sort((a,b)=>(a.ora||'').localeCompare(b.ora||'') || (a.tip||'').localeCompare(b.tip||''));
+  const areC=ore.some(o=>o.tip==='C');
+  const cuMas = ui.rzMasina!==false && areC;
+  const t={s:0, ss:0, ip:0, km:0};
+  ore.forEach(o=>{ if(o.tip==='S') t.s+=nr(o.nr); else { if(regimOra(o)==='IP') t.ip+=nr(o.nr); else t.ss+=nr(o.nr); t.km+=nr(o.km); } });
+  const masUsed=[...new Set(ore.filter(o=>o.tip==='C').map(o=>nrMasina(o.masinaId)).filter(Boolean))];
+  const nCol = cuMas ? 8 : 7;
+  const randuri=Math.max(8, ore.length);
+  let rows='';
+  for(let i=0;i<randuri;i++){
+    const o=ore[i];
+    rows+= o ? `<tr><td>${i+1}.</td><td>${intervalOrar(o).replace('–',' – ')}</td><td class="nume">${esc(numeElev(o.elevId))}</td><td>${o.tip==='S'?'Simulator':'Conducere'}</td><td>${o.tip==='S'?esc(regimElev(elevById(o.elevId))):regimOra(o)}</td>${cuMas?`<td>${o.tip==='C'?esc(nrMasina(o.masinaId)):'—'}</td>`:''}<td>${fmtNr(nr(o.nr))}</td><td>${o.tip==='C'?fmtNr(nr(o.km)):'—'}</td></tr>`
+             : `<tr><td>${i+1}.</td><td>&nbsp;</td><td></td><td></td><td></td>${cuMas?'<td></td>':''}<td></td><td></td></tr>`;
+  }
+  const totOre=t.s+t.ss+t.ip;
+  return `<div class="fisa">
+    <div class="sc">${esc(s.scoala)}</div>
+    <div class="tt">Raport zilnic — ore efectuate</div>
+    <div class="meta"><span>Instructor auto: <b>${esc(s.instructor)}</b></span><span>An școlar: <b>${esc(anDinData(data))}</b></span></div>
+    <div class="meta"><span>Data: <b>${fmtData(data)}</b> (${ziDin(data).toLowerCase()})</span>${cuMas?`<span>Autoturism: <b>${esc(masUsed.join(', ')||'—')}</b></span>`:''}</div>
+    <table><thead><tr><th style="width:7%;">Nr. crt.</th><th style="width:15%;">Interval orar</th><th>Numele și prenumele cursantului</th><th style="width:12%;">Tip oră</th><th style="width:7%;">SS / IP</th>${cuMas?'<th style="width:12%;">Mașina</th>':''}<th style="width:7%;">Nr. ore</th><th style="width:9%;">Km</th></tr></thead>
+    <tbody>${rows}<tr><td colspan="${nCol-2}" style="text-align:right;"><b>Total</b></td><td><b>${totOre?fmtNr(totOre):''}</b></td><td><b>${t.km?fmtNr(t.km):''}</b></td></tr></tbody></table>
+    <div style="font-size:13px; margin-top:6px;">Simulator: <b>${fmtNr(t.s)} h</b> · Conducere: <b>${fmtNr(t.ss+t.ip)} h</b> (SS ${fmtNr(t.ss)} · IP ${fmtNr(t.ip)})${t.km?` · ${fmtNr(t.km)} km`:''}</div>
+    <div style="font-size:12px; margin-top:4px;">SS = școala de șoferi · IP = instruire practică</div>
+    <div class="semn">Semnătura, ..............................</div>
+  </div>`;
+}
+function tabRaportZilnic(){
+  const d=ui.fisaData||todayISO(), mod=ui.rzMod||'zi';
+  let fise='', nrFise=1;
+  if(mod==='luna'){
+    const pref=d.slice(0,7);
+    const zile=[...new Set(state.ore.filter(o=>(o.data||'').startsWith(pref)).map(o=>o.data))].sort();
+    fise = zile.length ? zile.map(construiesteRaportZi).join('') : gol('Nicio oră în '+LUNI[lunaDin(d)].toLowerCase(),'');
+    nrFise=zile.length;
+  } else fise=construiesteRaportZi(d);
+  const areC = mod==='luna' ? state.ore.some(o=>(o.data||'').startsWith(d.slice(0,7)) && o.tip==='C') : state.ore.some(o=>o.data===d && o.tip==='C');
+  return `
+    <div class="no-print">
+      <h2>Raport zilnic</h2>
+      <p class="tab-desc">Toate orele dintr-o zi — și simulator, și conducere — gata de tipărit pe A4. Mașina apare doar la orele de conducere; dacă nu vrei coloana cu mașina, debifeaz-o.</p>
+      <div class="card"><div class="row">
+        <div class="field"><label>Ce tipăresc</label><div class="seg">${[['zi','O zi'],['luna','Luna, pe zile']].map(([k,t])=>`<button type="button" data-act="rz-mod" data-v="${k}" class="${mod===k?'on':''}">${t}</button>`).join('')}</div></div>
+        <div class="field"><label>${mod==='luna'?'O zi din luna dorită':'Ziua'}</label><input type="date" id="f-data" value="${d}"></div>
+        <label style="display:flex; align-items:center; gap:8px; font-size:15px; font-weight:600; cursor:pointer; min-height:44px; ${areC?'':'opacity:.5;'}"><input type="checkbox" id="rz-mas" ${ui.rzMasina!==false?'checked':''} ${areC?'':'disabled'} style="width:20px; height:20px;"> Arată mașina${areC?'':' (doar simulator)'}</label>
+      </div>
+      <div class="row" style="margin-top:12px;">
         <button class="btn btn-primary" data-act="print">🖨 Tipărește${mod==='luna'?` (${nrFise} ${nrFise===1?'fișă':'fișe'})`:''}</button>
         <button class="btn btn-secondary" data-act="pdf">📄 Salvează PDF</button>
       </div>${PRINT_HINT}</div>
@@ -1730,6 +1788,9 @@ function openSettings(){
     <div class="row" style="margin-bottom:12px;">${sync.uid?'<button class="btn btn-ghost" data-act="sync-info">Contul meu</button>':'<button class="btn btn-primary" data-act="sync-in">Intră cu Google</button>'}</div>
     <p class="small muted">Backup de siguranță (un fișier pe care îl păstrezi tu). Importul <b>înlocuiește</b> tot ce e în aplicație${sync.uid?' și în cont':''}.</p>
     <div class="row"><button class="btn btn-secondary" data-act="export-json">⭳ Exportă backup</button><button class="btn btn-secondary" data-act="import-json">⭱ Importă backup</button></div>
+    <h3 style="font-size:15px; margin-top:14px;">Export Excel (pentru citit și justificare)</h3>
+    <p class="small muted" style="margin-top:-6px;">Un fișier Excel nou, cu toate datele anului școlar până azi: ore, centralizator, consum, statistică, note, programări, examen și mașini. E pentru tine; pentru readucerea datelor în aplicație folosește backup-ul de mai sus.</p>
+    <div class="row"><button class="btn btn-secondary" data-act="export-xlsx">⭳ Exportă Excel</button></div>
     <hr>
     <button class="btn btn-danger" id="s-reset">${sync.uid?'Șterge toate datele (și din cont)':'Șterge toate datele de pe acest dispozitiv'}</button>`);
   b.querySelector('#s-ok').onclick=()=>{
@@ -1826,7 +1887,7 @@ function rowsOf(wb, name){
 }
 function normNume(s){ return capitalizeaza(s).normalize('NFD').replace(/[̀-ͯ]/g,'').replace(/Ş/g,'S').replace(/Ţ/g,'T'); }
 function importXlsx(file){
-  if(typeof XLSX==='undefined') return toast('Pentru import e nevoie de internet o singură dată (se încarcă cititorul de Excel).', 3500);
+  if(typeof XLSX==='undefined') return toast('Biblioteca Excel nu s-a încărcat. Deschide aplicația o dată cu internet și încearcă din nou.', 4000);
   const rd=new FileReader();
   rd.onload=()=>{
     try{
@@ -1941,7 +2002,7 @@ function proceseazaExcel(wb){
 
 /* ---- Export în Excel ---- */
 async function exportXlsx(){
-  if(typeof XLSX==='undefined') return toast('Exportul Excel are nevoie de internet o singură dată.', 3000);
+  if(typeof XLSX==='undefined') return toast('Biblioteca Excel nu s-a încărcat. Deschide aplicația o dată cu internet și încearcă din nou.', 4000);
   const el=eleviAn(), an=state.settings.anScolar, N=state.settings.oreNecesare;
   const ids=new Set(el.map(e=>e.id));
   const wb=XLSX.utils.book_new();
@@ -2060,6 +2121,7 @@ document.addEventListener('click', e=>{
     case 'rev-del': { const mm=masinaById(a.dataset.m); mm.revizii=mm.revizii.filter(x=>x.id!==id); save(); render(); break; }
     case 'consum-open': ui.fisaVedere='consum'; ui.fisaMasinaId=a.dataset.m; ui.consumLuna=a.dataset.l; goTab('fisa'); break;
     case 'fisa-mod': ui.fisaMod = a.dataset.v; render(); break;
+    case 'rz-mod': ui.rzMod = a.dataset.v; render(); break;
     case 'fisa-tip': ui.fisaVedere = a.dataset.v; render(); break;
     case 'filtru-regim': ui.eleviRegim = a.dataset.v; render(); break;
     case 'teme-regim': ui.temeRegim = a.dataset.v; render(); break;
@@ -2105,6 +2167,7 @@ document.addEventListener('change', e=>{
   if(t.id==='f-pana'){ ui.fisaPana=t.value; render(); return; }
   if(t.id==='c-luna'){ ui.consumLuna=t.value||null; render(); return; }
   if(t.id==='f-data'){ ui.fisaData=t.value||todayISO(); render(); return; }
+  if(t.id==='rz-mas'){ ui.rzMasina=t.checked; render(); return; }
   if(t.id==='fp-chenar'){ state.settings.foaieChenar=t.checked; save(); render(); return; }
   if(t.id==='fp-ox' || t.id==='fp-oy'){ state.settings[t.id==='fp-ox'?'foaieOffsetX':'foaieOffsetY']=nr(t.value); save(); toast('Salvat ✓',900); return; }
   if(t.id==='file-json' && t.files[0]){ importJson(t.files[0]); t.value=''; return; }
