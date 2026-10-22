@@ -1191,6 +1191,7 @@ function fisaElev(e){
     </div>
     <div class="card"><div style="margin-bottom:10px;">${barProgres(st)}</div>
       <div class="row"><button class="btn btn-primary" data-act="ora-noua" data-elev="${e.id}">+ Oră pentru ${esc(e.nume.split(' ')[0])}</button>
+      <button class="btn btn-secondary" data-act="fisa-elev" data-id="${e.id}">🖨 Fișa individuală</button>
       <span style="align-self:center;">Examen: <span class="pill ${stadiuExamen(e).c}">${stadiuExamen(e).t}</span></span></div>
       ${prog.length?`<p class="small" style="margin:12px 0 0;">Următoarele programări: ${prog.map(p=>`<span class="pill pill-yellow">${fmtData(p.data)} ${p.oraStart}</span>`).join(' ')}</p>`:''}
     </div>
@@ -1441,7 +1442,7 @@ async function salveazaPDF(){
     if(i<foi.length-1){ const br=document.createElement('div'); br.className='html2pdf__page-break'; box.appendChild(br); }
   });
   const v=ui.fisaVedere||'monit';
-  const nume = (v==='zilnic' ? 'Raport-zilnic-'+(ui.rzMod==='luna'?(ui.fisaData||todayISO()).slice(0,7):(ui.fisaData||todayISO())) : v==='consum' ? 'Consum-'+(ui.consumLuna||todayISO().slice(0,7)) : v==='foaie' ? 'Foaie-parcurs-'+(ui.fisaData||todayISO()) : 'Monitorizare-ore-'+(ui.fisaMod==='lista'?(ui.fisaDe||'')+'_'+(ui.fisaPana||''):(ui.fisaData||todayISO())))+'.pdf';
+  const feE=elevById(ui.fisaElevId); const nume = (v==='elev' ? 'Fisa-individuala-'+(ui.fisaElevId==='all'||!feE?'toti-elevii':feE.nume.replace(/[^\wăâîșțĂÂÎȘȚ]+/g,'-'))+'-'+(ui.fisaElevPana||todayISO()) : v==='zilnic' ? 'Raport-zilnic-'+(ui.rzMod==='luna'?(ui.fisaData||todayISO()).slice(0,7):(ui.fisaData||todayISO())) : v==='consum' ? 'Consum-'+(ui.consumLuna||todayISO().slice(0,7)) : v==='foaie' ? 'Foaie-parcurs-'+(ui.fisaData||todayISO()) : 'Monitorizare-ore-'+(ui.fisaMod==='lista'?(ui.fisaDe||'')+'_'+(ui.fisaPana||''):(ui.fisaData||todayISO())))+'.pdf';
   toast('Se creează PDF-ul…', 1500);
   try{
     const blob = await html2pdf().set({
@@ -1456,9 +1457,9 @@ async function salveazaPDF(){
 }
 function tabFisa(){
   const v=ui.fisaVedere||'monit';
-  const opt=[['zilnic','Raport zilnic (A4)'],['monit','Monitorizare conducere'],['consum','Consum lunar'],['foaie','Foaie de parcurs']];
+  const opt=[['zilnic','Raport zilnic (A4)'],['elev','Fișă individuală'],['monit','Monitorizare conducere'],['consum','Consum lunar'],['foaie','Foaie de parcurs']];
   const seg=`<div class="seg" style="margin-bottom:14px;">${opt.map(([k,t])=>`<button type="button" data-act="fisa-tip" data-v="${k}" class="${v===k?'on':''}">${t}</button>`).join('')}</div>`;
-  const corp = v==='foaie' ? tabFoaie() : v==='consum' ? tabConsumLunar() : v==='zilnic' ? tabRaportZilnic() : tabMonitorizare();
+  const corp = v==='elev' ? tabFisaElev() : v==='foaie' ? tabFoaie() : v==='consum' ? tabConsumLunar() : v==='zilnic' ? tabRaportZilnic() : tabMonitorizare();
   return `<div class="no-print">${seg}</div>` + corp;
 }
 function selMasinaFisa(cuToate){
@@ -1553,6 +1554,65 @@ function tabRaportZilnic(){
       </div>${PRINT_HINT}</div>
     </div>
     ${fise}`;
+}
+/* ---------------- FIȘA INDIVIDUALĂ A ELEVULUI: datele lui + tot ce a făcut până la o dată ---------------- */
+function construiesteFisaElev(e, pana){
+  const s=state.settings, r=regimElev(e), N=s.oreNecesare;
+  const ore=state.ore.filter(o=>o.elevId===e.id && (o.data||'')<=pana).sort((a,b)=>a.data.localeCompare(b.data)||(a.ora||'').localeCompare(b.ora||''));
+  const t={s:0, ss:0, ip:0, km:0};
+  ore.forEach(o=>{ if(o.tip==='S') t.s+=nr(o.nr); else { if(regimOra(o)==='IP') t.ip+=nr(o.nr); else t.ss+=nr(o.nr); t.km+=nr(o.km); } });
+  const tot=t.s+t.ss+t.ip;
+  // teme parcurse până la dată + tema următoare (ține cont de „rămâne la tema”)
+  const plan=planTeme(r), nSim=nrSimPlan(r), parc=new Set();
+  const urm={S:1, C:nSim+1};
+  ['S','C'].forEach(tip=>{ ore.filter(o=>o.tip===tip).forEach(o=>{ const acop=temeOra(o); if(planOra(o)===r) acop.forEach(n=>parc.add(n)); if(acop.length) urm[tip]= o.ramaneLa ? o.ramaneLa : Math.max(...acop)+1; }); });
+  const simGata = t.s>=simLimita(e);
+  const nUrm = Math.min(!simGata && urm.S<=nSim ? urm.S : urm.C, plan.length);
+  let cum=0;
+  const rows = ore.map((o,i)=>{ cum+=nr(o.nr); const tm=temeOra(o), pr=planOra(o);
+    return `<tr><td>${i+1}.</td><td style="white-space:nowrap;">${fmtData(o.data)}</td><td style="white-space:nowrap;">${intervalOrar(o).replace('–',' – ')}</td><td>${o.tip==='S'?'Simulator':'Conducere '+regimOra(o)}</td><td>${o.tip==='C'?esc(nrMasina(o.masinaId)||'—'):'—'}</td><td>${fmtNr(nr(o.nr))}</td><td>${o.tip==='C'?fmtNr(nr(o.km)):'—'}</td><td><b>${fmtNr(cum)}</b></td><td class="nume" style="font-size:12.5px;">${tm.length?tm.map(n=>esc(temaText(pr,n))).join('; '):''}${o.ramaneLa?` <i>(rămâne la tema ${o.ramaneLa})</i>`:''}${o.obs?`<br><i>${esc(o.obs)}</i>`:''}</td></tr>`; }).join('');
+  const note=(e.note||[]).filter(n=>!n.data || n.data<=pana);
+  const med = note.length ? note.reduce((a,n)=>a+nr(n.nota),0)/note.length : null;
+  const ex = r==='IP' && !e.transferIP ? '' : ETAPE.map(et=>{
+    const l=exList(e,et.k).filter(x=>!x.data || x.data<=pana); if(!l.length) return '';
+    return `<tr><td class="nume">${et.t}</td>${l.length?`<td>${l.map(x=>`${fmtData(x.data)}${et.tip==='puncte'?` — ${x.puncte??''}/${nr(s.chestionarTotal)} p (${nr(x.puncte)>=nr(s.chestionarMinim)?'ADMIS':'RESPINS'})`:x.rezultat?` — ${x.rezultat}`:''}`).join('<br>')}</td>`:''}</tr>`; }).join('');
+  const lin=(k,v)=>`<tr><td class="nume" style="width:34%; font-weight:700;">${k}</td><td class="nume">${v}</td></tr>`;
+  return `<div class="fisa">
+    <div class="sc">${esc(s.scoala)}</div>
+    <div class="tt">Fișă individuală de pregătire practică — categoria B</div>
+    <div class="meta"><span>An școlar: <b>${esc(e.anScolar)}</b></span><span>Situația la data de: <b>${fmtData(pana)}</b></span></div>
+    <table>${lin('Numele și prenumele', `<b>${esc(e.nume)}</b>`)}${lin('Clasa', esc(e.clasa||'—'))}${lin('Pregătire', r==='IP'?'IP — instruire practică'+(e.transferIP?' (trecut din SS)':''):'SS — școala de șoferi')}${lin('Nr. serie / grupă', esc(e.grupa||'—'))}${lin('Nr. registru', esc(e.registru||'—'))}${lin('Telefon', esc(e.telefon||'—'))}${lin('Instructor auto', esc(s.instructor||'—'))}</table>
+    <table><thead><tr><th>Simulator</th><th>Conducere SS</th><th>Conducere IP</th><th>Total ore</th><th>Ore rămase</th><th>Km parcurși</th><th>Media notelor</th></tr></thead>
+    <tbody><tr><td>${fmtNr(t.s)} / ${fmtNr(simLimita(e))}</td><td>${fmtNr(t.ss)}</td><td>${fmtNr(t.ip)}</td><td><b>${fmtNr(tot)} / ${N}</b></td><td>${fmtNr(Math.max(0,N-tot))}</td><td>${fmtNr(t.km)}</td><td>${med===null?'—':fmtNr(Math.round(med*100)/100)}</td></tr></tbody></table>
+    <div style="font-size:14px; margin-top:8px;">Teme parcurse: <b>${parc.size} din ${plan.length}</b>${tot<N?` · Tema următoare: <b>${esc(temaText(r,nUrm))}</b>`:''}</div>
+    ${note.length?`<div style="font-size:14px; margin-top:4px;">Note: ${note.map(n=>`<b>${fmtNr(nr(n.nota))}</b>${n.data?` (${fmtData(n.data)})`:''}`).join(', ')}</div>`:''}
+    <div style="font-weight:700; font-size:15px; margin-top:16px;">Orele efectuate</div>
+    <table style="margin-top:6px;"><thead><tr><th style="width:5%;">Nr.</th><th style="width:11%;">Data</th><th style="width:12%;">Interval</th><th style="width:12%;">Tip oră</th><th style="width:9%;">Mașina</th><th style="width:5%;">Ore</th><th style="width:6%;">Km</th><th style="width:7%;">Cumulat</th><th>Tema</th></tr></thead>
+    <tbody>${rows||'<tr><td colspan="9">Nicio oră efectuată până la această dată.</td></tr>'}</tbody></table>
+    ${ex?`<div style="font-weight:700; font-size:15px; margin-top:16px;">Examene</div><table style="margin-top:6px;"><tbody>${ex}</tbody></table>`:''}
+    <div style="display:flex; justify-content:space-between; margin-top:34px; font-size:15px;"><span>Instructor auto,<br>.................................</span><span>Cursant,<br>.................................</span></div>
+  </div>`;
+}
+function tabFisaElev(){
+  const el=eleviFiltrati();
+  if(!el.length) return gol('Niciun elev','Adaugă elevii în tabul Elevi.');
+  const sel=ui.fisaElevId||el[0].id, pana=ui.fisaElevPana||todayISO();
+  const lista = sel==='all' ? el : [elevById(sel)||el[0]];
+  return `
+    <div class="no-print">
+      <h2>Fișă individuală</h2>
+      <p class="tab-desc">Datele elevului și tot ce a făcut până la data aleasă: orele (simulator și conducere), temele, kilometrii, notele și examenele. Alege „Toți elevii” ca să tipărești câte o fișă pentru fiecare.</p>
+      ${filtruRegimHtml()}
+      <div class="card"><div class="row">
+        <div class="field" style="flex:2 1 220px;"><label>Elevul</label><select id="fe-elev"><option value="all" ${sel==='all'?'selected':''}>— Toți elevii (${el.length}) —</option>${el.map(e=>`<option value="${e.id}" ${e.id===sel?'selected':''}>${esc(e.nume)}</option>`).join('')}</select></div>
+        <div class="field"><label>Situația la data de</label><input type="date" id="fe-pana" value="${pana}"></div>
+      </div>
+      <div class="row" style="margin-top:12px;">
+        <button class="btn btn-primary" data-act="print">🖨 Tipărește${lista.length>1?` (${lista.length} fișe)`:''}</button>
+        <button class="btn btn-secondary" data-act="pdf">📄 Salvează PDF</button>
+      </div>${PRINT_HINT}</div>
+    </div>
+    ${lista.map(e=>construiesteFisaElev(e,pana)).join('')}`;
 }
 function tabConsumLunar(){
   if(!state.masini.length) return gol('Nicio mașină','Adaugă mașinile în tabul Mașini.');
@@ -2124,6 +2184,7 @@ document.addEventListener('click', e=>{
     case 'fisa-mod': ui.fisaMod = a.dataset.v; render(); break;
     case 'rz-mod': ui.rzMod = a.dataset.v; render(); break;
     case 'fisa-tip': ui.fisaVedere = a.dataset.v; render(); break;
+    case 'fisa-elev': ui.fisaVedere='elev'; ui.fisaElevId=id; ui.fisaElevPana=todayISO(); ui.elevDetaliu=null; goTab('fisa'); break;
     case 'filtru-regim': ui.eleviRegim = a.dataset.v; render(); break;
     case 'teme-regim': ui.temeRegim = a.dataset.v; render(); break;
     case 'teme-reset': confirma(`Readuci temele ${a.dataset.v} la textul inițial? Modificările tale de text se pierd (orele elevilor rămân).`, ()=>{ state.teme[a.dataset.v]=JSON.parse(JSON.stringify(TEME_IMPLICITE[a.dataset.v])); save(); render(); toast('Teme readuse ✓'); }, 'Da'); break;
@@ -2167,6 +2228,8 @@ document.addEventListener('change', e=>{
   if(t.id==='f-de'){ ui.fisaDe=t.value; render(); return; }
   if(t.id==='f-pana'){ ui.fisaPana=t.value; render(); return; }
   if(t.id==='c-luna'){ ui.consumLuna=t.value||null; render(); return; }
+  if(t.id==='fe-elev'){ ui.fisaElevId=t.value; render(); return; }
+  if(t.id==='fe-pana'){ ui.fisaElevPana=t.value||todayISO(); render(); return; }
   if(t.id==='f-data'){ ui.fisaData=t.value||todayISO(); render(); return; }
   if(t.id==='rz-mas'){ ui.rzMasina=t.checked; render(); return; }
   if(t.id==='fp-chenar'){ state.settings.foaieChenar=t.checked; save(); render(); return; }
