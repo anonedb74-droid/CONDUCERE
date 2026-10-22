@@ -1124,9 +1124,10 @@ function tabElevi(){
     ${filtruRegimHtml()}
     <div class="card">
       ${el.length ? `<div class="table-wrap"><table>
-        <thead><tr><th>Nr.</th><th>Nume și prenume</th><th>Clasa</th><th>Pregătire</th><th>Telefon</th><th class="num">Ore</th><th>Examen</th><th></th></tr></thead>
+        <thead><tr><th>Nr.</th><th>Nume și prenume</th><th>Clasa</th><th>Pregătire</th><th>Serie / grupă</th><th>Nr. registru</th><th>Telefon</th><th class="num">Ore</th><th>Examen</th><th></th></tr></thead>
         <tbody>${el.map((e,i)=>{ const st=statElev(e.id); return `<tr>
           <td class="muted">${i+1}</td><td><button class="link" data-act="elev-open" data-id="${e.id}">${esc(e.nume)}</button></td><td>${esc(e.clasa)}</td><td>${pillRegimElev(e)}</td>
+          <td>${e.grupa?esc(e.grupa):'<span class="muted">—</span>'}</td><td>${e.registru?esc(e.registru):'<span class="muted">—</span>'}</td>
           <td>${e.telefon?`<a href="tel:${esc(e.telefon)}">${esc(e.telefon)}</a>`:'<span class="muted">—</span>'}</td>
           <td class="num">${fmtNr(st.total)}/${state.settings.oreNecesare}</td>
           <td>${(()=>{ const sd=stadiuExamen(e); return `<span class="pill ${sd.c}">${sd.t}</span>`; })()}</td>
@@ -1179,7 +1180,7 @@ function fisaElev(e){
   return `
     <div class="no-print" style="margin-bottom:12px;"><button class="btn btn-ghost" data-act="elev-close">← Înapoi la listă</button></div>
     <h2>${esc(e.nume)}</h2>
-    <p class="tab-desc">Clasa ${esc(e.clasa||'—')} · ${esc(e.anScolar)}${e.telefon?` · <a href="tel:${esc(e.telefon)}">${esc(e.telefon)}</a>`:''}${e.obs?` · ${esc(e.obs)}`:''} <button class="link small" data-act="elev-edit" data-id="${e.id}" style="margin-left:6px;">modifică datele</button></p>
+    <p class="tab-desc">Clasa ${esc(e.clasa||'—')} · ${esc(e.anScolar)}${e.grupa?` · Serie/grupă: <b>${esc(e.grupa)}</b>`:''}${e.registru?` · Nr. registru: <b>${esc(e.registru)}</b>`:''}${e.telefon?` · <a href="tel:${esc(e.telefon)}">${esc(e.telefon)}</a>`:''}${e.obs?` · ${esc(e.obs)}`:''} <button class="link small" data-act="elev-edit" data-id="${e.id}" style="margin-left:6px;">modifică datele</button></p>
     <div class="stats">
       <div class="stat"><div class="v">${fmtNr(st.total)}<span style="font-size:16px; color:var(--muted);">/${state.settings.oreNecesare}</span></div><div class="l">Total ore</div></div>
       <div class="stat"><div class="v" style="color:var(--sim);">${fmtNr(st.s)}<span style="font-size:16px; color:var(--muted);">/${fmtNr(simLimita(e))}</span></div><div class="l">Simulator</div></div>
