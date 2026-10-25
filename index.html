@@ -9,6 +9,7 @@
 <meta name="mobile-web-app-capable" content="yes">
 <link rel="apple-touch-icon" href="icon-192.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Carlito:wght@400;700&display=swap" rel="stylesheet">
 <link href="https://fonts.googleapis.com/css2?family=Oswald:wght@500;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js" defer></script>
 <script src="xlsx.full.min.js" defer></script>
@@ -143,23 +144,23 @@
   .grade button{border:none; background:transparent; color:var(--muted); cursor:pointer; font-size:14px; padding:0 4px;}
   .link{background:none; border:none; padding:0; color:var(--infield); font-weight:600; cursor:pointer; text-align:left; font-size:inherit; font-family:inherit; text-decoration:underline; text-decoration-color:var(--border); text-underline-offset:3px;}
   /* ---------- FIȘA DE MONITORIZARE (tipărire) ---------- */
-  .fisa{background:#fff; border:1px solid var(--border); border-radius:6px; padding:28px 34px; max-width:780px; margin:0 auto 20px; color:#000; font-family:'Times New Roman',Times,serif;}
+  .fisa{background:#fff; border:1px solid var(--border); border-radius:6px; padding:28px 34px; max-width:780px; margin:0 auto 20px; color:#000; font-family:'Calibri Light','Calibri',Carlito,'Segoe UI',sans-serif;}
   .fisa .sc{font-weight:700; font-size:15px;}
   .fisa .tt{text-align:center; font-weight:700; font-size:20px; margin:18px 0 14px;}
   .fisa .meta{display:flex; justify-content:space-between; font-size:15px; margin:6px 0;}
-  .fisa table{margin-top:12px; font-size:15px; font-family:'Times New Roman',Times,serif;}
-  .fisa th, .fisa td{border:1px solid #000; padding:7px 8px; color:#000; text-align:center; font-family:'Times New Roman',Times,serif; text-transform:none; letter-spacing:0; font-size:14px;}
+  .fisa table{margin-top:12px; font-size:15px; font-family:'Calibri Light','Calibri',Carlito,'Segoe UI',sans-serif;}
+  .fisa th, .fisa td{border:1px solid #000; padding:7px 8px; color:#000; text-align:center; font-family:'Calibri Light','Calibri',Carlito,'Segoe UI',sans-serif; text-transform:none; letter-spacing:0; font-size:14px;}
   .fisa th{font-weight:700; white-space:normal;}
   .fisa table{table-layout:auto;}
   .fisa td.nume{text-align:left;}
   .fisa .semn{display:flex; justify-content:flex-end; margin-top:30px; font-size:15px; padding-right:40px;}
   /* ---------- CAIETUL CURSANTULUI — evidența orelor (A5) ---------- */
-  .caiet{background:#fff; width:148mm; min-height:210mm; box-sizing:border-box; padding:7mm 7mm 6mm; margin:0 auto 20px; color:#000; font-family:'Times New Roman',Times,serif; box-shadow:0 2px 10px rgba(0,0,0,.12); border:1px solid #ccc;}
+  .caiet{background:#fff; width:148mm; min-height:210mm; box-sizing:border-box; padding:7mm 7mm 6mm; margin:0 auto 20px; color:#000; font-family:'Calibri Light','Calibri',Carlito,'Segoe UI',sans-serif; box-shadow:0 2px 10px rgba(0,0,0,.12); border:1px solid #ccc;}
   .caiet .ct{text-align:center; font-weight:700; font-size:11.5pt; margin:0;}
   .caiet .cc{text-align:center; font-weight:700; font-size:10.5pt; margin:2px 0 4px;}
   .caiet .ci{display:flex; justify-content:space-between; font-size:10pt; margin:0 0 3px;}
   .caiet table{width:100%; border-collapse:collapse; table-layout:fixed; margin:0;}
-  .caiet th, .caiet td{border:0.3mm solid #000; padding:0 1mm; font-size:8.5pt; color:#000; text-align:center; font-family:'Times New Roman',Times,serif; text-transform:none; letter-spacing:0; height:4.6mm; line-height:1.1; white-space:nowrap; overflow:hidden;}
+  .caiet th, .caiet td{border:0.3mm solid #000; padding:0 1mm; font-size:8.5pt; color:#000; text-align:center; font-family:'Calibri Light','Calibri',Carlito,'Segoe UI',sans-serif; text-transform:none; letter-spacing:0; height:4.6mm; line-height:1.1; white-space:nowrap; overflow:hidden;}
   .caiet th{font-weight:700; font-size:7pt; white-space:normal; height:auto; padding:1px;}
   .caiet td.sim{font-weight:700; letter-spacing:.08em;}
   .caiet .pg{text-align:center; font-size:8pt; margin-top:2mm;}
@@ -167,11 +168,11 @@
   .foi-wrap{display:flex; gap:20px; flex-wrap:wrap; justify-content:center; margin-bottom:20px;}
   .foaie-pag{position:relative;}
   .foaie-cap{font-size:12px; color:var(--muted); font-weight:600; text-transform:uppercase; letter-spacing:.04em; margin-bottom:6px;}
-  .foaie{position:relative; width:150mm; height:150mm; background:#fff; color:#000; font-family:Arial,Helvetica,sans-serif; font-size:8pt; overflow:hidden; box-shadow:0 2px 10px rgba(0,0,0,.12); border:1px solid #ccc;}
+  .foaie{position:relative; width:150mm; height:150mm; background:#fff; color:#000; font-family:'Calibri Light','Calibri',Carlito,'Segoe UI',sans-serif; font-size:8pt; overflow:hidden; box-shadow:0 2px 10px rgba(0,0,0,.12); border:1px solid #ccc;}
   .foaie .fv{position:absolute; white-space:nowrap; overflow:hidden; font-weight:700;}
   .foaie .fl{position:absolute; white-space:nowrap; color:#555; font-size:6.5pt;}
-  .foaie table{position:absolute; border-collapse:collapse; table-layout:fixed; font-family:Arial,Helvetica,sans-serif;}
-  .foaie th, .foaie td{border:0.25mm solid #000; padding:0 0.8mm; font-size:7pt; color:#000; overflow:hidden; white-space:nowrap; text-overflow:clip; text-transform:none; letter-spacing:0; font-family:Arial,Helvetica,sans-serif; vertical-align:middle;}
+  .foaie table{position:absolute; border-collapse:collapse; table-layout:fixed; font-family:'Calibri Light','Calibri',Carlito,'Segoe UI',sans-serif;}
+  .foaie th, .foaie td{border:0.25mm solid #000; padding:0 0.8mm; font-size:7pt; color:#000; overflow:hidden; white-space:nowrap; text-overflow:clip; text-transform:none; letter-spacing:0; font-family:'Calibri Light','Calibri',Carlito,'Segoe UI',sans-serif; vertical-align:middle;}
   .foaie th{font-size:5.6pt; font-weight:700; text-align:center; white-space:normal; line-height:1.05;}
   .foaie td.c{text-align:center;}
   .foaie .box{position:absolute; border:0.25mm solid #000;}
