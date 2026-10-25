@@ -153,6 +153,16 @@
   .fisa table{table-layout:auto;}
   .fisa td.nume{text-align:left;}
   .fisa .semn{display:flex; justify-content:flex-end; margin-top:30px; font-size:15px; padding-right:40px;}
+  /* ---------- CAIETUL CURSANTULUI — evidența orelor (A5) ---------- */
+  .caiet{background:#fff; width:148mm; min-height:210mm; box-sizing:border-box; padding:7mm 7mm 6mm; margin:0 auto 20px; color:#000; font-family:'Times New Roman',Times,serif; box-shadow:0 2px 10px rgba(0,0,0,.12); border:1px solid #ccc;}
+  .caiet .ct{text-align:center; font-weight:700; font-size:11.5pt; margin:0;}
+  .caiet .cc{text-align:center; font-weight:700; font-size:10.5pt; margin:2px 0 4px;}
+  .caiet .ci{display:flex; justify-content:space-between; font-size:10pt; margin:0 0 3px;}
+  .caiet table{width:100%; border-collapse:collapse; table-layout:fixed; margin:0;}
+  .caiet th, .caiet td{border:0.3mm solid #000; padding:0 1mm; font-size:8.5pt; color:#000; text-align:center; font-family:'Times New Roman',Times,serif; text-transform:none; letter-spacing:0; height:4.6mm; line-height:1.1; white-space:nowrap; overflow:hidden;}
+  .caiet th{font-weight:700; font-size:7pt; white-space:normal; height:auto; padding:1px;}
+  .caiet td.sim{font-weight:700; letter-spacing:.08em;}
+  .caiet .pg{text-align:center; font-size:8pt; margin-top:2mm;}
   /* ---------- FOAIA DE PARCURS (tipizat 15×15 cm) ---------- */
   .foi-wrap{display:flex; gap:20px; flex-wrap:wrap; justify-content:center; margin-bottom:20px;}
   .foaie-pag{position:relative;}
@@ -177,6 +187,8 @@
     main{overflow:visible; padding:0;}
     .fisa{border:none; padding:0; max-width:none; margin:0; page-break-after:always; break-after:page;}
     .fisa:last-child{page-break-after:auto; break-after:auto;}
+    .caiet{box-shadow:none; border:none; margin:0; page-break-after:always; break-after:page;}
+    .caiet:last-child{page-break-after:auto; break-after:auto;}
     .foi-wrap{display:block; margin:0;}
     .foaie-pag{width:210mm; height:296mm; page-break-after:always; break-after:page; overflow:hidden;}
     .foaie-pag:last-child{page-break-after:auto; break-after:auto;}
@@ -1475,28 +1487,30 @@ function construiesteFisa(data, masinaId, pana){
 }
 async function salveazaPDF(){
   if(typeof html2pdf==='undefined') return toast('Pentru PDF e nevoie de internet o singură dată (se încarcă generatorul de PDF). Încearcă din nou cu internet.', 4000);
-  const foi=[...document.querySelectorAll('#main .fisa, #main .foaie')];
+  const foi=[...document.querySelectorAll('#main .fisa, #main .foaie, #main .caiet')];
+  const eCaiet = !!document.querySelector('#main .caiet');
   if(!foi.length) return toast('Nimic de salvat.');
   const eFoaie = !!document.querySelector('#main .foaie');
   const box=document.createElement('div');
-  box.style.cssText='width:'+(eFoaie?'150mm':'190mm')+'; background:#fff;';
+  box.style.cssText='width:'+(eCaiet?'148mm':eFoaie?'150mm':'190mm')+'; background:#fff;';
   foi.forEach((f,i)=>{
     const c=f.cloneNode(true);
     c.style.border='none'; c.style.boxShadow='none'; c.style.margin='0'; c.style.maxWidth='none';
-    if(!eFoaie){ c.style.padding='0'; c.style.width='190mm'; }
+    if(eCaiet){ c.style.height='209mm'; c.style.minHeight='0'; }
+    else if(!eFoaie){ c.style.padding='0'; c.style.width='190mm'; }
     else { c.style.height='149mm'; }
     box.appendChild(c);
     if(i<foi.length-1){ const br=document.createElement('div'); br.className='html2pdf__page-break'; box.appendChild(br); }
   });
   const v=ui.fisaVedere||'monit';
-  const feE=elevById(ui.fisaElevId); const nume = (v==='km' ? 'Verificare-km-'+(ui.fisaData||todayISO()).slice(0,7) : v==='elev' ? 'Fisa-individuala-'+(ui.fisaElevId==='all'||!feE?'toti-elevii':feE.nume.replace(/[^\wăâîșțĂÂÎȘȚ]+/g,'-'))+'-'+(ui.fisaElevPana||todayISO()) : v==='zilnic' ? 'Raport-zilnic-'+(ui.rzMod==='luna'?(ui.fisaData||todayISO()).slice(0,7):(ui.fisaData||todayISO())) : v==='consum' ? 'Consum-'+(ui.consumLuna||todayISO().slice(0,7)) : v==='foaie' ? 'Foaie-parcurs-'+(ui.fisaData||todayISO()) : 'Monitorizare-ore-'+(ui.fisaMod==='lista'?(ui.fisaDe||'')+'_'+(ui.fisaPana||''):(ui.fisaData||todayISO())))+'.pdf';
+  const feE=elevById(ui.fisaElevId); const nume = (v==='caiet' ? 'Caiet-cursant-'+(ui.fisaElevId==='all'||!feE?'toti-elevii':feE.nume.replace(/[^\wăâîșțĂÂÎȘȚ]+/g,'-'))+'-'+(ui.fisaElevPana||todayISO()) : v==='km' ? 'Verificare-km-'+(ui.fisaData||todayISO()).slice(0,7) : v==='elev' ? 'Fisa-individuala-'+(ui.fisaElevId==='all'||!feE?'toti-elevii':feE.nume.replace(/[^\wăâîșțĂÂÎȘȚ]+/g,'-'))+'-'+(ui.fisaElevPana||todayISO()) : v==='zilnic' ? 'Raport-zilnic-'+(ui.rzMod==='luna'?(ui.fisaData||todayISO()).slice(0,7):(ui.fisaData||todayISO())) : v==='consum' ? 'Consum-'+(ui.consumLuna||todayISO().slice(0,7)) : v==='foaie' ? 'Foaie-parcurs-'+(ui.fisaData||todayISO()) : 'Monitorizare-ore-'+(ui.fisaMod==='lista'?(ui.fisaDe||'')+'_'+(ui.fisaPana||''):(ui.fisaData||todayISO())))+'.pdf';
   toast('Se creează PDF-ul…', 1500);
   try{
     const blob = await html2pdf().set({
-      margin: eFoaie ? 0 : 10, filename:nume,
+      margin: (eFoaie||eCaiet) ? 0 : 10, filename:nume,
       image:{type:'jpeg', quality:0.96},
       html2canvas:{scale:2, backgroundColor:'#ffffff', useCORS:true},
-      jsPDF:{unit:'mm', format: eFoaie ? [150,150] : 'a4', orientation:'portrait'},
+      jsPDF:{unit:'mm', format: eCaiet ? 'a5' : eFoaie ? [150,150] : 'a4', orientation:'portrait'},
       pagebreak:{mode:['css','legacy'], avoid:'tr'}
     }).from(box).outputPdf('blob');
     await partajeazaSauDescarca(new Blob([blob],{type:'application/pdf'}), nume, nume);
@@ -1504,9 +1518,9 @@ async function salveazaPDF(){
 }
 function tabFisa(){
   const v=ui.fisaVedere||'monit';
-  const opt=[['zilnic','Raport zilnic (A4)'],['elev','Fișă individuală'],['km','Verificare km'],['monit','Monitorizare conducere'],['consum','Consum lunar'],['foaie','Foaie de parcurs']];
+  const opt=[['zilnic','Raport zilnic (A4)'],['caiet','Caietul cursantului (A5)'],['elev','Fișă individuală'],['km','Verificare km'],['monit','Monitorizare conducere'],['consum','Consum lunar'],['foaie','Foaie de parcurs']];
   const seg=`<div class="seg" style="margin-bottom:14px;">${opt.map(([k,t])=>`<button type="button" data-act="fisa-tip" data-v="${k}" class="${v===k?'on':''}">${t}</button>`).join('')}</div>`;
-  const corp = v==='km' ? tabVerificareKm() : v==='elev' ? tabFisaElev() : v==='foaie' ? tabFoaie() : v==='consum' ? tabConsumLunar() : v==='zilnic' ? tabRaportZilnic() : tabMonitorizare();
+  const corp = v==='caiet' ? tabCaiet() : v==='km' ? tabVerificareKm() : v==='elev' ? tabFisaElev() : v==='foaie' ? tabFoaie() : v==='consum' ? tabConsumLunar() : v==='zilnic' ? tabRaportZilnic() : tabMonitorizare();
   return `<div class="no-print">${seg}</div>` + corp;
 }
 function selMasinaFisa(cuToate){
@@ -1706,6 +1720,53 @@ function tabVerificareKm(){
       </div>${PRINT_HINT}</div>
     </div>
     ${construiesteVerificareKm(d.slice(0,7), masId)}`;
+}
+/* ---------------- CAIETUL CURSANTULUI: Evidența efectuării orelor de instruire practică (A5) ---------------- */
+const CAIET_RANDURI=34;
+function construiesteCaiet(e, pana){
+  const s=state.settings;
+  const ore=state.ore.filter(o=>o.elevId===e.id && (o.data||'')<=pana).sort((a,b)=>a.data.localeCompare(b.data)||(a.ora||'').localeCompare(b.ora||''));
+  let cum=0;
+  const rows=ore.map(o=>{
+    cum+=nr(o.nr);
+    const la = o.ora ? adunaOre(o.ora, nr(o.nr)) : '';
+    const km = o.tip==='S' ? '<td colspan="3" class="sim">SIMULATOR</td>'
+      : `<td>${o.kmPlecare!==undefined&&o.kmPlecare!==''?esc(String(o.kmPlecare)):''}</td><td>${o.deschisa||o.kmSosire===undefined?'':esc(String(o.kmSosire))}</td><td>${o.deschisa?'':(o.kmPlecare!==undefined&&o.kmPlecare!==''||nr(o.km)?fmtNr(nr(o.km)):'')}</td>`;
+    return `<tr><td>${fmtData(o.data)}</td><td>${fmtNr(nr(o.nr))}</td><td>${o.ora||''}</td><td>${la}</td>${km}<td><b>${fmtNr(cum)}</b></td><td></td><td></td></tr>`;
+  });
+  const gol='<tr><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr>';
+  const pagini=[]; for(let i=0;i<Math.max(1,rows.length);i+=CAIET_RANDURI) pagini.push(rows.slice(i,i+CAIET_RANDURI));
+  return pagini.map((pr,k)=>`<div class="caiet">
+    <div class="ct">EVIDENŢA EFECTUĂRII ORELOR DE INSTRUIRE PRACTICĂ</div>
+    <div class="cc">Categoria B</div>
+    <div class="ci"><span>Instructor: <b>${esc(s.instructor||'')}</b></span><span>Cursant: <b>${esc(e.nume)}</b></span></div>
+    <table><colgroup><col style="width:14%"><col style="width:9%"><col style="width:8%"><col style="width:8%"><col style="width:10%"><col style="width:10%"><col style="width:8%"><col style="width:8%"><col style="width:13%"><col style="width:13%"></colgroup>
+    <thead><tr><th rowspan="2">Data</th><th rowspan="2">Nr. ore efectuate</th><th colspan="2">Durata</th><th colspan="3">Km. parcurşi</th><th rowspan="2">Ore cumulat</th><th colspan="2">Confirmare</th></tr>
+    <tr><th>De la ora</th><th>La ora</th><th>Km. plecare</th><th>Km. sosire</th><th>Km. total</th><th>Instructor</th><th>Cursant</th></tr></thead>
+    <tbody>${pr.join('')}${gol.repeat(CAIET_RANDURI-pr.length)}</tbody></table>
+    ${pagini.length>1?`<div class="pg">${k+1}/${pagini.length}</div>`:''}
+  </div>`).join('');
+}
+function tabCaiet(){
+  const el=eleviFiltrati();
+  if(!el.length) return gol('Niciun elev','Adaugă elevii în tabul Elevi.');
+  const sel=ui.fisaElevId||el[0].id, pana=ui.fisaElevPana||todayISO();
+  const lista = sel==='all' ? el : [elevById(sel)||el[0]];
+  return `
+    <div class="no-print">
+      <h2>Caietul cursantului — evidența orelor</h2>
+      <p class="tab-desc">Pagina „Evidența efectuării orelor de instruire practică” din caietul cursantului (A5), completată din jurnal: data, nr. ore, de la ora – la ora, km la plecare / sosire / total, ore cumulate (simulator + conducere). La orele de simulator scrie SIMULATOR în locul km. Ora în desfășurare are km la sosire necompletat. Rubricile de confirmare rămân goale, pentru semnături.</p>
+      ${filtruRegimHtml()}
+      <div class="card"><div class="row">
+        <div class="field" style="flex:2 1 220px;"><label>Cursantul</label><select id="fe-elev"><option value="all" ${sel==='all'?'selected':''}>— Toți elevii (${el.length}) —</option>${el.map(e=>`<option value="${e.id}" ${e.id===sel?'selected':''}>${esc(e.nume)}</option>`).join('')}</select></div>
+        <div class="field"><label>Până la data de</label><input type="date" id="fe-pana" value="${pana}"></div>
+      </div>
+      <div class="row" style="margin-top:12px;">
+        <button class="btn btn-primary" data-act="print">🖨 Tipărește (A5)</button>
+        <button class="btn btn-secondary" data-act="pdf">📄 Salvează PDF</button>
+      </div><p class="small muted" style="margin:8px 0 0;">La tipărire alege hârtie <b>A5</b> (sau „Potrivire la pagină” pe A4). Ora „la ora” se calculează din ora de început + numărul de ore.</p></div>
+    </div>
+    ${lista.map(e=>construiesteCaiet(e,pana)).join('')}`;
 }
 function tabConsumLunar(){
   if(!state.masini.length) return gol('Nicio mașină','Adaugă mașinile în tabul Mașini.');
@@ -2295,7 +2356,9 @@ document.addEventListener('click', e=>{
       save(); render(); toast('Foaia de parcurs salvată ✓'); break; }
     case 'foaie-open': ui.fisaData=a.dataset.d; render(); document.getElementById('main').scrollTop=0; break;
     case 'foaie-del': e.stopPropagation(); confirma(`Ștergi foaia de parcurs din ${fmtData(a.dataset.d)}? Orele elevilor rămân.`, ()=>{ state.foi=state.foi.filter(x=>x.data!==a.dataset.d); save(); render(); }); break;
-    case 'print': window.print(); break;
+    case 'print': {
+      let st=null; if(document.querySelector('#main .caiet')){ st=document.createElement('style'); st.textContent='@media print{@page{size:A5 portrait; margin:0;}}'; document.head.appendChild(st); }
+      window.print(); if(st) setTimeout(()=>st.remove(), 1000); break; }
     case 'pdf': salveazaPDF(); break;
     case 'export-json': exportJson(); break;
     case 'export-parc': exportParcAuto(); break;
