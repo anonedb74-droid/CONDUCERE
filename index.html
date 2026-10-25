@@ -659,7 +659,7 @@ function tabAzi(){
     <div class="two-col">
       <div class="card">
         <div style="display:flex; justify-content:space-between; align-items:center; gap:8px; margin-bottom:10px;"><h3 style="margin:0;">Programați azi</h3><button class="btn btn-ghost" data-tab="programari">+ Programare</button></div>
-        ${progAzi.length ? `<div class="table-wrap"><table>${progAzi.map(p=>`<tr class="clickable" data-act="prog-done" data-id="${p.id}" title="Deschide fișa orei"><td style="white-space:nowrap;"><b>${p.oraStart}</b>–${p.oraFinal||''}</td><td>${esc(numeElev(p.elevId))}${temaProgramare(p, projAzi)}</td><td style="text-align:right;"><button class="btn btn-ok" data-act="prog-done" data-id="${p.id}">▶ Începe ora</button></td></tr>`).join('')}</table></div>` : `<p class="muted small" style="margin:0;">Nicio programare pentru azi.</p>`}
+        ${progAzi.length ? `<div class="table-wrap"><table>${progAzi.map(p=>`<tr class="clickable" data-act="prog-done" data-id="${p.id}" title="Deschide fișa orei"><td style="white-space:nowrap;"><b>${p.oraStart}</b>–${p.oraFinal||''}</td><td>${esc(numeElev(p.elevId))}${temaProgramare(p, projAzi)}</td><td style="text-align:right; white-space:nowrap;"><button class="btn btn-wa mic" data-act="wa-elev" data-id="${p.id}" title="Trimite elevului programarea și fișa temei">${ICON_WA}</button> <button class="btn btn-ok" data-act="prog-done" data-id="${p.id}">▶ Începe ora</button></td></tr>`).join('')}</table></div>` : `<p class="muted small" style="margin:0;">Nicio programare pentru azi.</p>`}
       </div>
       <div class="card">
         <div style="display:flex; justify-content:space-between; align-items:center; gap:8px; margin-bottom:10px;"><h3 style="margin:0;">Ore trecute azi</h3><button class="btn btn-primary" data-act="ora-noua">+ Oră</button></div>
@@ -1067,6 +1067,32 @@ function textProgramari(lista, titlu){
   t+=`\nInstructor auto: ${state.settings.instructor}`;
   return t;
 }
+/* ---------- Mesaj către elev: programarea + fișa temei (PDF publicat lângă aplicație, în fise/) ---------- */
+function urlFise(){ const l=location; const baza = l.protocol==='https:' ? l.origin + l.pathname.replace(/[^\/]*$/,'') : 'https://anonedb74-droid.github.io/CONDUCERE/'; return baza+'fise/'; }
+function temeProgramare(p){
+  // aceeași proiecție ca în listă: programările viitoare ale elevului, în ordine, își împart temele
+  const e=elevById(p.elevId); if(!e) return {tip:'C', r:'SS', teme:[]};
+  const tip=(conducereBlocata(e) || (simFacut(e.id)<simLimita(e) && !state.ore.some(o=>o.elevId===e.id && o.tip==='C')))?'S':'C', r=regimElev(e), max=planTeme(r).length;
+  let t=temaUrmatoare(e, tip);
+  const lista=state.programari.filter(x=>x.elevId===p.elevId && !x.efectuata && (x.data>todayISO()||x.data===todayISO()||x.id===p.id)).sort((a,b)=>a.data.localeCompare(b.data)||a.oraStart.localeCompare(b.oraStart));
+  for(const x of lista){ const n=Math.max(1,durataProg(x)); const teme=[...new Set(Array.from({length:n},(_,i)=>Math.min(t+i,max)))]; if(x.id===p.id) return {tip, r, teme}; t=Math.min(t+n,max); }
+  return {tip, r, teme:[t]};
+}
+function telefonWa(t){ let d=String(t||'').replace(/\D/g,''); if(!d) return ''; if(d.startsWith('00')) d=d.slice(2); else if(d.startsWith('0')) d='40'+d.slice(1); else if(d.length===9) d='40'+d; return d; }
+function trimiteElevului(id){
+  const p=state.programari.find(x=>x.id===id); if(!p) return;
+  const e=elevById(p.elevId); const nrT=telefonWa(e&&e.telefon);
+  if(!nrT) return toast('Elevul nu are numărul de telefon trecut (Elevi → ✎).', 3000);
+  const {tip, r, teme}=temeProgramare(p);
+  const z=ziDin(p.data);
+  let t=`Bună, ${e.nume.split(' ').slice(-1)[0].charAt(0)+e.nume.split(' ').slice(-1)[0].slice(1).toLowerCase()}! 🚗\n`;
+  t+=`Ai oră de ${tip==='S'?'*simulator*':'*conducere*'}: *${z.charAt(0)+z.slice(1).toLowerCase()}, ${fmtData(p.data)}, ${p.oraStart}${p.oraFinal?'–'+p.oraFinal:''}*`;
+  if(tip==='C' && p.masinaId && nrMasina(p.masinaId)) t+=`, mașina ${nrMasina(p.masinaId)}`;
+  t+=`.\n\n📘 ${teme.length>1?'Temele orei':'Tema orei'}:\n`;
+  teme.forEach(n=>{ t+=`*${temaText(r,n)}*\n👉 ${urlFise()}${r}-${String(n).padStart(2,'0')}.pdf\n`; });
+  t+=`\nCitește fișa înainte de oră — la final îți pun câteva întrebări.\nInstructor auto: ${state.settings.instructor}`;
+  window.open('https://wa.me/'+nrT+'?text='+encodeURIComponent(t), '_blank');
+}
 async function trimiteWhatsApp(text){
   const mobil=/Android|iPhone|iPad|Mobile/i.test(navigator.userAgent);
   if(mobil && navigator.share){
@@ -1101,7 +1127,7 @@ function tabProgramari(){
   lista.forEach(p=>{
     if(p.data!==zi){ if(zi) html+='</table></div>'; zi=p.data; html+=`<div class="day-head" style="display:flex; justify-content:space-between; align-items:center; gap:8px;"><span>${ziDin(p.data)}, ${fmtData(p.data)}${p.data===azi?' · <span class="pill pill-yellow">azi</span>':''}</span>${p.data>=azi?`<button class="btn btn-wa mic" data-act="wa-zi" data-d="${p.data}" title="Trimite programările zilei pe WhatsApp">${ICON_WA} Trimite ziua</button>`:''}</div><div class="table-wrap"><table>`; }
     html+=`<tr ${!p.efectuata?`class="clickable" data-act="prog-done" data-id="${p.id}" title="Deschide fișa orei"`:''}><td style="white-space:nowrap; width:120px;"><b>${p.oraStart}</b>–${p.oraFinal||''}</td><td>${esc(numeElev(p.elevId))} ${pillRegim(regimElev(elevById(p.elevId)))}${temaProgramare(p, proj)}${p.masinaId?` <span class="small muted">${esc(nrMasina(p.masinaId))}</span>`:''}${p.efectuata?' <span class="pill pill-ok">efectuată</span>':''}${!p.efectuata&&p.masinaId&&masinaById(p.masinaId)&&p.data>=azi?(()=>{ const m=masinaById(p.masinaId); const st=stocPana(m,p.data)-consumProgramat(m,p.data,p.oraStart,p.id); const nec=durataProg(p)*consumPeOra(regimElev(elevById(p.elevId)),p.data); return st-nec<0?' <span class="pill pill-danger">⚠ combustibil insuficient</span>':''; })():''}</td>
-      <td style="text-align:right; white-space:nowrap;">${!p.efectuata?`<button class="btn btn-ok" data-act="prog-done" data-id="${p.id}">▶ Începe ora</button> `:''}<button class="icon-btn del" data-act="prog-del" data-id="${p.id}" title="Șterge">${ICONS.trash}</button></td></tr>`;
+      <td style="text-align:right; white-space:nowrap;">${!p.efectuata?`<button class="btn btn-wa mic" data-act="wa-elev" data-id="${p.id}" title="Trimite elevului programarea și fișa temei">${ICON_WA} Elevului</button> <button class="btn btn-ok" data-act="prog-done" data-id="${p.id}">▶ Începe ora</button> `:''}<button class="icon-btn del" data-act="prog-del" data-id="${p.id}" title="Șterge">${ICONS.trash}</button></td></tr>`;
   });
   if(zi) html+='</table></div>';
   const optOre = s.intervale.map(i=>`<option value="${i}">`).join('');
@@ -2281,7 +2307,9 @@ document.addEventListener('click', e=>{
       let avert='';
       if(pm){ const stoc=stocPana(pm,data)-consumProgramat(pm,data,st); const nec=durataProg(np)*consumPeOra(regimElev(elevById(elevId)),data); if(stoc-nec<0) avert=` — ATENȚIE: pe ${pm.nr} ${stoc<=0?'rezervorul e gol după calcul':'sunt ~'+fmtNr(stoc)+' l'}, ora are nevoie de ${fmtNr(nec)} l`; ui.ultimaMasinaId=pm.id;
         if(regimElev(elevById(elevId))==='SS' && (pm.roviniete||[]).length && !rovinietaLa(pm,data)) avert+=` — ATENȚIE: ${pm.nr} nu are rovinietă valabilă pe ${fmtData(data)}`; }
-      state.programari.push(np); save(); render(); toast('Programat ✓'+avert, avert?4500:2000); break; }
+      state.programari.push(np); save(); render(); toast('Programat ✓'+avert, avert?4500:2000);
+      if(telefonWa((elevById(elevId)||{}).telefon)) confirma(`Programat ✓ Trimiți acum lui <b>${esc(numeElev(elevId))}</b> pe WhatsApp programarea și fișa temei?`, ()=>trimiteElevului(np.id), 'Da, trimite');
+      break; }
     case 'prog-done': {
       const p=state.programari.find(x=>x.id===id);
       const [h1,m1]=p.oraStart.split(':').map(Number); const [h2,m2]=(p.oraFinal||p.oraStart).split(':').map(Number);
@@ -2292,6 +2320,7 @@ document.addEventListener('click', e=>{
       goTab('ore'); toast(tipP==='C'?'Treci km la plecare și apasă „▶ Începe ora”.':'Oră de simulator — apasă „▶ Începe ora”.', 3000);
       setTimeout(()=>{ const k=document.getElementById('o-kmp'); if(k && tipP==='C') k.focus(); }, 80); break; }
     case 'ora-inchide': inchideOra(id); break;
+    case 'wa-elev': trimiteElevului(id); break;
     case 'prog-del': state.programari=state.programari.filter(x=>x.id!==id); save(); render(); break;
     case 'prog-toggle': ui.progTrecute=!ui.progTrecute; render(); break;
     case 'wa-zi': { const l=programariViitoare().filter(p=>p.data===a.dataset.d); if(!l.length) return toast('Nicio programare în ziua aleasă.'); trimiteWhatsApp(textProgramari(l, 'Programări conducere auto')); break; }
