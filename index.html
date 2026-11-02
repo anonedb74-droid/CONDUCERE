@@ -616,8 +616,8 @@ function renderTab(){
 }
 function goTab(id){ currentTab=id; render(); document.getElementById('main').scrollTop=0; }
 function gol(titlu, txt){ return `<div class="empty"><div class="display">${titlu}</div><div>${txt||''}</div></div>`; }
-function optElevi(selId, cuToti){
-  const el=eleviAn();
+function optElevi(selId, cuToti, regim){
+  const el=eleviAn().filter(e=>!regim || regim==='all' || (e.regim||'SS')===regim);
   return (cuToti?`<option value="all">Toți elevii</option>`:'<option value="">— alege elevul —</option>') +
     el.map(e=>`<option value="${e.id}" ${e.id===selId?'selected':''}>${esc(e.nume)}${e.clasa?' · '+esc(e.clasa):''} · ${e.regim||'SS'}</option>`).join('');
 }
@@ -1129,7 +1129,7 @@ function tabProgramari(){
   const el=eleviAn();
   if(!el.length) return `<h2>Programări</h2>${faraElevi()}`;
   const s=state.settings, azi=todayISO();
-  let lista=state.programari.filter(p=>{ const e=elevById(p.elevId); return e && e.anScolar===s.anScolar; });
+  let lista=state.programari.filter(p=>{ const e=elevById(p.elevId); return e && e.anScolar===s.anScolar && (!ui.progRegim || ui.progRegim==='all' || (e.regim||'SS')===ui.progRegim); });
   const trecute=lista.filter(p=>p.data<azi || p.efectuata).length;
   if(!ui.progTrecute) lista=lista.filter(p=>p.data>=azi && !p.efectuata);
   lista.sort((a,b)=>a.data.localeCompare(b.data)||a.oraStart.localeCompare(b.oraStart));
@@ -1147,7 +1147,8 @@ function tabProgramari(){
     <div class="card">
       <h3>Programare nouă</h3>
       <div class="row">
-        <div class="field" style="flex:2 1 240px;"><label>Elev</label><select id="p-elev">${optElevi('')}</select></div>
+        <div class="field"><label>Categoria</label><div class="seg">${[['all','Toți'],['SS','SS'],['IP','IP']].map(([v,t])=>`<button type="button" data-act="prog-regim" data-v="${v}" class="${(ui.progRegim||'all')===v?'on':''}">${t}</button>`).join('')}</div></div>
+        <div class="field" style="flex:2 1 240px;"><label>Elev${ui.progRegim&&ui.progRegim!=='all'?` (doar ${ui.progRegim})`:''}</label><select id="p-elev">${optElevi('', false, ui.progRegim)}</select></div>
         <div class="field"><label>Felul orei</label><div id="p-fel" style="min-height:44px; display:flex; align-items:center;">${pillFel(null)}</div></div>
         ${state.masini.length?`<div class="field"><label>Mașina</label><div class="seg" id="p-mas">${state.masini.map(m=>`<button type="button" data-masval="${m.id}" class="${(masinaImplicita()||{}).id===m.id?'on':''}">${esc(m.nr)}</button>`).join('')}</div></div>`:''}
         <div class="field" style="flex:1 1 150px;"><label>Data</label><input type="date" id="p-data" value="${azi}"></div>
@@ -2354,6 +2355,7 @@ document.addEventListener('click', e=>{
       setTimeout(()=>{ const k=document.getElementById('o-kmp'); if(k && tipP==='C') k.focus(); }, 80); break; }
     case 'ora-inchide': inchideOra(id); break;
     case 'wa-elev': trimiteElevului(id); break;
+    case 'prog-regim': ui.progRegim=a.dataset.v; render(); break;
     case 'prog-del': state.programari=state.programari.filter(x=>x.id!==id); save(); render(); break;
     case 'prog-toggle': ui.progTrecute=!ui.progTrecute; render(); break;
     case 'wa-zi': { const l=programariViitoare().filter(p=>p.data===a.dataset.d); if(!l.length) return toast('Nicio programare în ziua aleasă.'); trimiteWhatsApp(textProgramari(l, 'Programări conducere auto')); break; }
