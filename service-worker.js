@@ -1,6 +1,7 @@
 // Service worker pentru Școala de șoferi — face aplicația disponibilă offline,
 // oricât timp a trecut de la ultima deschidere cu internet.
-const CACHE_NAME = 'scoala-soferi-cache-v25';
+const CACHE_NAME = 'scoala-soferi-cache-v27';
+const FISE_CACHE = 'fise-v1';
 const FILES_DE_CACHE = [
   './',
   './index.html',
@@ -20,7 +21,7 @@ self.addEventListener('install', (event) => {
 self.addEventListener('activate', (event) => {
   event.waitUntil(
     caches.keys().then((nume) =>
-      Promise.all(nume.filter((n) => n !== CACHE_NAME).map((n) => caches.delete(n)))
+      Promise.all(nume.filter((n) => n !== CACHE_NAME && !n.startsWith('fise-')).map((n) => caches.delete(n)))
     )
   );
   self.clients.claim();
@@ -34,6 +35,17 @@ self.addEventListener('fetch', (event) => {
   // Conexiunile cu contul Google și baza de date (Firebase) nu trec prin cache
   const gazda = new URL(event.request.url).hostname;
   if ((gazda.endsWith('googleapis.com') && !gazda.startsWith('fonts.')) || gazda.endsWith('google.com') || gazda.endsWith('firebaseapp.com')) return;
+  // Fișele temelor (PDF) nu se schimbă: le ținem într-un cache separat, care nu se șterge la actualizări,
+  // ca să se deschidă și fără internet.
+  if (new URL(event.request.url).pathname.includes('/fise/')) {
+    event.respondWith(
+      caches.open(FISE_CACHE).then((c) => c.match(event.request).then((r) => r || fetch(event.request).then((raspuns) => {
+        if (raspuns.ok) c.put(event.request, raspuns.clone());
+        return raspuns;
+      })))
+    );
+    return;
+  }
   event.respondWith(
     fetch(event.request)
       .then((raspuns) => {
