@@ -776,7 +776,7 @@ function tabOre(){
         <tbody>${lista.map(o=>`<tr>
           <td style="white-space:nowrap;">${fmtData(o.data)}</td>
           <td style="white-space:nowrap;">${o.ora||''}</td>
-          <td>${esc(numeElev(o.elevId))}${htmlTemaOra(o)}${o.obs?`<div class="small muted">${esc(o.obs)}</div>`:''}</td>
+          <td>${esc(numeElev(o.elevId))}${o.ramaneLa?` <span class="pill pill-yellow" title="Elevul nu și-a însușit tema">↺ rămâne la tema ${o.ramaneLa}</span>`:""}${o.obs?`<div class="small muted">${esc(o.obs)}</div>`:''}</td>
           <td style="white-space:nowrap;">${pillOra(o)}${o.tip==='C'&&o.masinaId?`<div class="small muted">${esc(nrMasina(o.masinaId))}</div>`:''}</td>
           <td class="num">${fmtNr(nr(o.nr))}</td>
           <td class="num">${o.tip==='S'?'—':o.deschisa?'<span class="pill pill-yellow">în desfășurare</span>':fmtNr(nr(o.km))}${o.tip==='C'&&o.kmPlecare!==undefined&&o.kmPlecare!==''?`<div class="small muted" style="white-space:nowrap;">${o.kmPlecare} → ${o.kmSosire||'…'}</div>`:''}</td>
