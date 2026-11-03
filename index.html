@@ -2579,8 +2579,9 @@ document.addEventListener('click', e=>{
       const durata=Math.max(1, Math.round(((h2*60+m2)-(h1*60+m1))/60*2)/2 || 1);
       const mi=masinaById(p.masinaId)||masinaImplicita();
       const ep=elevById(p.elevId); const tipP = ep && (conducereBlocata(ep) || simFacut(ep.id)<simLimita(ep) && !state.ore.some(o=>o.elevId===ep.id && o.tip==='C')) ? 'S' : 'C';
-      ui.editOraId=null; ui.preOra={elevId:p.elevId, data:p.data, ora:p.oraStart, tip:tipP, nr:durata, progId:p.id, masinaId:mi?mi.id:null};
-      goTab('ore'); toast(tipP==='C'?'Treci km la plecare și apasă „▶ Începe ora”.':'Oră de simulator — apasă „▶ Începe ora”.', 3000);
+      const acumD=new Date(), acum=`${pad2(acumD.getHours())}:${pad2(acumD.getMinutes())}`, eAzi=p.data===todayISO();
+      ui.editOraId=null; ui.preOra={elevId:p.elevId, data:eAzi?p.data:p.data, ora:eAzi?acum:p.oraStart, tip:tipP, nr:durata, progId:p.id, masinaId:mi?mi.id:null};
+      goTab('ore'); toast((eAzi&&acum!==p.oraStart?`Ora de început: ${acum} (acum; programat ${p.oraStart}). `:'')+(tipP==='C'?'Treci km la plecare și apasă „▶ Începe ora”.':'Apasă „▶ Începe ora”.'), 4000);
       setTimeout(()=>{ const k=document.getElementById('o-kmp'); if(k && tipP==='C') k.focus(); }, 80); break; }
     case 'ora-inchide': inchideOra(id); break;
     case 'wa-elev': trimiteElevului(id); break;
