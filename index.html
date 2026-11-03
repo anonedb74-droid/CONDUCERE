@@ -1132,6 +1132,37 @@ function preincarcaFise(){
   state.programari.filter(p=>!p.efectuata && p.data>=todayISO() && p.data<=lim).forEach(p=>{ const {r,teme}=temeProgramare(p); teme.forEach(n=>{ urls.add(linkFisa(r,n,false)); urls.add(linkFisa(r,n,true)); }); });
   caches.open('fise-v1').then(c=>urls.forEach(u=>c.match(u).then(m=>{ if(!m) c.add(u).catch(()=>{}); })));
 }
+function modificaProgramare(id){
+  const p=state.programari.find(x=>x.id===id); if(!p) return;
+  const durMin=()=>{ const [a,b]=(p.oraStart||'00:00').split(':').map(Number), [c,d]=(p.oraFinal||p.oraStart||'00:00').split(':').map(Number); return Math.max(30,(c*60+d)-(a*60+b)); };
+  const vechi={data:p.data, st:p.oraStart, fin:p.oraFinal};
+  const b=openModal(`<h3>Modifică programarea</h3><p style="margin-top:-4px;"><b>${esc(numeElev(p.elevId))}</b></p>
+    <div class="row">
+      <div class="field"><label>Data</label><input type="date" id="pe-data" value="${p.data}"></div>
+      <div class="field"><label>De la</label><input type="time" id="pe-st" value="${p.oraStart||''}"></div>
+      <div class="field"><label>Până la</label><input type="time" id="pe-fin" value="${p.oraFinal||''}"></div>
+    </div>
+    <div class="row" style="margin-top:10px; gap:6px;"><span class="small muted" style="align-self:center;">Mută ora:</span>${[-60,-30,30,60].map(m=>`<button type="button" class="btn btn-ghost" data-mut="${m}">${m>0?'+':'−'}${Math.abs(m)} min</button>`).join('')}</div>
+    ${state.masini.length>1?`<div class="field" style="margin-top:10px;"><label>Mașina</label><select id="pe-mas">${state.masini.map(m=>`<option value="${m.id}" ${m.id===p.masinaId?'selected':''}>${esc(m.nr)}</option>`).join('')}</select></div>`:''}
+    <p class="small muted">Când muți ora de început, ora de final se mută la fel (durata rămâne aceeași).</p>
+    <div class="row" style="justify-content:flex-end;"><button class="btn btn-ghost" id="pe-no">Renunță</button><button class="btn btn-primary" id="pe-ok">Salvează</button></div>`);
+  const st=b.querySelector('#pe-st'), fin=b.querySelector('#pe-fin');
+  let dur=durMin();
+  st.addEventListener('change',()=>{ if(st.value) fin.value=adunaOre(st.value, dur/60); });
+  fin.addEventListener('change',()=>{ const [a,c]=st.value.split(':').map(Number), [x,y]=fin.value.split(':').map(Number); const d=(x*60+y)-(a*60+c); if(d>0) dur=d; });
+  b.querySelectorAll('[data-mut]').forEach(x=>x.addEventListener('click',()=>{ if(!st.value) return; st.value=adunaOre(st.value, nr(x.dataset.mut)/60); fin.value=adunaOre(st.value, dur/60); }));
+  b.querySelector('#pe-no').addEventListener('click',()=>closeModal());
+  b.querySelector('#pe-ok').addEventListener('click',()=>{
+    const d=b.querySelector('#pe-data').value; if(!d||!st.value) return toast('Completează data și ora de început.');
+    if(fin.value && fin.value<=st.value) return toast('Ora de final trebuie să fie după ora de început.');
+    p.data=d; p.oraStart=st.value; p.oraFinal=fin.value||adunaOre(st.value, dur/60);
+    const pm=b.querySelector('#pe-mas'); if(pm) p.masinaId=pm.value;
+    save(); closeModal(); render();
+    const schimbat = vechi.data!==p.data || vechi.st!==p.oraStart || vechi.fin!==p.oraFinal;
+    if(schimbat && telefonWa((elevById(p.elevId)||{}).telefon)) confirma(`Programarea s-a modificat: <b>${fmtData(p.data)}, ${p.oraStart}–${p.oraFinal}</b>. Îi trimiți lui <b>${esc(numeElev(p.elevId))}</b> pe WhatsApp noua oră (cu fișa temei)?`, ()=>trimiteElevului(p.id), 'Da, trimite');
+    else toast('Programare modificată ✓');
+  });
+}
 function telefonWa(t){ let d=String(t||'').replace(/\D/g,''); if(!d) return ''; if(d.startsWith('00')) d=d.slice(2); else if(d.startsWith('0')) d='40'+d.slice(1); else if(d.length===9) d='40'+d; return d; }
 function trimiteElevului(id){
   const p=state.programari.find(x=>x.id===id); if(!p) return;
@@ -1181,7 +1212,7 @@ function tabProgramari(){
   lista.forEach(p=>{
     if(p.data!==zi){ if(zi) html+='</table></div>'; zi=p.data; html+=`<div class="day-head" style="display:flex; justify-content:space-between; align-items:center; gap:8px;"><span>${ziDin(p.data)}, ${fmtData(p.data)}${p.data===azi?' · <span class="pill pill-yellow">azi</span>':''}</span>${p.data>=azi?`<button class="btn btn-wa mic" data-act="wa-zi" data-d="${p.data}" title="Trimite programările zilei pe WhatsApp">${ICON_WA} Trimite ziua</button>`:''}</div><div class="table-wrap"><table>`; }
     html+=`<tr ${!p.efectuata?`class="clickable" data-act="prog-done" data-id="${p.id}" title="Deschide fișa orei"`:''}><td style="white-space:nowrap; width:120px;"><b>${p.oraStart}</b>–${p.oraFinal||''}</td><td>${esc(numeElev(p.elevId))} ${pillRegim(regimElev(elevById(p.elevId)))}${temaProgramare(p, proj)}${p.masinaId?` <span class="small muted">${esc(nrMasina(p.masinaId))}</span>`:''}${p.efectuata?' <span class="pill pill-ok">efectuată</span>':''}${!p.efectuata&&p.masinaId&&masinaById(p.masinaId)&&p.data>=azi?(()=>{ const m=masinaById(p.masinaId); const st=stocPana(m,p.data)-consumProgramat(m,p.data,p.oraStart,p.id); const nec=durataProg(p)*consumPeOra(regimElev(elevById(p.elevId)),p.data); return st-nec<0?' <span class="pill pill-danger">⚠ combustibil insuficient</span>':''; })():''}</td>
-      <td style="text-align:right; white-space:nowrap;">${!p.efectuata?`<button class="btn btn-ghost mic" data-act="fise-prog" data-id="${p.id}" title="Deschide fișa elevului și fișa ta">📘 Fișe</button> <button class="btn btn-wa mic" data-act="wa-elev" data-id="${p.id}" title="Trimite elevului programarea și fișa temei">${ICON_WA} Elevului</button> <button class="btn btn-ok" data-act="prog-done" data-id="${p.id}">▶ Începe ora</button> `:''}<button class="icon-btn del" data-act="prog-del" data-id="${p.id}" title="Șterge">${ICONS.trash}</button></td></tr>`;
+      <td style="text-align:right; white-space:nowrap;">${!p.efectuata?`<button class="btn btn-ghost mic" data-act="fise-prog" data-id="${p.id}" title="Deschide fișa elevului și fișa ta">📘 Fișe</button> <button class="btn btn-wa mic" data-act="wa-elev" data-id="${p.id}" title="Trimite elevului programarea și fișa temei">${ICON_WA} Elevului</button> <button class="btn btn-ok" data-act="prog-done" data-id="${p.id}">▶ Începe ora</button> `:''}${!p.efectuata?`<button class="icon-btn" data-act="prog-edit" data-id="${p.id}" title="Modifică data / ora">${ICONS.edit}</button> `:''}<button class="icon-btn del" data-act="prog-del" data-id="${p.id}" title="Șterge">${ICONS.trash}</button></td></tr>`;
   });
   if(zi) html+='</table></div>';
   const optOre = s.intervale.map(i=>`<option value="${i}">`).join('');
@@ -2554,6 +2585,7 @@ document.addEventListener('click', e=>{
     case 'ora-inchide': inchideOra(id); break;
     case 'wa-elev': trimiteElevului(id); break;
     case 'prog-nr': { ui.progNr=parseInt(a.dataset.v,10); document.querySelectorAll('[data-act="prog-nr"]').forEach(b=>b.classList.toggle('on', b===a)); completeazaFinalProg(); break; }
+    case 'prog-edit': modificaProgramare(id); break;
     case 'fise-prog': deschideFiseProg(id); break;
     case 'sc-regim': ui.scRegim=a.dataset.v; ui.scElevId=null; render(); break;
     case 'prog-regim': ui.progRegim=a.dataset.v; render(); break;
