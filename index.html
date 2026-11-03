@@ -175,6 +175,22 @@
   .ipf th, .ipf td{padding:0 3px; height:5.6mm; font-size:10pt; white-space:nowrap; overflow:hidden;}
   .ipf th{font-size:8pt; height:auto; padding:2px; white-space:normal;}
   .ipf .isg{text-align:right; font-size:10pt; margin-top:10px; padding-right:40px;}
+  /* ---------- FIȘA DE ȘCOLARIZARE (formular Poliție, A4) ---------- */
+  .scf{background:#fff; width:190mm; box-sizing:border-box; margin:0 auto 20px; padding:6mm 8mm; color:#000; font-family:'Calibri Light','Calibri',Carlito,'Segoe UI',sans-serif; font-size:10pt; box-shadow:0 2px 10px rgba(0,0,0,.12); border:1px solid #ccc; line-height:1.25;}
+  .scf table{border-collapse:collapse; width:100%; table-layout:fixed; margin:0;}
+  .scf th, .scf td{font-family:'Calibri Light','Calibri',Carlito,'Segoe UI',sans-serif; text-transform:none; letter-spacing:0; color:#000; font-size:9pt; white-space:normal;}
+  .scf .tb th, .scf .tb td{border:1px solid #000; padding:2px 3px; text-align:center; height:6mm;}
+  .scf .tb th{font-weight:400; font-size:8.5pt;}
+  .scf .v{background:#F0F0F0; font-weight:700; text-align:center; padding:1px 4px; min-height:5mm; display:inline-block; box-sizing:border-box;}
+  .scf .bx{display:inline-flex; vertical-align:middle;} .scf .bx span{display:inline-block; width:5.2mm; height:6mm; border:1px solid #000; border-left:none; text-align:center; font-weight:700; line-height:6mm;} .scf .bx span:first-child{border-left:1px solid #000;}
+  .scf .bx i{display:inline-block; width:4mm; text-align:center; font-style:normal; font-weight:700; line-height:6mm;}
+  .scf .lb{font-size:7.5pt; color:#333;}
+  .scf .rw{display:flex; align-items:flex-end; gap:6px; margin:5px 0;} .scf .rw .v{flex:1;}
+  .scf .ttl{font-size:13pt; font-weight:700; color:#1F3864; text-align:center; margin:8px 0 6px;}
+  .scf .ramka{border:1px solid #000; padding:6px 10px;}
+  .scf .sg{display:flex; justify-content:space-between; text-align:center; font-size:9.5pt;}
+  .scf .sg > div{flex:1;}
+  .scf .ital{font-style:italic; font-size:8pt;}
   /* ---------- FOAIA DE PARCURS (tipizat 15×15 cm) ---------- */
   .foi-wrap{display:flex; gap:20px; flex-wrap:wrap; justify-content:center; margin-bottom:20px;}
   .foaie-pag{position:relative;}
@@ -200,6 +216,8 @@
     .fisa{border:none; padding:0; max-width:none; margin:0; page-break-after:always; break-after:page;}
     .fisa:last-child{page-break-after:auto; break-after:auto;}
     .caiet{box-shadow:none; border:none; margin:0; page-break-after:always; break-after:page;}
+    .scf{box-shadow:none; border:none; margin:0; padding:0; page-break-after:always; break-after:page;}
+    .scf:last-child{page-break-after:auto; break-after:auto;}
     .caiet:last-child{page-break-after:auto; break-after:auto;}
     .foi-wrap{display:block; margin:0;}
     .foaie-pag{width:210mm; height:296mm; page-break-after:always; break-after:page; overflow:hidden;}
@@ -554,6 +572,7 @@ const ICONS = {
   note:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 3h9l4 4v14H6z"/><path d="M9 11l2 2 4-4"/></svg>',
   examen:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="9" r="5"/><path d="M8.5 13l-1.5 8 5-2.5 5 2.5-1.5-8"/></svg>',
   masina:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 17h14v-4l-2-5H7l-2 5z"/><path d="M5 13h14"/><circle cx="8" cy="17" r="1.8"/><circle cx="16" cy="17" r="1.8"/></svg>',
+  scolarizare:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="4" y="3" width="16" height="18" rx="2"/><circle cx="12" cy="9" r="2.5"/><path d="M8 16c.8-2 2.2-3 4-3s3.2 1 4 3"/></svg>',
   fisa:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9V3h12v6"/><rect x="3" y="9" width="18" height="8" rx="1.5"/><path d="M6 14h12v7H6z"/></svg>',
   save:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="17" height="17"><path d="M5 3h11l3 3v15H5z"/><path d="M8 3v6h8V3"/><path d="M7 21v-8h10v8"/></svg>',
   gear:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="20" height="20"><circle cx="12" cy="12" r="3"/><path d="M19.4 13a7.6 7.6 0 000-2l2-1.5-2-3.4-2.3.9a7.7 7.7 0 00-1.7-1L15 3h-6l-.4 2.9a7.7 7.7 0 00-1.7 1l-2.3-.9-2 3.4L4.6 11a7.6 7.6 0 000 2l-2 1.5 2 3.4 2.3-.9c.5.4 1.1.8 1.7 1L9 21h6l.4-2.9c.6-.2 1.2-.6 1.7-1l2.3.9 2-3.4z"/></svg>',
@@ -571,6 +590,7 @@ const TABS = [
   {id:'note', label:'Note'},
   {id:'examen', label:'Examen'},
   {id:'masina', label:'Mașini'},
+  {id:'scolarizare', label:'Școlarizare'},
   {id:'fisa', label:'Foi / fișe'},
 ];
 
@@ -611,7 +631,7 @@ function render(){
 }
 function renderTab(){
   const main=document.getElementById('main');
-  const f = {azi:tabAzi, ore:tabOre, centralizator:tabCentralizator, lunar:tabLunar, programari:tabProgramari, teme:tabTeme, elevi:tabElevi, note:tabNote, examen:tabExamen, masina:tabMasina, fisa:tabFisa}[currentTab];
+  const f = {azi:tabAzi, ore:tabOre, centralizator:tabCentralizator, lunar:tabLunar, programari:tabProgramari, teme:tabTeme, elevi:tabElevi, note:tabNote, examen:tabExamen, masina:tabMasina, scolarizare:tabScolarizare, fisa:tabFisa}[currentTab];
   main.innerHTML = f();
   if(currentTab==='ore') initFormOra();
 }
@@ -1548,7 +1568,7 @@ function construiesteFisa(data, masinaId, pana){
 }
 async function salveazaPDF(){
   if(typeof html2pdf==='undefined') return toast('Pentru PDF e nevoie de internet o singură dată (se încarcă generatorul de PDF). Încearcă din nou cu internet.', 4000);
-  const foi=[...document.querySelectorAll('#main .fisa, #main .foaie, #main .caiet')];
+  const foi=[...document.querySelectorAll('#main .fisa, #main .foaie, #main .caiet, #main .scf')];
   const eCaiet = !!document.querySelector('#main .caiet');
   if(eCaiet && document.querySelector('#main .fisa')) return toast('Ai și elevi SS (A5), și IP (A4). Alege sus „SS” sau „IP” și salvează PDF-ul separat.', 4500);
   if(!foi.length) return toast('Nimic de salvat.');
@@ -1565,7 +1585,7 @@ async function salveazaPDF(){
     if(i<foi.length-1){ const br=document.createElement('div'); br.className='html2pdf__page-break'; box.appendChild(br); }
   });
   const v=ui.fisaVedere||'monit';
-  const feE=elevById(ui.fisaElevId); const nume = (v==='caiet' ? 'Caiet-cursant-'+(ui.fisaElevId==='all'||!feE?'toti-elevii':feE.nume.replace(/[^\wăâîșțĂÂÎȘȚ]+/g,'-'))+'-'+(ui.fisaElevPana||todayISO()) : v==='km' ? 'Verificare-km-'+(ui.fisaData||todayISO()).slice(0,7) : v==='elev' ? 'Fisa-individuala-'+(ui.fisaElevId==='all'||!feE?'toti-elevii':feE.nume.replace(/[^\wăâîșțĂÂÎȘȚ]+/g,'-'))+'-'+(ui.fisaElevPana||todayISO()) : v==='zilnic' ? 'Raport-zilnic-'+(ui.rzMod==='luna'?(ui.fisaData||todayISO()).slice(0,7):(ui.fisaData||todayISO())) : v==='consum' ? 'Consum-'+(ui.consumLuna||todayISO().slice(0,7)) : v==='foaie' ? 'Foaie-parcurs-'+(ui.fisaData||todayISO()) : 'Monitorizare-ore-'+(ui.fisaMod==='lista'?(ui.fisaDe||'')+'_'+(ui.fisaPana||''):(ui.fisaData||todayISO())))+'.pdf';
+  const feE=elevById(ui.fisaElevId); const nume = (currentTab==='scolarizare' ? 'Fisa-scolarizare-'+((elevById(ui.scElevId)||{nume:'elev'}).nume.replace(/[^\wăâîșțĂÂÎȘȚ]+/g,'-')) : v==='caiet' ? 'Caiet-cursant-'+(ui.fisaElevId==='all'||!feE?'toti-elevii':feE.nume.replace(/[^\wăâîșțĂÂÎȘȚ]+/g,'-'))+'-'+(ui.fisaElevPana||todayISO()) : v==='km' ? 'Verificare-km-'+(ui.fisaData||todayISO()).slice(0,7) : v==='elev' ? 'Fisa-individuala-'+(ui.fisaElevId==='all'||!feE?'toti-elevii':feE.nume.replace(/[^\wăâîșțĂÂÎȘȚ]+/g,'-'))+'-'+(ui.fisaElevPana||todayISO()) : v==='zilnic' ? 'Raport-zilnic-'+(ui.rzMod==='luna'?(ui.fisaData||todayISO()).slice(0,7):(ui.fisaData||todayISO())) : v==='consum' ? 'Consum-'+(ui.consumLuna||todayISO().slice(0,7)) : v==='foaie' ? 'Foaie-parcurs-'+(ui.fisaData||todayISO()) : 'Monitorizare-ore-'+(ui.fisaMod==='lista'?(ui.fisaDe||'')+'_'+(ui.fisaPana||''):(ui.fisaData||todayISO())))+'.pdf';
   toast('Se creează PDF-ul…', 1500);
   try{
     const blob = await html2pdf().set({
@@ -1577,6 +1597,110 @@ async function salveazaPDF(){
     }).from(box).outputPdf('blob');
     await partajeazaSauDescarca(new Blob([blob],{type:'application/pdf'}), nume, nume);
   }catch(e){ console.error(e); toast('Nu am putut crea PDF-ul.'); }
+}
+/* ---------------- ȘCOLARIZARE: fișa de școlarizare (formularul pentru Poliție) ---------------- */
+const SC_FIX=[
+  ['aviz','Avizul școlii','A.S. nr. 0008233/07.11.2017'], ['avizEmitent','Emis de','MINISTERUL TRANSPORTURILOR ȘI INFRASTRUCTURII'],
+  ['director','Director','Ing. DOHOTARIU DUMITRU-VIOREL'], ['secretar','Secretar','Ing. RAGAZAN IOAN'],
+  ['profLeg','Profesor de legislație rutieră','ing. BUNDUC TUDOR'], ['profAtestat','Atestat profesor','APL 0013672'], ['profValabil','Valabil până la (profesor)','08.06.2022'],
+  ['instr','Instructor auto','prof. BOTEZATU DANIEL'], ['instrAtestat','Atestat instructor','AIC 0049268'], ['instrValabil','Valabil până la (instructor)','06.06.2024'],
+  ['unitMed','Unitatea medicală emitentă','SPITALUL MUNICIPAL DOROHOI'], ['eliberatDe','Act de identitate eliberat de (implicit)','SPCLEP DOROHOI'],
+];
+const SC_ELEV=[
+  ['nrFisa','Nr. fișă',''], ['dataFisa','din data','date'], ['cnp','CNP',''],
+  ['nume','Numele',''], ['prenume','Prenumele',''], ['numeAnt','Nume anterior',''], ['tata','Prenume tată',''], ['mama','Prenume mamă',''], ['cetatenia','Cetățenia',''],
+  ['sex','Sex (M/F)',''], ['dataNasterii','Data nașterii','date'], ['taraN','Locul nașterii: țara',''], ['judN','Județul',''], ['locN','Localitatea',''],
+  ['domJud','Domiciliu: județ',''], ['domLoc','Localitatea',''], ['str','Strada',''], ['nr','Nr.',''], ['bl','Bl.',''], ['sc','Sc.',''], ['et','Et.',''], ['ap','Ap.',''],
+  ['actTip','Act identitate (C.I./B.I.)',''], ['actSerie','Seria',''], ['actNr','Nr.',''], ['actElib','Eliberat de',''], ['actData','La data de','date'],
+  ['medNr','Fișa medicală nr.',''], ['medData','din data','date'], ['perioada','Perioada cursurilor',''], ['dataElib','Data eliberării certificatului','date'],
+];
+function scFix(){ const f=state.settings.scolarizare||(state.settings.scolarizare={}); SC_FIX.forEach(([k,,d])=>{ if(f[k]===undefined) f[k]=d; }); return f; }
+function perioadaElev(e){ const o=state.ore.filter(x=>x.elevId===e.id).map(x=>x.data).sort(); return o.length ? `${fmtData(o[0])} – ${fmtData(o[o.length-1])}` : ''; }
+function scDate(e){
+  const d=e.scolarizare||(e.scolarizare={}), parti=e.nume.trim().split(/\s+/);
+  const imp={ nume:parti[0]||'', prenume:parti.filter((x,i)=>i>0 && !/^[A-ZĂÂÎȘȚ]{1,2}\.$/.test(x)).join(' '), numeAnt:'-', cetatenia:'ROMÂNĂ', taraN:'ROMÂNIA', judN:'BOTOȘANI', domJud:'BOTOȘANI', actTip:'C.I.', actSerie:'XT', actElib:scFix().eliberatDe };
+  const r={}; SC_ELEV.forEach(([k])=>{ r[k] = (d[k]!==undefined && d[k]!=='') ? d[k] : (imp[k]||''); });
+  // din CNP: sexul și data nașterii, dacă nu sunt trecute
+  const c=String(r.cnp||'').replace(/\D/g,'');
+  if(c.length===13){ const s=+c[0], sec={1:'19',2:'19',3:'18',4:'18',5:'20',6:'20'}[s];
+    if(!r.sex && sec) r.sex = s%2 ? 'M' : 'F';
+    if(!r.dataNasterii && sec) r.dataNasterii = `${sec}${c.slice(1,3)}-${c.slice(3,5)}-${c.slice(5,7)}`; }
+  if(!r.perioada) r.perioada=perioadaElev(e);
+  return r;
+}
+const scCasute=(t,n)=>{ const a=String(t||'').split(''); let h=''; for(let i=0;i<n;i++) h+=`<span>${esc(a[i]||'')}</span>`; return `<span class="bx">${h}</span>`; };
+const scData=(iso)=>{ const [y,m,d]=(iso||'').split('-'); return `${scCasute(y||'',4)}<span class="bx"><i>-</i></span>${scCasute(m||'',2)}<span class="bx"><i>-</i></span>${scCasute(d||'',2)}`; };
+const scDataLb='<div class="lb" style="display:flex; gap:0; margin-top:1px;"><span style="width:21mm; text-align:center;">anul</span><span style="width:4mm"></span><span style="width:10.5mm; text-align:center;">luna</span><span style="width:4mm"></span><span style="width:10.5mm; text-align:center;">ziua</span></div>';
+const scV=(t,w)=>`<span class="v" style="${w?'width:'+w+';':''}">${esc(t||'')}</span>`;
+function construiesteScolarizare(e){
+  const f=scFix(), d=scDate(e), ck=b=>b?'☒':'☐';
+  const p1=`<div class="scf">
+    <div style="display:flex; justify-content:space-between; align-items:flex-start;"><img src="stema-1.png" style="height:20mm;" alt=""><img src="stema-2.png" style="height:18mm;" alt=""></div>
+    <div style="font-size:11pt; margin-top:2px;">Instituția Prefectului Județului <b>BOTOȘANI</b><br>&nbsp;Serviciul public comunitar regim permise<br>de conducere și înmatriculare a vehiculelor</div>
+    <div class="rw" style="width:60%;">Nr. ${scV('','40mm')} din ${scV('','45mm')}</div>
+    <table class="tb"><colgroup><col style="width:5%"><col style="width:12%"><col style="width:26%"><col style="width:15%"><col style="width:11%"><col style="width:14%"><col style="width:17%"></colgroup>
+      <tr><th>Nr. crt.</th><th>Data programării la examen</th><th>Gradul profesional, numele şi prenumele lucrătorului care a primit şi verificat dosarul</th><th>Rezultatul examenului</th><th>Categoria/ subcategoria obținută</th><th>Data obținerii categorie subcategorie</th><th>Semnătura examinatorului</th></tr>
+      ${[1,2,3,4,5,6].map(i=>`<tr><td style="font-size:7.5pt; text-align:left;">${i}</td><td></td><td></td><td></td><td></td><td></td><td></td></tr>`).join('')}</table>
+    <div style="margin-top:4px;">Școala de pregătire a conducătorilor de autovehicule<br><b><i>${esc(state.settings.scoala||'')}</i></b><br><b>${esc(f.aviz)}</b> ${esc(f.avizEmitent)}<div class="lb" style="border-top:1px dotted #000; padding-left:60mm;">(nr. avizului de funcționare, data eliberării)</div></div>
+    <div class="ttl">1. FIȘA DE ȘCOLARIZARE PENTRU CONDUCEREA AUTOVEHICULELOR</div>
+    <div style="text-align:center; margin-bottom:3px;">Nr. ${scV(d.nrFisa,'25mm')} din ${scV(d.dataFisa?fmtData(d.dataFisa):'','28mm')}</div>
+    <div class="ramka">
+      <div class="rw" style="justify-content:center;">${scCasute(String(d.cnp||'').replace(/\D/g,''),13)} &nbsp;CNP</div>
+      <div style="margin:6px 0 2px 14mm;">Motivul emiterii:</div>
+      <div>${ck(1)} EXAMEN PENTRU OBȚINERE PERMIS<br>${ck(0)} EXAMEN PENTRU ADĂUGARE CATEGORII/SUBCATEGORII<br>${ck(0)} EXAMEN PENTRU OBȚINEREA UNUI NOU PERMIS</div>
+      <div class="rw">Numele: ${scV(d.nume)} Prenumele: ${scV(d.prenume)} Nume anterior: ${scV(d.numeAnt,'28mm')}</div>
+      <div class="rw">Prenume părinți: Tata ${scV(d.tata)} Mama: ${scV(d.mama)} Cetățenia: ${scV(d.cetatenia,'28mm')}</div>
+      <div class="rw" style="align-items:flex-start; margin-top:8px;"><span style="margin-top:6px;">Sex: M ${ck(d.sex==='M')} F ${ck(d.sex==='F')}</span><span style="margin:6px 0 0 10mm;">Data nașterii:</span><span>${scData(d.dataNasterii)}${scDataLb}</span></div>
+      <div class="rw">Locul nașterii: Țara ${scV(d.taraN)} Jud. ${scV(d.judN)} Localitatea ${scV(d.locN)}</div>
+      <div class="rw">Domiciliul: jud. (sect.) ${scV(d.domJud)} localitatea ${scV(d.domLoc)} Str. ${scV(d.str)}</div>
+      <div class="rw">Nr. ${scV(d.nr,'14mm')} Bl. ${scV(d.bl||'-','14mm')} Sc. ${scV(d.sc||'-','12mm')} Et. ${scV(d.et||'-','12mm')} Ap. ${scV(d.ap||'-','12mm')}</div>
+      <div class="rw">Act de identitate (B.I./C.I.) ${scV(d.actTip,'20mm')} Seria ${scV(d.actSerie,'18mm')} Nr. ${scV(d.actNr,'32mm')}</div>
+      <div class="rw" style="align-items:flex-start;"><span style="margin-top:6px;">Eliberat de</span> ${scV(d.actElib,'55mm')} <span style="margin:6px 0 0 6mm;">La data de</span> <span>${scData(d.actData)}${scDataLb}</span></div>
+      <div style="margin-top:6px; font-size:9pt;">☒ Nu am posedat permis de conducere<br>☐ Am posedat permis de conducere categoria/subcategoria ........ , care a fost anulat în anul: ........<br>☐ Posed permis de conducere categoria/subcategoria ........ , numărul ................ eliberat de ........................ la data de ................</div>
+      <div style="text-align:right; margin-top:16px;"><b>Semnătura candidat</b>....................................................</div>
+    </div>
+    <div style="border:1px solid #000; border-top:none; padding:2px 10px;"><b>Certific autenticitatea imaginii și corectitudinea datelor:</b></div>
+  </div>`;
+  const p2=`<div class="scf">
+    <div style="border:1px solid #000; padding:3px 6px; font-size:9pt; line-height:1.5;"><b>Lucrător serviciu public comunitar</b>.................................................................................... , <b>Semnătura</b>...........................<br><span class="lb" style="padding-left:55mm;">(grad profesional, nume și prenume)</span><br><b>Operator introducere date</b> <span class="lb">(nume și prenume)</span>.................................................................. , <b>Semnătura</b>...........................<br>Chitanța reprezentând contravaloarea permisului de conducere, cu seria.................. nr...................................<br>Taxa prestări servicii..............................................................................................</div>
+    <div style="text-align:center; font-size:16pt; font-weight:700; font-style:italic; margin:28mm 0 10mm;">CERTIFICAT DE ABSOLVIRE</div>
+    <div style="text-align:justify; font-size:11pt; padding:0 8mm; line-height:1.5;">2. Se certifică absolvirea cursurilor de pregătire pentru susținerea examenului în vederea obținerii permisului de conducere pentru categoria/subcategoria <b><u>„ B ”</u></b>, organizate de <b><u>ȘCOALA DE CONDUCĂTORI AUTO „${esc(state.settings.scoala||'')}”</u></b>, în perioada <b>${esc(d.perioada||'..................................')}</b></div>
+    <div style="font-size:11pt; margin:8mm 0 0;">Data eliberării: <b>${d.dataElib?fmtData(d.dataElib):''}</b></div>
+    <div class="sg" style="margin-top:14mm;"><div>DIRECTOR,<br><b>${esc(f.director)}</b><br><span class="ital">(nume, prenume, semnătura și ștampila)</span></div><div>SECRETAR,<br><b>${esc(f.secretar)}</b><br><span class="ital">(nume, prenume, semnătura)</span></div></div>
+    <div class="sg" style="margin-top:22mm; align-items:flex-end;">
+      <div>PROFESOR DE<br>LEGISLAȚIE RUTIERĂ<br><b>${esc(f.profLeg)}</b><br>Atestat <b>${esc(f.profAtestat)}</b><br>valabil până la <b>${esc(f.profValabil)}</b><br><span class="ital">(nume, prenume, semnătura)</span></div>
+      <div>INSTRUCTOR AUTO<br>DE PREGĂTIRE PRACTICĂ<br><b>${esc(f.instr)}</b><br>Atestat <b>${esc(f.instrAtestat)}</b><br>valabil până la <b>${esc(f.instrValabil)}</b><br><span class="ital">(nume, prenume, semnătura)</span></div>
+      <div><b>MEDIC,</b><br><b>APT/INAPT</b> PENTRU CONDUCEREA<br>AUTOVEHICULELOR<br>DIN CATG./SUBCATG. <b>„B”</b><br><br>..................................................<br><span class="ital">(nume, prenume, semnătura, ștampila și parafa)</span><br><br>Fișa medicală nr. <b>${esc(d.medNr)}</b> din <b>${d.medData?fmtData(d.medData):''}</b><br>Unitatea medicală emitentă:<br><b>${esc(f.unitMed)}</b></div>
+    </div>
+  </div>`;
+  return p1+p2;
+}
+function tabScolarizare(){
+  const f=scFix(), toti=eleviAn();
+  if(!toti.length) return `<h2>Școlarizare</h2>${faraElevi()}`;
+  const reg=ui.scRegim||'SS';
+  const el=toti.filter(e=>reg==='all' || (e.regim||'SS')===reg);
+  const e=elevById(ui.scElevId) && el.some(x=>x.id===ui.scElevId) ? elevById(ui.scElevId) : el[0];
+  const d=e?scDate(e):{}, sd=e?(e.scolarizare||{}):{};
+  const inp=(k,lab,tip,val,src,w)=>`<div class="field" style="flex:1 1 ${w||150}px;"><label>${lab}</label><input type="${tip==='date'?'date':'text'}" data-sc="${src}" data-k="${k}" value="${esc(val||'')}" ${src==='e'&&!sd[k]&&val?'style="color:var(--muted);"':''}></div>`;
+  return `
+    <div class="no-print">
+      <h2>Fișa de școlarizare</h2>
+      <p class="tab-desc">Formularul pentru Poliție (fișa de școlarizare + certificatul de absolvire), completat cu datele elevului. Datele fixe (aviz, director, profesor, instructor) le treci o dată, jos le găsești pe fiecare fișă. Ce e scris cu gri e completat automat — îl poți schimba.</p>
+      <details class="card" ${ui.scFixDeschis?'open':''} id="sc-fix"><summary style="cursor:pointer; font-weight:700;">⚙ Date fixe — școală, director, secretar, profesor, instructor (le schimbi când se schimbă)</summary>
+        <div class="row" style="margin-top:12px;">${SC_FIX.map(([k,l])=>inp(k,l,'',f[k],'f',k==='avizEmitent'||k==='director'||k==='unitMed'?260:170)).join('')}</div>
+        <p class="small muted" style="margin:8px 0 0;">Numele școlii se ia din Setări. Se salvează pe loc.</p></details>
+      <div class="card">
+        <div class="row">
+          <div class="field"><label>Categoria</label><div class="seg">${[['SS','SS'],['IP','IP'],['all','Toți']].map(([v,t])=>`<button type="button" data-act="sc-regim" data-v="${v}" class="${reg===v?'on':''}">${t}</button>`).join('')}</div></div>
+          <div class="field" style="flex:2 1 240px;"><label>Elevul</label><select id="sc-elev">${el.map(x=>`<option value="${x.id}" ${e&&x.id===e.id?'selected':''}>${esc(x.nume)}${x.clasa?' · '+esc(x.clasa):''}</option>`).join('')}</select></div>
+        </div>
+        ${e?`<div class="row" style="margin-top:12px;">${SC_ELEV.map(([k,l,t])=>inp(k,l,t,d[k],'e',['nr','bl','sc','et','ap','sex'].includes(k)?70:k==='perioada'?240:150)).join('')}</div>
+        <p class="small muted" style="margin:8px 0 0;">Din <b>CNP</b> aplicația scoate singură sexul și data nașterii. Perioada cursurilor se ia din prima și ultima oră din jurnal. Se salvează pe loc.</p>
+        <div class="row" style="margin-top:12px;"><button class="btn btn-primary" data-act="print">🖨 Tipărește (A4, 2 pagini)</button><button class="btn btn-secondary" data-act="pdf">📄 Salvează PDF</button></div>`:'<p class="muted">Niciun elev în categoria aleasă.</p>'}
+      </div>
+    </div>
+    ${e?construiesteScolarizare(e):''}`;
 }
 function tabFisa(){
   const v=ui.fisaVedere||'monit';
@@ -2380,6 +2504,7 @@ document.addEventListener('click', e=>{
     case 'wa-elev': trimiteElevului(id); break;
     case 'prog-nr': { ui.progNr=parseInt(a.dataset.v,10); document.querySelectorAll('[data-act="prog-nr"]').forEach(b=>b.classList.toggle('on', b===a)); completeazaFinalProg(); break; }
     case 'fise-prog': deschideFiseProg(id); break;
+    case 'sc-regim': ui.scRegim=a.dataset.v; ui.scElevId=null; render(); break;
     case 'prog-regim': ui.progRegim=a.dataset.v; render(); break;
     case 'prog-del': state.programari=state.programari.filter(x=>x.id!==id); save(); render(); break;
     case 'prog-toggle': ui.progTrecute=!ui.progTrecute; render(); break;
@@ -2476,6 +2601,10 @@ document.addEventListener('change', e=>{
   if(t.id==='f-de'){ ui.fisaDe=t.value; render(); return; }
   if(t.id==='f-pana'){ ui.fisaPana=t.value; render(); return; }
   if(t.id==='c-luna'){ ui.consumLuna=t.value||null; render(); return; }
+  if(t.id==='sc-elev'){ ui.scElevId=t.value; render(); return; }
+  if(t.dataset.sc){ const k=t.dataset.k, v=t.value.trim();
+    if(t.dataset.sc==='f') scFix()[k]=v; else { const e=elevById(ui.scElevId)||elevById((document.getElementById('sc-elev')||{}).value); if(!e) return; (e.scolarizare||(e.scolarizare={}))[k]=v; }
+    ui.scFixDeschis = !!(document.getElementById('sc-fix')||{}).open; save(); render(); toast('Salvat ✓', 800); return; }
   if(t.id==='fe-elev'){ ui.fisaElevId=t.value; render(); return; }
   if(t.id==='fe-pana'){ ui.fisaElevPana=t.value||todayISO(); render(); return; }
   if(t.id==='f-data'){ ui.fisaData=t.value||todayISO(); render(); return; }

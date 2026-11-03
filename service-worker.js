@@ -1,6 +1,6 @@
 // Service worker pentru Școala de șoferi — face aplicația disponibilă offline,
 // oricât timp a trecut de la ultima deschidere cu internet.
-const CACHE_NAME = 'scoala-soferi-cache-v27';
+const CACHE_NAME = 'scoala-soferi-cache-v28';
 const FISE_CACHE = 'fise-v1';
 const FILES_DE_CACHE = [
   './',
@@ -9,6 +9,8 @@ const FILES_DE_CACHE = [
   './icon-192.png',
   './icon-512.png',
   './xlsx.full.min.js',
+  './stema-1.png',
+  './stema-2.png',
 ];
 
 self.addEventListener('install', (event) => {
