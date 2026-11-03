@@ -1480,9 +1480,9 @@ function tabAlimentari(){
       <h3>Alimentare nouă</h3>
       <div class="row" style="margin-bottom:6px;">
         <div class="field"><label>Mașina</label><select id="a-mas">${optMasini(fm!=='all'?fm:(mi?mi.id:''))}</select></div>
-        <div class="field"><label>Data</label><input type="date" id="a-data" value="${todayISO()}"></div>
+        <div class="field"><label>Data alimentării (de pe bon)</label><input type="date" id="a-data" value="" max="${todayISO()}" style="border-color:var(--track);"></div>
         <div class="field"><label>Sursa</label><div class="seg">${[['bcf','BCF (bonuri)'],['magazie','Magazie']].map(([v,t])=>`<button type="button" data-act="alim-sursa" data-v="${v}" class="${(ui.alimSursa||'bcf')===v?'on':''}">${t}</button>`).join('')}</div></div>
-        ${(ui.alimSursa||'bcf')==='bcf'?`<div class="field"><label>Nr. bonuri (BCF)</label><input type="number" id="a-bcf" class="mic" min="0" step="1"></div>`:''}
+        <div class="field" id="a-bcf-f" ${(ui.alimSursa||'bcf')==='bcf'?'':'style="display:none;"'}><label>Nr. bonuri (BCF)</label><input type="number" id="a-bcf" class="mic" min="0" step="1"></div>
         <div class="field"><label>Litri alimentați</label><input type="number" id="a-litri" class="mic" min="0" step="0.01" style="width:100px;"></div>
         <div class="field" style="flex:1 1 160px;"><label>Observații</label><input type="text" id="a-obs" placeholder="opțional"></div>
         <button class="btn btn-primary" data-act="alim-add">Adaugă alimentarea</button>
@@ -2597,8 +2597,8 @@ document.addEventListener('click', e=>{
       save(); render(); toast('Rovinietă adăugată ✓'); break; }
     case 'rov-del': { const mm=masinaById(a.dataset.m); confirma('Ștergi rovinieta?', ()=>{ mm.roviniete=mm.roviniete.filter(r=>r.id!==id); save(); render(); }); break; }
     case 'doc-del': { const mm=masinaById(a.dataset.m); confirma('Ștergi actul?', ()=>{ mm.documente=mm.documente.filter(d=>d.id!==id); save(); render(); }); break; }
-    case 'alim-add': { const mm=masinaById(document.getElementById('a-mas').value); const l=nr(document.getElementById('a-litri').value); const d=document.getElementById('a-data').value; if(!mm) return toast('Alege mașina.'); if(!l||!d) return toast('Completează data și litrii.'); const srs=ui.alimSursa||'bcf'; mm.alimentari.push({id:uid(), data:d, sursa:srs, bcf:srs==='bcf'?(document.getElementById('a-bcf')||{}).value||'':'', litri:l, obs:((document.getElementById('a-obs')||{}).value||'').trim()}); ui.ultimaMasinaId=mm.id; save(); render(); toast('Alimentare adăugată ✓'); break; }
-    case 'alim-sursa': ui.alimSursa=a.dataset.v; render(); break;
+    case 'alim-add': { const mm=masinaById(document.getElementById('a-mas').value); const l=nr(document.getElementById('a-litri').value); const d=document.getElementById('a-data').value; if(!mm) return toast('Alege mașina.'); if(!d) return toast('Alege data alimentării (data de pe bon), nu data de azi.', 3000); if(d>todayISO()) return toast('Data alimentării nu poate fi în viitor.'); if(!l) return toast('Completează litrii.'); const srs=ui.alimSursa||'bcf'; mm.alimentari.push({id:uid(), data:d, sursa:srs, bcf:srs==='bcf'?(document.getElementById('a-bcf')||{}).value||'':'', litri:l, obs:((document.getElementById('a-obs')||{}).value||'').trim()}); ui.ultimaMasinaId=mm.id; save(); render(); toast('Alimentare adăugată ✓'); break; }
+    case 'alim-sursa': { ui.alimSursa=a.dataset.v; document.querySelectorAll('[data-act="alim-sursa"]').forEach(b=>b.classList.toggle('on', b===a)); const f=document.getElementById('a-bcf-f'); if(f) f.style.display = a.dataset.v==='bcf' ? '' : 'none'; break; }
     case 'alim-per': ui.alimPer=a.dataset.v; render(); break;
     case 'alim-toate': { ui.alimToate=ui.alimToate||{}; ui.alimToate[a.dataset.m]=!ui.alimToate[a.dataset.m]; render(); break; }
     case 'alim-del': { const mm=masinaById(a.dataset.m); confirma('Ștergi alimentarea?', ()=>{ mm.alimentari=mm.alimentari.filter(x=>x.id!==id); save(); render(); }); break; }
