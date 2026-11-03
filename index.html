@@ -830,8 +830,13 @@ function initFormOra(){
       if(a!==''){ kinfo.innerHTML='Km la sosire îi treci la sfârșitul orei — ora rămâne <b>deschisă</b> (o găsești sus, la „Ore în desfășurare”).'; }
       else kinfo.innerHTML=''; }
     const mb=document.querySelector('#o-mas button.on'), m=mb?masinaById(mb.dataset.masval):null;
-    if(m && kinfo){ const u=ultimaSosire(m.id, ui.editOraId); if(u) kinfo.innerHTML += `${kinfo.innerHTML?' · ':''}<span class="muted">Ultima sosire trecută de tine pe ${esc(m.nr)}: <b>${u.kmSosire}</b> km (${fmtData(u.data)}, ${esc(numeElev(u.elevId))})</span>`; }
+    if(m && kinfo){ const u=ultimaSosire(m.id, ui.editOraId); if(u) kinfo.innerHTML += `${kinfo.innerHTML?' · ':''}<span class="muted">${kpEl.dataset.auto==='1'?'Km la plecare propuși (gri) = ':''}ultima sosire pe ${esc(m.nr)}: <b>${u.kmSosire}</b> km (${fmtData(u.data)}, ${esc(numeElev(u.elevId))})${kpEl.dataset.auto==='1'?' — dacă a mers și celălalt instructor, scrie kilometrajul de la bord.':''}</span>`; }
   };
+  // km la plecare: propunem ultimii km la sosire trecuți pe mașina aleasă; se pot schimba manual
+  const propuneKmP=()=>{ if(!kpEl || ui.editOraId || (kpEl.value!=='' && kpEl.dataset.auto!=='1')) return;
+    const mb=document.querySelector('#o-mas button.on'), m=mb?masinaById(mb.dataset.masval):null, u=m?ultimaSosire(m.id):null;
+    kpEl.value = u ? u.kmSosire : ''; kpEl.dataset.auto = u ? '1' : ''; kpEl.style.color = u ? 'var(--muted)' : ''; };
+  if(kpEl){ kpEl.addEventListener('input',()=>{ kpEl.dataset.auto=''; kpEl.style.color=''; }); propuneKmP(); document.querySelectorAll('#o-mas button').forEach(b=>b.addEventListener('click',()=>setTimeout(()=>{ propuneKmP(); calcKm(); },0))); }
   if(kpEl){ kpEl.addEventListener('input',calcKm); ksEl.addEventListener('input',calcKm); document.querySelectorAll('#o-mas button').forEach(b=>b.addEventListener('click',()=>setTimeout(calcKm,0))); calcKm(); }
   document.querySelectorAll('#o-tip button').forEach(b=>b.addEventListener('click',()=>{
     document.querySelectorAll('#o-tip button').forEach(x=>x.classList.toggle('on', x===b));
