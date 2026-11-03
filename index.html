@@ -1498,6 +1498,8 @@ function tabAlimentari(){
       <div class="stats" style="margin-bottom:12px;">${stat}</div>
       ${rezumatLunarAlim(alim)}
       <div class="day-head">Toate alimentările</div>
+      ${(()=>{ const totN=state.masini.reduce((q,m)=>q+m.alimentari.length,0), ascunse=totN-alim.length;
+        return ascunse>0 ? `<div class="alert alert-yellow" style="margin-top:10px;"><div>🔎 <b>${ascunse} ${ascunse===1?'alimentare e ascunsă':'alimentări sunt ascunse'}</b> de filtrele de mai sus (mașina / perioada / luna).</div><button class="btn btn-ghost" data-act="alim-reset" style="background:#fff;">Arată toate</button></div>` : ''; })()}
       ${alim.length?randuriAlimentari(alim,true):'<p class="muted small" style="margin:0;">Nicio alimentare pentru filtrul ales.</p>'}
     </div>`;
 }
@@ -2598,6 +2600,7 @@ document.addEventListener('click', e=>{
     case 'rov-del': { const mm=masinaById(a.dataset.m); confirma('Ștergi rovinieta?', ()=>{ mm.roviniete=mm.roviniete.filter(r=>r.id!==id); save(); render(); }); break; }
     case 'doc-del': { const mm=masinaById(a.dataset.m); confirma('Ștergi actul?', ()=>{ mm.documente=mm.documente.filter(d=>d.id!==id); save(); render(); }); break; }
     case 'alim-add': { const mm=masinaById(document.getElementById('a-mas').value); const l=nr(document.getElementById('a-litri').value); const d=document.getElementById('a-data').value; if(!mm) return toast('Alege mașina.'); if(!d) return toast('Alege data alimentării (data de pe bon), nu data de azi.', 3000); if(d>todayISO()) return toast('Data alimentării nu poate fi în viitor.'); if(!l) return toast('Completează litrii.'); const srs=ui.alimSursa||'bcf'; mm.alimentari.push({id:uid(), data:d, sursa:srs, bcf:srs==='bcf'?(document.getElementById('a-bcf')||{}).value||'':'', litri:l, obs:((document.getElementById('a-obs')||{}).value||'').trim()}); ui.ultimaMasinaId=mm.id; save(); render(); toast('Alimentare adăugată ✓'); break; }
+    case 'alim-reset': ui.alimMasina='all'; ui.alimPer='toate'; ui.alimLuna='all'; render(); break;
     case 'alim-sursa': { ui.alimSursa=a.dataset.v; document.querySelectorAll('[data-act="alim-sursa"]').forEach(b=>b.classList.toggle('on', b===a)); const f=document.getElementById('a-bcf-f'); if(f) f.style.display = a.dataset.v==='bcf' ? '' : 'none'; break; }
     case 'alim-per': ui.alimPer=a.dataset.v; render(); break;
     case 'alim-toate': { ui.alimToate=ui.alimToate||{}; ui.alimToate[a.dataset.m]=!ui.alimToate[a.dataset.m]; render(); break; }
