@@ -1055,7 +1055,7 @@ function detaliiLuna(l, y){
         <tr class="total"><td colspan="5">TOTAL</td><td class="num">${fmtNr(sim+ss+ip)}</td><td class="num">${fmtNr(km)}</td><td class="num">${fmtNr(cons)}</td></tr>
       </tbody></table></div>`:''}
       ${alim.length?`<div class="day-head">Alimentări</div><div class="table-wrap"><table><thead><tr><th>Data</th><th>Mașina</th><th class="num">Bonuri</th><th class="num">Valoare</th><th class="num">Litri</th></tr></thead><tbody>
-        ${alim.map(a=>`<tr><td>${fmtData(a.data)}</td><td>${esc(a.m.nr)}</td><td class="num">${a.bcf||'—'}</td><td class="num">${a.bcf?fmtNr(nr(a.bcf)*nr(state.settings.valoareBon))+' lei':'—'}</td><td class="num"><b>${fmtNr(nr(a.litri))}</b></td></tr>`).join('')}
+        ${alim.map(a=>`<tr><td>${fmtData(a.data)}</td><td>${esc(a.m.nr)}</td><td class="num">${sursaAlim(a)==='magazie'?'magazie':(a.bcf||'—')}</td><td class="num">${a.bcf?fmtNr(nr(a.bcf)*nr(state.settings.valoareBon))+' lei':'—'}</td><td class="num"><b>${fmtNr(nr(a.litri))}</b></td></tr>`).join('')}
       </tbody></table></div>`:''}
     </div>`;
 }
@@ -1438,17 +1438,30 @@ function tabExamen(){
 }
 
 /* ---------------- MAȘINA ---------------- */
+function sursaAlim(a){ return a.sursa || 'bcf'; }
 function randuriAlimentari(lista, cuMasina){
   const s=state.settings, st='min-height:36px; padding:5px 6px;';
-  return `<div class="table-wrap"><table><thead><tr><th>Data</th>${cuMasina?'<th>Mașina</th>':''}<th class="num">Bonuri</th><th class="num">Valoare</th><th class="num">Litri</th><th>Observații</th><th></th></tr></thead><tbody>${lista.map(a=>`<tr>
+  return `<div class="table-wrap"><table><thead><tr><th>Luna</th><th>Data</th>${cuMasina?'<th>Mașina</th>':''}<th>Sursa</th><th class="num">Bonuri</th><th class="num">Valoare</th><th class="num">Litri</th><th>Observații</th><th></th></tr></thead><tbody>${lista.map(a=>{ const mag=sursaAlim(a)==='magazie'; return `<tr>
+    <td style="white-space:nowrap;"><b>${a.data?LUNI[lunaDin(a.data)]:'—'}</b></td>
     <td><input type="date" data-alim="data" data-m="${a.m.id}" data-id="${a.id}" value="${a.data||''}" style="${st}"></td>
     ${cuMasina?`<td><select data-alim="masina" data-m="${a.m.id}" data-id="${a.id}" style="${st}">${state.masini.map(x=>`<option value="${x.id}" ${x.id===a.m.id?'selected':''}>${esc(x.nr)}</option>`).join('')}</select></td>`:''}
-    <td class="num"><input type="number" data-alim="bcf" data-m="${a.m.id}" data-id="${a.id}" value="${a.bcf||''}" min="0" step="1" style="${st} width:70px;"></td>
-    <td class="num" style="white-space:nowrap;">${a.bcf?fmtNr(nr(a.bcf)*nr(s.valoareBon))+' lei':'—'}</td>
+    <td><select data-alim="sursa" data-m="${a.m.id}" data-id="${a.id}" style="${st} font-weight:600; color:${mag?'#8A5A16':'var(--infield)'};"><option value="bcf" ${mag?'':'selected'}>BCF (bonuri)</option><option value="magazie" ${mag?'selected':''}>Magazie</option></select></td>
+    <td class="num">${mag?'<span class="muted">—</span>':`<input type="number" data-alim="bcf" data-m="${a.m.id}" data-id="${a.id}" value="${a.bcf||''}" min="0" step="1" style="${st} width:70px;">`}</td>
+    <td class="num" style="white-space:nowrap;">${!mag&&a.bcf?fmtNr(nr(a.bcf)*nr(s.valoareBon))+' lei':'—'}</td>
     <td class="num"><input type="number" data-alim="litri" data-m="${a.m.id}" data-id="${a.id}" value="${nr(a.litri)}" min="0" step="0.01" style="${st} width:85px; font-weight:700;"></td>
     <td><input type="text" data-alim="obs" data-m="${a.m.id}" data-id="${a.id}" value="${esc(a.obs||'')}" placeholder="—" style="${st} width:100%; min-width:110px;"></td>
-    <td style="text-align:right;"><button class="icon-btn del" data-act="alim-del" data-m="${a.m.id}" data-id="${a.id}" title="Șterge alimentarea">${ICONS.trash}</button></td></tr>`).join('')}</tbody></table></div>
-    <p class="small muted" style="margin:6px 0 0;">Modifici direct în tabel (data, bonuri, litri${cuMasina?', mașina':''}) — se salvează pe loc. 🗑 șterge alimentarea.</p>`;
+    <td style="text-align:right;"><button class="icon-btn del" data-act="alim-del" data-m="${a.m.id}" data-id="${a.id}" title="Șterge alimentarea">${ICONS.trash}</button></td></tr>`; }).join('')}</tbody></table></div>
+    <p class="small muted" style="margin:6px 0 0;">Modifici direct în tabel: data, ${cuMasina?'mașina, ':''}sursa (BCF sau magazie), bonurile, litrii, observațiile — se salvează pe loc. 🗑 șterge alimentarea.</p>`;
+}
+function rezumatLunarAlim(alim){
+  const s=state.settings, luni={};
+  alim.forEach(a=>{ const k=a.data?a.data.slice(0,7):'—'; const x=luni[k]||(luni[k]={nB:0,b:0,lB:0,nM:0,lM:0}); if(sursaAlim(a)==='magazie'){ x.nM++; x.lM+=nr(a.litri); } else { x.nB++; x.b+=nr(a.bcf); x.lB+=nr(a.litri); } });
+  const ch=Object.keys(luni).sort(); if(!ch.length) return '';
+  const T={nB:0,b:0,lB:0,nM:0,lM:0}; ch.forEach(k=>Object.keys(T).forEach(q=>T[q]+=luni[k][q]));
+  const rd=(lab,x,bold)=>`<tr${bold?' style="font-weight:700; border-top:2px solid var(--border);"':''}><td>${lab}</td><td class="num">${x.nB||'—'}</td><td class="num">${x.b?fmtNr(x.b):'—'}</td><td class="num">${x.b?fmtNr(x.b*nr(s.valoareBon))+' lei':'—'}</td><td class="num">${x.lB?fmtNr(x.lB):'—'}</td><td class="num">${x.nM||'—'}</td><td class="num">${x.lM?fmtNr(x.lM):'—'}</td><td class="num"><b>${fmtNr(x.lB+x.lM)}</b></td></tr>`;
+  return `<div class="day-head">Pe luni</div><div class="table-wrap"><table><thead><tr><th rowspan="2">Luna</th><th colspan="4" style="text-align:center;">BCF (bonuri valorice)</th><th colspan="2" style="text-align:center;">Magazie</th><th rowspan="2" class="num">Total litri</th></tr>
+    <tr><th class="num">Alim.</th><th class="num">Bonuri</th><th class="num">Valoare</th><th class="num">Litri</th><th class="num">Alim.</th><th class="num">Litri</th></tr></thead>
+    <tbody>${ch.map(k=>rd(k==='—'?'fără dată':`${LUNI[parseInt(k.slice(5),10)]} ${k.slice(0,4)}`, luni[k])).join('')}${ch.length>1?rd('TOTAL',T,true):''}</tbody></table></div>`;
 }
 function tabAlimentari(){
   const s=state.settings, an=s.anScolar;
@@ -1458,8 +1471,8 @@ function tabAlimentari(){
   if(fm!=='all') alim=alim.filter(a=>a.m.id===fm);
   if(per!=='toate' && ui.alimLuna && ui.alimLuna!=='all') alim=alim.filter(a=>a.data && lunaDin(a.data)===parseInt(ui.alimLuna,10));
   alim.sort((a,b)=>(b.data||'').localeCompare(a.data||''));
-  const stat=state.masini.filter(m=>fm==='all'||m.id===fm).map(m=>{ const x=alim.filter(a=>a.m.id===m.id); const l=x.reduce((q,a)=>q+nr(a.litri),0), bc=x.reduce((q,a)=>q+nr(a.bcf),0);
-    return `<div class="stat"><div class="v">${fmtNr(l)} l</div><div class="l">${esc(m.nr)} · ${x.length} alimentări · ${fmtNr(bc)} bonuri (${fmtNr(bc*nr(s.valoareBon))} lei) · în rezervor ~${fmtNr(stocPana(m, todayISO()))} l</div></div>`; }).join('');
+  const stat=state.masini.filter(m=>fm==='all'||m.id===fm).map(m=>{ const x=alim.filter(a=>a.m.id===m.id); const l=x.reduce((q,a)=>q+nr(a.litri),0), xb=x.filter(a=>sursaAlim(a)!=='magazie'), bc=xb.reduce((q,a)=>q+nr(a.bcf),0), lb=xb.reduce((q,a)=>q+nr(a.litri),0);
+    return `<div class="stat" style="flex:1 1 260px;"><div class="v">${fmtNr(l)} l</div><div class="l">${esc(m.nr)} · BCF ${fmtNr(lb)} l (${fmtNr(bc)} bonuri) · magazie ${fmtNr(l-lb)} l · în rezervor ~${fmtNr(stocPana(m, todayISO()))} l</div></div>`; }).join('');
   return `
     <h2>Alimentări</h2>
     <p class="tab-desc">Toate alimentările mașinilor. Adaugi sus; în tabel modifici direct data, bonurile, litrii, mașina sau observațiile (se salvează pe loc), iar 🗑 șterge. Stocul din rezervor și consumul se recalculează singure.</p>
@@ -1468,12 +1481,13 @@ function tabAlimentari(){
       <div class="row" style="margin-bottom:6px;">
         <div class="field"><label>Mașina</label><select id="a-mas">${optMasini(fm!=='all'?fm:(mi?mi.id:''))}</select></div>
         <div class="field"><label>Data</label><input type="date" id="a-data" value="${todayISO()}"></div>
-        <div class="field"><label>Nr. bonuri (BCF)</label><input type="number" id="a-bcf" class="mic" min="0" step="1"></div>
+        <div class="field"><label>Sursa</label><div class="seg">${[['bcf','BCF (bonuri)'],['magazie','Magazie']].map(([v,t])=>`<button type="button" data-act="alim-sursa" data-v="${v}" class="${(ui.alimSursa||'bcf')===v?'on':''}">${t}</button>`).join('')}</div></div>
+        ${(ui.alimSursa||'bcf')==='bcf'?`<div class="field"><label>Nr. bonuri (BCF)</label><input type="number" id="a-bcf" class="mic" min="0" step="1"></div>`:''}
         <div class="field"><label>Litri alimentați</label><input type="number" id="a-litri" class="mic" min="0" step="0.01" style="width:100px;"></div>
         <div class="field" style="flex:1 1 160px;"><label>Observații</label><input type="text" id="a-obs" placeholder="opțional"></div>
         <button class="btn btn-primary" data-act="alim-add">Adaugă alimentarea</button>
       </div>
-      <p class="small muted" style="margin:0;">Un bon valoric = ${fmtNr(nr(s.valoareBon))} lei (se schimbă din Setări). Litrii îi treci de pe bonul fiscal de la pompă.</p>
+      <p class="small muted" style="margin:0;"><b>BCF</b>: alimentare la pompă cu bonuri valorice (1 bon = ${fmtNr(nr(s.valoareBon))} lei, se schimbă din Setări) — litrii de pe bonul fiscal. <b>Magazie</b>: motorină luată din magazia școlii — treci doar litrii.</p>
     </div>
     <div class="card">
       <div class="row" style="margin-bottom:12px;">
@@ -1482,6 +1496,8 @@ function tabAlimentari(){
         ${per==='an'?`<div class="field"><label>Luna</label><select data-filter="alimLuna"><option value="all">Tot anul</option>${LUNI_AN.map(l=>`<option value="${l}" ${String(l)===String(ui.alimLuna)?'selected':''}>${LUNI[l]}</option>`).join('')}</select></div>`:''}
       </div>
       <div class="stats" style="margin-bottom:12px;">${stat}</div>
+      ${rezumatLunarAlim(alim)}
+      <div class="day-head">Toate alimentările</div>
       ${alim.length?randuriAlimentari(alim,true):'<p class="muted small" style="margin:0;">Nicio alimentare pentru filtrul ales.</p>'}
     </div>`;
 }
@@ -2044,7 +2060,7 @@ function tabConsumLunar(){
       <tr><td colspan="2" style="text-align:right;"><b>Total</b></td><td><b>${fmtNr(b.oreSS)}</b></td><td><b>${fmtNr(b.oreIP)}</b></td><td><b>${fmtNr(b.km)}</b></td><td><b>${fmtNr(cSS)}</b></td><td><b>${fmtNr(cIP)}</b></td><td><b>${fmtNr(b.consum)}</b></td></tr></tbody></table>
       <div style="font-weight:700; margin:18px 0 0;">Alimentări</div>
       <table style="margin-top:6px;"><thead><tr><th style="width:6%;">Nr.</th><th>Data</th><th>Nr. bonuri valorice</th><th>Valoare (lei)</th><th>Litri alimentați</th></tr></thead>
-      <tbody>${b.al.length?b.al.slice().sort((x,y)=>x.data.localeCompare(y.data)).map((a,i)=>`<tr><td>${i+1}.</td><td>${fmtData(a.data)}</td><td>${a.bcf||'—'}</td><td>${a.bcf?fmtNr(nr(a.bcf)*nr(s.valoareBon)):'—'}</td><td>${fmtNr(nr(a.litri))}</td></tr>`).join(''):'<tr><td colspan="5">Nicio alimentare în luna aleasă.</td></tr>'}
+      <tbody>${b.al.length?b.al.slice().sort((x,y)=>x.data.localeCompare(y.data)).map((a,i)=>`<tr><td>${i+1}.</td><td>${fmtData(a.data)}</td><td>${sursaAlim(a)==='magazie'?'magazie':(a.bcf||'—')}</td><td>${a.bcf?fmtNr(nr(a.bcf)*nr(s.valoareBon)):'—'}</td><td>${fmtNr(nr(a.litri))}</td></tr>`).join(''):'<tr><td colspan="5">Nicio alimentare în luna aleasă.</td></tr>'}
       <tr><td colspan="2" style="text-align:right;"><b>Total</b></td><td><b>${fmtNr(b.bonuri)}</b></td><td><b>${fmtNr(b.lei)}</b></td><td><b>${fmtNr(b.litri)}</b></td></tr></tbody></table>
       <table style="margin-top:18px; width:60%;"><tbody>
         <tr><td class="nume">Stoc la începutul lunii</td><td>${fmtNr(st0)} l</td></tr>
@@ -2581,7 +2597,8 @@ document.addEventListener('click', e=>{
       save(); render(); toast('Rovinietă adăugată ✓'); break; }
     case 'rov-del': { const mm=masinaById(a.dataset.m); confirma('Ștergi rovinieta?', ()=>{ mm.roviniete=mm.roviniete.filter(r=>r.id!==id); save(); render(); }); break; }
     case 'doc-del': { const mm=masinaById(a.dataset.m); confirma('Ștergi actul?', ()=>{ mm.documente=mm.documente.filter(d=>d.id!==id); save(); render(); }); break; }
-    case 'alim-add': { const mm=masinaById(document.getElementById('a-mas').value); const l=nr(document.getElementById('a-litri').value); const d=document.getElementById('a-data').value; if(!mm) return toast('Alege mașina.'); if(!l||!d) return toast('Completează data și litrii.'); mm.alimentari.push({id:uid(), data:d, bcf:document.getElementById('a-bcf').value, litri:l, obs:((document.getElementById('a-obs')||{}).value||'').trim()}); ui.ultimaMasinaId=mm.id; save(); render(); toast('Alimentare adăugată ✓'); break; }
+    case 'alim-add': { const mm=masinaById(document.getElementById('a-mas').value); const l=nr(document.getElementById('a-litri').value); const d=document.getElementById('a-data').value; if(!mm) return toast('Alege mașina.'); if(!l||!d) return toast('Completează data și litrii.'); const srs=ui.alimSursa||'bcf'; mm.alimentari.push({id:uid(), data:d, sursa:srs, bcf:srs==='bcf'?(document.getElementById('a-bcf')||{}).value||'':'', litri:l, obs:((document.getElementById('a-obs')||{}).value||'').trim()}); ui.ultimaMasinaId=mm.id; save(); render(); toast('Alimentare adăugată ✓'); break; }
+    case 'alim-sursa': ui.alimSursa=a.dataset.v; render(); break;
     case 'alim-per': ui.alimPer=a.dataset.v; render(); break;
     case 'alim-toate': { ui.alimToate=ui.alimToate||{}; ui.alimToate[a.dataset.m]=!ui.alimToate[a.dataset.m]; render(); break; }
     case 'alim-del': { const mm=masinaById(a.dataset.m); confirma('Ștergi alimentarea?', ()=>{ mm.alimentari=mm.alimentari.filter(x=>x.id!==id); save(); render(); }); break; }
@@ -2628,6 +2645,7 @@ document.addEventListener('change', e=>{
   if(t.dataset.exam){ const ev=elevById(t.dataset.id); if(t.dataset.exam==='data') ev.examenData=t.value; else ev.examenRezultat=t.value; save(); toast('Salvat ✓', 900); if(t.dataset.exam==='rez') render(); return; }
   if(t.dataset.alim){ const m=masinaById(t.dataset.m); const a=m&&m.alimentari.find(x=>x.id===t.dataset.id); if(!a) return; const k=t.dataset.alim;
     if(k==='masina'){ const nm=masinaById(t.value); if(nm && nm!==m){ m.alimentari=m.alimentari.filter(x=>x!==a); nm.alimentari.push(a); } }
+    else if(k==='sursa'){ a.sursa=t.value; if(t.value==='magazie') a.bcf=''; }
     else if(k==='litri'){ if(!nr(t.value)) return toast('Litrii trebuie să fie mai mari ca 0. Dacă vrei s-o scoți, apasă 🗑.', 3000); a.litri=nr(t.value); }
     else a[k]=t.value;
     save(); render(); toast('Alimentare modificată ✓', 1000); return; }
