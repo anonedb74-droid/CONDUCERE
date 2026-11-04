@@ -785,7 +785,7 @@ function tabOre(){
           <td style="white-space:nowrap;">${pillOra(o)}${o.tip==='C'&&o.masinaId?`<div class="small muted">${esc(nrMasina(o.masinaId))}</div>`:''}</td>
           <td class="num">${fmtNr(nr(o.nr))}</td>
           <td class="num">${o.tip==='S'?'—':o.deschisa?'<span class="pill pill-yellow">în desfășurare</span>':fmtNr(nr(o.km))}${o.tip==='C'&&o.kmPlecare!==undefined&&o.kmPlecare!==''?`<div class="small muted" style="white-space:nowrap;">${o.kmPlecare} → ${o.kmSosire||'…'}</div>`:''}</td>
-          <td style="white-space:nowrap; text-align:right;"><button class="icon-btn" data-act="ora-edit" data-id="${o.id}" title="Modifică">${ICONS.edit}</button> <button class="icon-btn del" data-act="ora-del" data-id="${o.id}" title="Șterge">${ICONS.trash}</button></td>
+          <td style="white-space:nowrap; text-align:right;">${o.tip==='C'&&!o.deschisa?`<button class="btn ${o.prezenta?'btn-ghost':'btn-secondary'} mic" data-act="prezenta" data-id="${o.id}" title="${o.prezenta?'Formular deschis pe '+fmtData(o.prezenta.slice(0,10))+' — apasă ca să-l deschizi din nou':'Deschide formularul de prezență completat'}" style="padding:6px 10px; min-height:34px;">${o.prezenta?'✓ prezență':'📋 Prezență'}</button> `:''}<button class="icon-btn" data-act="ora-edit" data-id="${o.id}" title="Modifică">${ICONS.edit}</button> <button class="icon-btn del" data-act="ora-del" data-id="${o.id}" title="Șterge">${ICONS.trash}</button></td>
         </tr>`).join('')}</tbody></table></div>` : gol('Nicio oră','Nu există înregistrări pentru filtrul ales.')}
     </div>`;
 }
@@ -803,6 +803,29 @@ function cardOreDeschise(){
     <div class="table-wrap"><table>${l.map(o=>`<tr><td style="white-space:nowrap;"><b>${intervalOrar(o)}</b><div class="small muted">${fmtData(o.data)}</div></td><td><b>${esc(numeElev(o.elevId))}</b> · ${fmtNr(nr(o.nr))} ${nr(o.nr)===1?'oră':'ore'}${o.masinaId?` · ${esc(nrMasina(o.masinaId))}`:''}<div class="small">Km la plecare: <b>${esc(String(o.kmPlecare))}</b></div></td>
       <td style="white-space:nowrap; text-align:right;"><input type="number" id="ks-${o.id}" min="0" step="1" placeholder="km la sosire" style="width:130px; min-height:40px; padding:6px 8px;"> <button class="btn btn-ok" data-act="ora-inchide" data-id="${o.id}">Închide ora</button></td></tr>`).join('')}</table></div></div>`;
 }
+/* ---------- Formularul Google „Prezență categoria B” al școlii: îl deschidem precompletat ---------- */
+const FORM_PREZ={ id:'1FAIpQLSdKzihMoUxUyNTPTwWG83h0ELmCi_pm16FFhwaw2Nb_37fCCw', instr:'entry.1262595098',
+  cursant:{'Daniel BOTEZATU':'entry.923942029','Laurentiu ȘFAIȚER':'entry.180703410','Adrian CIOBANU-ILUCĂ':'entry.1564489429'},
+  data:'entry.986781834', ora:'entry.1214925001', nr:'entry.1628457617', km:'entry.450796025' };
+function instrFormular(){ const s=state.settings; if(s.formInstructor) return s.formInstructor; return /BOTEZATU/i.test(s.instructor||'') ? 'Daniel BOTEZATU' : ''; }
+function faraDiacritice(t){ return String(t||'').normalize('NFD').replace(/[̀-ͯ]/g,'').replace(/[șş]/gi,m=>m===m.toUpperCase()?'S':'s').replace(/[țţ]/gi,m=>m===m.toUpperCase()?'T':'t'); }
+// în aplicație: „NUME I. PRENUME(LE)”; în formular: „PRENUME(LE) NUME”
+function numeFormular(e){ if(!e) return ''; if(e.numeFormular) return e.numeFormular;
+  const t=faraDiacritice(e.nume).toUpperCase().replace(/-/g,' ').split(/\s+/).filter(Boolean); if(t.length<2) return t.join(' ');
+  const pren=t.slice(1).filter(x=>!x.includes('.') && x.length>1); return [...pren, t[0]].join(' '); }
+function linkPrezenta(o){
+  const e=elevById(o.elevId), ins=instrFormular(), ent=FORM_PREZ.cursant[ins];
+  const q=new URLSearchParams({usp:'pp_url'}); if(ins) q.set(FORM_PREZ.instr, ins); if(ent) q.set(ent, numeFormular(e));
+  q.set(FORM_PREZ.data, o.data); if(o.ora) q.set(FORM_PREZ.ora, o.ora); q.set(FORM_PREZ.nr, String(Math.min(2,Math.max(1,Math.round(nr(o.nr)))))); q.set(FORM_PREZ.km, String(Math.round(nr(o.km))));
+  return `https://docs.google.com/forms/d/e/${FORM_PREZ.id}/viewform?${q.toString()}`;
+}
+function trimitePrezenta(id){
+  const o=state.ore.find(x=>x.id===id); if(!o) return;
+  if(o.deschisa) return toast('Închide întâi ora (km la sosire), apoi trimiți prezența.', 3000);
+  if(!instrFormular()) return toast('Alege în Setări (⚙) numele tău din formularul de prezență.', 3500);
+  window.open(linkPrezenta(o), '_blank');
+  o.prezenta=new Date().toISOString(); save(); render();
+}
 function inchideOra(id){
   const o=state.ore.find(x=>x.id===id); if(!o) return;
   const inp=document.getElementById('ks-'+id); const v=inp?inp.value.trim():'';
@@ -811,6 +834,7 @@ function inchideOra(id){
   o.kmSosire=v; o.km=nr(v)-nr(o.kmPlecare); o.deschisa=false;
   const st=statElev(o.elevId);
   save(); render(); toast(`Ora închisă ✓ — ${fmtNr(o.km)} km · ${numeElev(o.elevId).split(' ')[0]}: ${fmtNr(st.total)} din ${state.settings.oreNecesare} ore`, 3000);
+  if(instrFormular()) confirma(`Ora e închisă (${fmtNr(o.km)} km). Deschizi <b>formularul de prezență</b> completat pentru ${esc(numeElev(o.elevId))}? Verifici și apeși Trimite.`, ()=>trimitePrezenta(o.id), '📋 Deschide formularul');
 }
 function infoOra(e, m){
   if(!e) return 'Felul orei (SS sau IP) se ia de la elev. Mașina o alegi tu, la fiecare oră.';
@@ -2392,6 +2416,7 @@ function modalElev(e){
     <div class="field" style="flex:1;"><label>Pregătire</label><select id="me-regim"><option value="SS" ${e.regim!=='IP'?'selected':''}>SS — școala de șoferi</option><option value="IP" ${e.regim==='IP'?'selected':''}>IP — instruire practică</option></select></div></div>
     <div class="row"><div class="field" style="flex:1;"><label>Nr. serie / grupă</label><input type="text" id="me-grupa" value="${esc(e.grupa||'')}"></div><div class="field" style="flex:1;"><label>Nr. registru</label><input type="text" id="me-reg" value="${esc(e.registru||'')}"></div></div>
     <div class="field"><label>Telefon</label><input type="tel" id="me-tel" value="${esc(e.telefon)}"></div>
+    <div class="field"><label>Numele în formularul de prezență</label><input type="text" id="me-nf" value="${esc(e.numeFormular||'')}" placeholder="${esc(numeFormular(Object.assign({},e,{numeFormular:''})))}"><div class="small muted">Exact ca în lista formularului Google (prenume + nume). Gol = se potrivește automat: <b>${esc(numeFormular(Object.assign({},e,{numeFormular:''})))}</b></div></div>
     <div class="field"><label>Observații</label><input type="text" id="me-obs" value="${esc(e.obs)}" placeholder="ex: dosar depus, fișă medicală"></div>
     <div class="field"><label>An școlar</label><input type="text" id="me-an" value="${esc(e.anScolar)}"></div>
     <div class="row" style="justify-content:flex-end;"><button class="btn btn-ghost" id="me-x">Renunță</button><button class="btn btn-primary" id="me-ok">Salvează</button></div>`);
@@ -2399,7 +2424,7 @@ function modalElev(e){
   b.querySelector('#me-ok').onclick=()=>{
     const nume=capitalizeaza(b.querySelector('#me-nume').value); if(!nume) return toast('Numele nu poate fi gol.');
     const regVechi=regimElev(e), regNou=b.querySelector('#me-regim').value;
-    e.nume=nume; e.clasa=capitalizeaza(b.querySelector('#me-clasa').value); e.telefon=b.querySelector('#me-tel').value.trim(); e.regim=regNou; if(regNou!==regVechi) delete e.transferIP; e.grupa=b.querySelector('#me-grupa').value.trim(); e.registru=b.querySelector('#me-reg').value.trim();
+    e.nume=nume; e.clasa=capitalizeaza(b.querySelector('#me-clasa').value); e.telefon=b.querySelector('#me-tel').value.trim(); e.regim=regNou; if(regNou!==regVechi) delete e.transferIP; e.grupa=b.querySelector('#me-grupa').value.trim(); e.registru=b.querySelector('#me-reg').value.trim(); e.numeFormular=(b.querySelector('#me-nf').value||'').trim().toUpperCase();
     e.obs=b.querySelector('#me-obs').value.trim(); e.anScolar=b.querySelector('#me-an').value.trim()||e.anScolar;
     save(); closeModal(); render(); toast('Salvat ✓');
     const oreC=state.ore.filter(o=>o.elevId===e.id && o.tip==='C' && o.regim!==regNou);
@@ -2418,6 +2443,7 @@ function openSettings(){
     <div class="field"><label>Titlul aplicației</label><input type="text" id="s-titlu" value="${esc(s.titlu)}"></div>
     <div class="field"><label>Școala (apare pe fișa zilnică)</label><input type="text" id="s-scoala" value="${esc(s.scoala)}"></div>
     <div class="field"><label>Instructor auto</label><input type="text" id="s-instr" value="${esc(s.instructor)}"></div>
+    <div class="field"><label>Numele tău în formularul de prezență (Google)</label><select id="s-finstr"><option value="">— alege —</option>${Object.keys(FORM_PREZ.cursant).map(n=>`<option ${instrFormular()===n?'selected':''}>${esc(n)}</option>`).join('')}</select></div>
     <div class="row"><div class="field" style="flex:1;"><label>Atestat — seria</label><input type="text" id="s-ats" value="${esc(s.atestatSeria)}"></div><div class="field" style="flex:1;"><label>Atestat — nr.</label><input type="text" id="s-atn" value="${esc(s.atestatNr)}"></div></div>
     <div class="row">
       <div class="field" style="flex:1;"><label>Ore obligatorii / elev</label><input type="number" id="s-ore" value="${s.oreNecesare}" min="1"></div>
@@ -2462,6 +2488,7 @@ function openSettings(){
     s.atestatSeria=b.querySelector('#s-ats').value.trim(); s.atestatNr=b.querySelector('#s-atn').value.trim();
     s.oreNecesare=Math.max(1,nr(b.querySelector('#s-ore').value)||30);
     s.kmPeOra=nr(b.querySelector('#s-km').value);
+    s.formInstructor=b.querySelector('#s-finstr').value;
     b.querySelectorAll('.s-norma').forEach(x=>{ const n=s.norme.find(y=>y.id===x.dataset.id); if(n) n[x.dataset.k]=nr(x.value); });
     s.valoareBon=nr(b.querySelector('#s-bon').value); s.simulatorSS=nr(b.querySelector('#s-sss').value); s.chestionarTotal=nr(b.querySelector('#s-cht').value)||26; s.chestionarMinim=nr(b.querySelector('#s-chm').value)||22; s.simulatorIP=nr(b.querySelector('#s-sip').value);
     const ascunse=[...b.querySelectorAll('.s-tab')].filter(x=>!x.checked).map(x=>x.value);
@@ -2742,6 +2769,7 @@ document.addEventListener('click', e=>{
       goTab('ore'); toast((eAzi&&acum!==p.oraStart?`Ora de început: ${acum} (acum; programat ${p.oraStart}). `:'')+(tipP==='C'?'Treci km la plecare și apasă „▶ Începe ora”.':'Apasă „▶ Începe ora”.'), 4000);
       setTimeout(()=>{ const k=document.getElementById('o-kmp'); if(k && tipP==='C') k.focus(); }, 80); break; }
     case 'ora-inchide': inchideOra(id); break;
+    case 'prezenta': trimitePrezenta(id); break;
     case 'wa-elev': trimiteElevului(id); break;
     case 'prog-nr': { ui.progNr=parseInt(a.dataset.v,10); document.querySelectorAll('[data-act="prog-nr"]').forEach(b=>b.classList.toggle('on', b===a)); completeazaFinalProg(); break; }
     case 'prog-edit': modificaProgramare(id); break;
