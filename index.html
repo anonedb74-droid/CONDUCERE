@@ -815,7 +815,7 @@ function numeFormular(e){ if(!e) return ''; if(e.numeFormular) return e.numeForm
   const pren=t.slice(1).filter(x=>!x.includes('.') && x.length>1); return [...pren, t[0]].join(' '); }
 function linkPrezenta(o){
   const e=elevById(o.elevId), ins=instrFormular(), ent=FORM_PREZ.cursant[ins];
-  const q=new URLSearchParams({usp:'pp_url'}); if(ins) q.set(FORM_PREZ.instr, ins); if(ent) q.set(ent, numeFormular(e));
+  const q=new URLSearchParams({usp:'pp_url'}); const cont=(state.settings.formCont||'').trim(); if(cont) q.set('authuser', cont); if(ins) q.set(FORM_PREZ.instr, ins); if(ent) q.set(ent, numeFormular(e));
   q.set(FORM_PREZ.data, o.data); if(o.ora) q.set(FORM_PREZ.ora, o.ora); q.set(FORM_PREZ.nr, String(Math.min(2,Math.max(1,Math.round(nr(o.nr)))))); q.set(FORM_PREZ.km, String(Math.round(nr(o.km))));
   return `https://docs.google.com/forms/d/e/${FORM_PREZ.id}/viewform?${q.toString()}`;
 }
@@ -2444,6 +2444,7 @@ function openSettings(){
     <div class="field"><label>Școala (apare pe fișa zilnică)</label><input type="text" id="s-scoala" value="${esc(s.scoala)}"></div>
     <div class="field"><label>Instructor auto</label><input type="text" id="s-instr" value="${esc(s.instructor)}"></div>
     <div class="field"><label>Numele tău în formularul de prezență (Google)</label><select id="s-finstr"><option value="">— alege —</option>${Object.keys(FORM_PREZ.cursant).map(n=>`<option ${instrFormular()===n?'selected':''}>${esc(n)}</option>`).join('')}</select></div>
+    <div class="field"><label>Contul școlii cu care trimiți formularul</label><input type="email" id="s-fcont" value="${esc(s.formCont||'')}" placeholder="ex: prenume.nume@ltavs.ro"><div class="small muted">Formularul se deschide direct cu acest cont (trebuie să fie adăugat în browser).</div></div>
     <div class="row"><div class="field" style="flex:1;"><label>Atestat — seria</label><input type="text" id="s-ats" value="${esc(s.atestatSeria)}"></div><div class="field" style="flex:1;"><label>Atestat — nr.</label><input type="text" id="s-atn" value="${esc(s.atestatNr)}"></div></div>
     <div class="row">
       <div class="field" style="flex:1;"><label>Ore obligatorii / elev</label><input type="number" id="s-ore" value="${s.oreNecesare}" min="1"></div>
@@ -2488,7 +2489,7 @@ function openSettings(){
     s.atestatSeria=b.querySelector('#s-ats').value.trim(); s.atestatNr=b.querySelector('#s-atn').value.trim();
     s.oreNecesare=Math.max(1,nr(b.querySelector('#s-ore').value)||30);
     s.kmPeOra=nr(b.querySelector('#s-km').value);
-    s.formInstructor=b.querySelector('#s-finstr').value;
+    s.formInstructor=b.querySelector('#s-finstr').value; s.formCont=(b.querySelector('#s-fcont').value||'').trim();
     b.querySelectorAll('.s-norma').forEach(x=>{ const n=s.norme.find(y=>y.id===x.dataset.id); if(n) n[x.dataset.k]=nr(x.value); });
     s.valoareBon=nr(b.querySelector('#s-bon').value); s.simulatorSS=nr(b.querySelector('#s-sss').value); s.chestionarTotal=nr(b.querySelector('#s-cht').value)||26; s.chestionarMinim=nr(b.querySelector('#s-chm').value)||22; s.simulatorIP=nr(b.querySelector('#s-sip').value);
     const ascunse=[...b.querySelectorAll('.s-tab')].filter(x=>!x.checked).map(x=>x.value);
