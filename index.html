@@ -687,6 +687,7 @@ function tabAzi(){
     ${bannerSync()}
     ${alerte}
     ${cardOreDeschise()}
+    ${state.masini.filter(m=>codMasina(m.id)).map(m=>`<div class="card"><div style="display:flex; justify-content:space-between; align-items:center; gap:8px; margin-bottom:10px;"><h3 style="margin:0;">🔗 ${esc(m.nr)} — mașină comună</h3><button class="btn btn-ghost" data-tab="masina">Detalii</button></div>${rezumatComun(m)}<div class="small muted" style="margin-top:6px;">Cod: ${esc(codMasina(m.id))}${comun.eroare?` · <span style="color:var(--danger);">⚠ jurnalul comun nu se poate citi (${esc(comun.eroare)})</span>`:''}</div></div>`).join('')}
     <div class="stats">
       <div class="stat"><div class="v">${el.length}</div><div class="l">Elevi</div></div>
       <div class="stat"><div class="v">${fmtNr(totC)}</div><div class="l">Ore conducere</div></div>
