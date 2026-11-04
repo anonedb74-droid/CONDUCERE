@@ -3055,6 +3055,27 @@ function publicaComun(){
     }
   }, 1500);
 }
+function rezumatComun(m){
+  const eu=euUid(), cheie=e=>(e.data||'')+' '+(e.ora||'');
+  const mele=state.ore.filter(o=>o.tip==='C' && o.masinaId===m.id && !o.deschisa).sort((a,b)=>cheie(b).localeCompare(cheie(a)));
+  const ultimaMea=mele[0]||null, dela=ultimaMea?cheie(ultimaMea):'';
+  const oreC=colegEv(m.id,'ora').filter(e=>!e.deschisa && cheie(e)>dela), deschiseC=colegEv(m.id,'ora').filter(e=>e.deschisa);
+  const alC=colegEv(m.id,'alim').filter(e=>(e.data||'')>=(ultimaMea?ultimaMea.data:''));
+  const h=oreC.reduce((q,e)=>q+nr(e.nr),0), km=oreC.reduce((q,e)=>q+nr(e.km),0), c=oreC.reduce((q,e)=>q+nr(e.consum),0), l=alC.reduce((q,e)=>q+nr(e.litri),0);
+  const cine=[...new Set([...oreC,...alC].map(e=>e.instructor||'celălalt instructor'))].join(', ')||'celălalt instructor';
+  const u=ultimaSosire(m.id), stoc=stocPana(m, todayISO());
+  const lasat = ultimaMea ? `De când ai lăsat-o tu — <b>${fmtData(ultimaMea.data)}${ultimaMea.ora?', '+adunaOre(ultimaMea.ora,nr(ultimaMea.nr)):''}</b>${ultimaMea.kmSosire?`, la <b>${esc(String(ultimaMea.kmSosire))} km</b>`:''}:` : 'Pe această mașină n-ai încă nicio oră încheiată. Ce a trecut celălalt instructor:';
+  const activ = (h||l) ? `<b>${esc(cine)}</b> a făcut <b>${fmtNr(h)} ${h===1?'oră':'ore'}</b> (${fmtNr(km)} km), a consumat <b>~${fmtNr(Math.round(c*10)/10)} l</b>${l?`, a alimentat <b>${fmtNr(l)} l</b>`:''}.` : 'celălalt instructor n-a trecut nicio oră și nicio alimentare.';
+  return `<div style="border:2px solid var(--infield); border-radius:10px; padding:12px 14px; background:#F7F9FB;">
+    <div style="font-size:15px;">${lasat} ${activ}</div>
+    ${deschiseC.length?`<div class="small" style="margin-top:4px;">⏱ ${esc(deschiseC[0].instructor||'Celălalt instructor')} are acum o oră în desfășurare (a plecat de la ${esc(String(deschiseC[0].kmPlecare||'?'))} km).</div>`:''}
+    <div class="row" style="gap:18px; margin-top:10px;">
+      <div><div class="small muted">KM LA BORD ACUM</div><div style="font-size:24px; font-weight:700;">${u?esc(String(u.kmSosire)):'—'}</div><div class="small muted">${u?`${fmtData(u.data)}${u.instructor?' · '+esc(u.instructor):' · tu'}`:''}</div></div>
+      <div><div class="small muted">ÎN REZERVOR (CALCULAT)</div><div style="font-size:24px; font-weight:700; color:${stoc<5?'var(--danger)':'var(--infield)'};">~${fmtNr(Math.round(stoc*10)/10)} l</div><div class="small muted">din alimentările și orele amândurora</div></div>
+    </div>
+    <div class="small muted" style="margin-top:6px;">Când programezi sau apeși „Începe ora”, km la plecare se propun de aici (${u?esc(String(u.kmSosire)):'—'}).</div>
+  </div>`;
+}
 function cardMasinaComuna(m){
   const c=codMasina(m.id);
   const titlu=`<div class="day-head" style="display:flex; align-items:center; gap:10px; flex-wrap:wrap;">🔗 Mașină comună cu alt instructor ${c?'<span class="pill pill-ok" style="text-transform:none; font-family:inherit; letter-spacing:0;">legată</span>':''}</div>`;
@@ -3074,7 +3095,10 @@ function cardMasinaComuna(m){
       <button class="btn btn-wa mic" data-act="comun-trimite" data-m="${m.id}">${ICON_WA} Trimite codul colegului</button>
       <button class="btn btn-ghost" data-act="comun-dezleaga" data-m="${m.id}">Dezleagă</button></div>
     <p class="small" style="margin:0 0 8px;">${colegi.length?`Legat cu: <b>${colegi.map(esc).join(', ')}</b>`:'Încă n-a apărut nimic de la celălalt instructor — după ce trece codul la el, orele și alimentările lui apar aici.'}${u?` · Ultimii km la sosire: <b>${esc(String(u.kmSosire))}</b> (${fmtData(u.data)}${u.instructor?', '+esc(u.instructor):', eu'})`:''}${comun.eroare?` · <span style="color:var(--danger);">⚠ Nu pot citi/scrie jurnalul comun (${esc(comun.eroare)}) — verifică regula din Firebase.</span>`:''}</p>
-    ${toate.length?`<div class="table-wrap"><table><thead><tr><th>Data</th><th>Ora</th><th>Instructor</th><th>Ce</th><th class="num">Km</th><th class="num">Combustibil</th></tr></thead><tbody>${toate.slice(0,40).map(rd).join('')}</tbody></table></div><p class="small muted" style="margin:6px 0 0;">Ultimele 3 săptămâni. Cu galben: ce a trecut celălalt instructor. Stocul din rezervor de mai sus ține cont de amândoi.</p>`:'<p class="small muted">Nicio oră sau alimentare în ultimele 3 săptămâni.</p>'}`;
+    ${rezumatComun(m)}
+    <details style="margin-top:8px;"><summary class="small" style="cursor:pointer;">Vezi toate înregistrările din ultimele 3 săptămâni</summary>
+    ${toate.length?`<div class="table-wrap"><table><thead><tr><th>Data</th><th>Ora</th><th>Instructor</th><th>Ce</th><th class="num">Km</th><th class="num">Combustibil</th></tr></thead><tbody>${toate.slice(0,40).map(rd).join('')}</tbody></table></div><p class="small muted" style="margin:6px 0 0;">Ultimele 3 săptămâni. Cu galben: ce a trecut celălalt instructor. Stocul din rezervor de mai sus ține cont de amândoi.</p>`:'<p class="small muted">Nicio oră sau alimentare în ultimele 3 săptămâni.</p>'}
+    </details>`;
 }
 function marcheazaModificat(){
   if(sync.suprim) return;
