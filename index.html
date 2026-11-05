@@ -2262,7 +2262,7 @@ function tabConsumLunar(){
         <button class="btn btn-secondary" data-act="pdf">📄 Salvează PDF</button>
       </div>${PRINT_HINT}</div>
       <div class="card"><div class="row" style="justify-content:space-between;"><div><b>Pentru administrator (Parc auto)</b><div class="small muted">Toate orele de conducere din ${LUNI[parseInt(luna.slice(5,7),10)].toLowerCase()}, pe toate mașinile: data, ora, SS/IP, nr. ore, km. Fără numele elevilor.</div></div>
-        <button class="btn btn-primary" data-act="export-parc">📤 Trimite orele lunii</button></div></div>
+        <button class="btn btn-secondary" data-act="export-parc">👁 Vezi și trimite orele lunii</button></div></div>
     </div>
     <div class="fisa">
       <div class="sc">${esc(s.scoala)}</div>
@@ -2522,6 +2522,25 @@ async function partajeazaSauDescarca(blob, filename, titlu){
   }catch(e){ if(e && e.name==='AbortError') return 'cancel'; }
   const url=URL.createObjectURL(blob); const a=document.createElement('a'); a.href=url; a.download=filename; document.body.appendChild(a); a.click(); a.remove(); setTimeout(()=>URL.revokeObjectURL(url),1000);
   return 'download';
+}
+function previzualizareParcAuto(){
+  const s=state.settings, luna=ui.consumLuna||todayISO().slice(0,7);
+  const ore=state.ore.filter(o=>o.tip==='C' && (o.data||'').slice(0,7)===luna).sort((a,b)=>(a.data+(a.ora||'')).localeCompare(b.data+(b.ora||'')));
+  if(!ore.length) return toast('Nicio oră de conducere în luna aleasă.');
+  const lunaNume=LUNI[parseInt(luna.slice(5,7),10)]+' '+luna.slice(0,4);
+  const pm={}; ore.forEach(o=>{ const k=nrMasina(o.masinaId)||'— fără mașină —'; const x=pm[k]||(pm[k]={ss:0,ip:0,km:0}); if(regimOra(o)==='IP') x.ip+=nr(o.nr); else x.ss+=nr(o.nr); x.km+=nr(o.km); });
+  const tO=ore.reduce((q,o)=>q+nr(o.nr),0), tK=ore.reduce((q,o)=>q+nr(o.km),0), faraMas=ore.filter(o=>!nrMasina(o.masinaId)).length;
+  const b=openModal(`<h3>Ce primește administratorul</h3>
+    <p class="small" style="margin-top:-4px;">Fișierul pentru <b>Parc auto</b> · instructor <b>${esc(s.instructor||'')}</b> · luna <b>${lunaNume}</b>. <b>Numele elevilor nu se trimit</b> — doar orele.</p>
+    <div class="table-wrap"><table><thead><tr><th>Mașina</th><th class="num">Ore SS</th><th class="num">Ore IP</th><th class="num">Km</th></tr></thead><tbody>${Object.entries(pm).map(([k,x])=>`<tr${k.startsWith('—')?' style="color:var(--danger);"':''}><td><b>${esc(k)}</b></td><td class="num">${fmtNr(x.ss)}</td><td class="num">${fmtNr(x.ip)}</td><td class="num">${fmtNr(x.km)}</td></tr>`).join('')}
+    <tr style="font-weight:700;"><td>Total</td><td class="num" colspan="2">${fmtNr(tO)} ore (${ore.length} înregistrări)</td><td class="num">${fmtNr(tK)}</td></tr></tbody></table></div>
+    <div class="table-wrap" style="max-height:45vh; overflow:auto; margin-top:10px;"><table><thead><tr><th>Nr.</th><th>Data</th><th>Ora</th><th class="num">Ore</th><th>Fel</th><th>Mașina</th><th class="num">Km</th></tr></thead><tbody>
+    ${ore.map((o,i)=>`<tr${nrMasina(o.masinaId)?'':' style="background:#fde2e1;"'}><td class="muted">${i+1}</td><td style="white-space:nowrap;">${fmtData(o.data)}</td><td>${esc(o.ora||'')}</td><td class="num">${fmtNr(nr(o.nr))}</td><td>${regimOra(o)||'SS'}</td><td>${esc(nrMasina(o.masinaId)||'—')}</td><td class="num">${o.deschisa?'<span class="pill pill-yellow">în desfășurare</span>':fmtNr(nr(o.km))}</td></tr>`).join('')}</tbody></table></div>
+    ${faraMas?`<p class="small" style="color:var(--danger);">⚠ ${faraMas} ${faraMas===1?'oră nu are':'ore nu au'} mașina aleasă (cu roșu) — administratorul nu le poate pune pe o mașină. Corectează-le în Ore → ✎.</p>`:''}
+    ${ore.some(o=>o.deschisa)?`<p class="small" style="color:#8A5A16;">⏱ Ai ore încă în desfășurare — închide-le întâi, altfel pleacă cu 0 km.</p>`:''}
+    <div class="row" style="justify-content:flex-end; margin-top:10px;"><button class="btn btn-ghost" id="pa-no">Închide</button><button class="btn btn-primary" id="pa-ok">📤 Trimite fișierul</button></div>`);
+  b.querySelector('#pa-no').onclick=closeModal;
+  b.querySelector('#pa-ok').onclick=()=>{ closeModal(); exportParcAuto(); };
 }
 async function exportParcAuto(){
   const s=state.settings, luna=ui.consumLuna||todayISO().slice(0,7);
@@ -2859,7 +2878,7 @@ document.addEventListener('click', e=>{
       window.print(); break; }
     case 'pdf': salveazaPDF(); break;
     case 'export-json': exportJson(); break;
-    case 'export-parc': exportParcAuto(); break;
+    case 'export-parc': previzualizareParcAuto(); break;
     case 'sync-info': modalCont(); break;
     case 'sync-in': closeModal(); intraCont(); break;
     case 'sync-nu': syncLocal.faraBanner=true; salveazaSyncLocal(); render(); break;
