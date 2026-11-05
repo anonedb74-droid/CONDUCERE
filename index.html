@@ -562,7 +562,10 @@ function luniCuDate(){
   // septembrie–iunie apar mereu; iulie/august doar dacă au ore
   return LUNI_AN.filter(m=> (m!==7 && m!==8) || set.has(m));
 }
-function intervalOrar(o){ return o.ora ? `${o.ora}–${adunaOre(o.ora, nr(o.nr))}` : ''; }
+/* Ora raportată (ARR / ISCTR): ora fixă în care a început ora reală — 10:35 → 10:00, ca să fii mereu în interiorul orei scrise */
+function oraFixa(hhmm){ const m=String(hhmm||'').match(/(\d{1,2})[:.](\d{2})/); return m ? pad2(+m[1])+':00' : ''; }
+function oraRaport(o){ if(!o) return ''; if(o.oraRaport) return o.oraRaport; if(!o.ora) return ''; return state.settings.oraFixa===false ? o.ora : oraFixa(o.ora); }
+function intervalOrar(o){ const r=oraRaport(o); return r ? `${r}–${adunaOre(r, nr(o.nr))}` : ''; }
 
 /* ---------------- ICONIȚE ---------------- */
 const ICONS = {
@@ -749,6 +752,7 @@ function tabOre(){
         <div class="field" style="flex:1 1 150px;"><label>Data</label><input type="date" id="o-data" value="${pre.data||todayISO()}"></div>
         <div class="field" style="flex:1 1 120px;"><label>Ora de început</label>
           <input type="time" id="o-ora" value="${ora}" list="intervale-list"><datalist id="intervale-list">${s.intervale.map(i=>`<option value="${i}">`).join('')}</datalist></div>
+        ${s.oraFixa===false?'':`<div class="field" style="flex:1 1 130px;"><label>Ora raportată (ARR)</label><input type="time" id="o-orar" step="3600" value="${esc(pre.oraRaport||'')}" placeholder="automat"><div class="small muted" id="o-orar-info"></div></div>`}
       </div>
       <div class="row" style="margin-top:12px;">
         <div class="field"><label>Tip</label><div class="seg" id="o-tip"><button type="button" data-tipval="C" class="${tip==='C'?'on':''}">Conducere</button><button type="button" data-tipval="S" class="${tip==='S'?'on':''}">Simulator</button></div><span class="small muted" id="o-sim"></span></div>
@@ -780,7 +784,7 @@ function tabOre(){
         <thead><tr><th>Data</th><th>Ora</th><th>Elev</th><th>Tip</th><th class="num">Ore</th><th class="num">Km</th><th></th></tr></thead>
         <tbody>${lista.map(o=>`<tr>
           <td style="white-space:nowrap;">${fmtData(o.data)}</td>
-          <td style="white-space:nowrap;">${o.ora||''}</td>
+          <td style="white-space:nowrap;">${oraRaport(o)}${o.ora&&oraRaport(o)!==o.ora?`<div class="small muted" title="Ora reală de început">real ${esc(o.ora)}</div>`:''}</td>
           <td>${esc(numeElev(o.elevId))}${o.ramaneLa?` <span class="pill pill-yellow" title="Elevul nu și-a însușit tema">↺ rămâne la tema ${o.ramaneLa}</span>`:""}${o.obs?`<div class="small muted">${esc(o.obs)}</div>`:''}</td>
           <td style="white-space:nowrap;">${pillOra(o)}${o.tip==='C'&&o.masinaId?`<div class="small muted">${esc(nrMasina(o.masinaId))}</div>`:''}</td>
           <td class="num">${fmtNr(nr(o.nr))}</td>
@@ -816,7 +820,7 @@ function numeFormular(e){ if(!e) return ''; if(e.numeFormular) return e.numeForm
 function linkPrezenta(o){
   const e=elevById(o.elevId), ins=instrFormular(), ent=FORM_PREZ.cursant[ins];
   const q=new URLSearchParams({usp:'pp_url'}); const cont=(state.settings.formCont||'').trim(); if(cont) q.set('authuser', cont); if(ins) q.set(FORM_PREZ.instr, ins); if(ent) q.set(ent, numeFormular(e));
-  q.set(FORM_PREZ.data, o.data); if(o.ora) q.set(FORM_PREZ.ora, o.ora); q.set(FORM_PREZ.nr, String(Math.min(2,Math.max(1,Math.round(nr(o.nr)))))); q.set(FORM_PREZ.km, String(Math.round(nr(o.km))));
+  q.set(FORM_PREZ.data, o.data); if(oraRaport(o)) q.set(FORM_PREZ.ora, oraRaport(o)); q.set(FORM_PREZ.nr, String(Math.min(2,Math.max(1,Math.round(nr(o.nr)))))); q.set(FORM_PREZ.km, String(Math.round(nr(o.km))));
   return `https://docs.google.com/forms/d/e/${FORM_PREZ.id}/viewform?${q.toString()}`;
 }
 function trimitePrezenta(id){
@@ -844,6 +848,9 @@ function infoOra(e, m){
 function initFormOra(){
   const nrEl=document.getElementById('o-nr'), kmEl=document.getElementById('o-km');
   if(!nrEl) return;
+  const orEl=document.getElementById('o-ora'), orrEl=document.getElementById('o-orar'), orInf=document.getElementById('o-orar-info');
+  const updOrar=()=>{ if(!orrEl) return; const a=oraFixa(orEl.value); orInf.innerHTML = orrEl.value ? 'pusă de tine' : (a?`automat: <b>${a}</b>${a!==orEl.value?' (ora fixă în care ai început)':''}`:'automat'); };
+  if(orEl && orrEl){ orEl.addEventListener('input',updOrar); orEl.addEventListener('change',updOrar); orrEl.addEventListener('input',updOrar); updOrar(); }
   const recalc=()=>{
     const tip=document.querySelector('#o-tip button.on').dataset.tipval;
     if(tip==='S'){ kmEl.value=0; kmEl.disabled=true; return; }
@@ -955,6 +962,11 @@ function salveazaOra(){
   if(!elevId) return toast('Alege elevul.');
   if(!data) return toast('Alege data.');
   if(nrO<=0) return toast('Numărul de ore trebuie să fie mai mare ca 0.');
+  const orrI=document.getElementById('o-orar'); const oraRaportMan=orrI&&orrI.value?oraFixa(orrI.value):'';
+  if(!ui.okSuprapus && state.settings.oraFixa!==false && ora){ const r0=oraRaportMan||oraFixa(ora), min=t=>{ const [h,m]=t.split(':').map(Number); return h*60+m; }, a0=min(r0), a1=a0+nrO*60;
+    const ciocnire=state.ore.find(o=>o.id!==ui.editOraId && o.data===data && oraRaport(o) && (()=>{ const b0=min(oraRaport(o)), b1=b0+nr(o.nr)*60; return a0<b1 && b0<a1; })());
+    if(ciocnire){ confirma(`La raportare, ora aceasta ar fi <b>${r0}–${adunaOre(r0,nrO)}</b>, dar în aceeași zi ai deja <b>${esc(numeElev(ciocnire.elevId))}</b> raportat <b>${intervalOrar(ciocnire)}</b>. Două ore raportate nu trebuie să se suprapună. O salvezi totuși? (Poți schimba „Ora raportată”.)`, ()=>{ ui.okSuprapus=true; salveazaOra(); }, 'Da, salvează'); return; } }
+  ui.okSuprapus=false;
   if(!ui.okPeste2){ const azi=state.ore.filter(o=>o.elevId===elevId && o.data===data && o.id!==ui.editOraId).reduce((a,o)=>a+nr(o.nr),0);
     if(azi+nrO>2){ confirma(`${esc(numeElev(elevId))} ar avea <b>${fmtNr(azi+nrO)} ore</b> pe ${fmtData(data)}. Un elev nu poate face mai mult de 2 ore pe zi. Le treci totuși?`, ()=>{ ui.okPeste2=true; salveazaOra(); }, 'Da, le trec'); return; } }
   ui.okPeste2=false;
@@ -980,10 +992,10 @@ function salveazaOra(){
   }
   if(ui.editOraId){
     const o=state.ore.find(x=>x.id===ui.editOraId);
-    Object.assign(o,{elevId,data,ora,tip,nr:nrO,km,obs,masinaId,regim,teme,ramaneLa,planTip,kmPlecare,kmSosire,deschisa});
+    Object.assign(o,{elevId,data,ora,tip,nr:nrO,km,obs,masinaId,regim,teme,ramaneLa,planTip,kmPlecare,kmSosire,deschisa,oraRaport:oraRaportMan});
     toast('Ora a fost modificată ✓');
   }else{
-    state.ore.push({id:uid(), elevId, data, ora, tip, nr:nrO, km, obs, masinaId, regim, teme, ramaneLa, planTip, kmPlecare, kmSosire, deschisa});
+    state.ore.push({id:uid(), elevId, data, ora, tip, nr:nrO, km, obs, masinaId, regim, teme, ramaneLa, planTip, kmPlecare, kmSosire, deschisa, oraRaport:oraRaportMan});
     if(ui.preOra && ui.preOra.progId){ const p=state.programari.find(x=>x.id===ui.preOra.progId); if(p) p.efectuata=true; }
     const st=statElev(elevId);
     toast(deschisa ? `Ora a început ✓ — la final treci km la sosire (sus, la „Ore în desfășurare”).` : `Adăugată ✓ — ${numeElev(elevId).split(' ')[0]}: ${fmtNr(st.total)} din ${state.settings.oreNecesare} ore`, 3200);
@@ -2107,10 +2119,10 @@ function construiesteCaiet(e, pana){
   let cum=0;
   const rows=ore.map(o=>{
     cum+=nr(o.nr);
-    const la = o.ora ? adunaOre(o.ora, nr(o.nr)) : '';
+    const or=oraRaport(o), la = or ? adunaOre(or, nr(o.nr)) : '';
     const km = o.tip==='S' ? '<td colspan="3" class="sim">SIMULATOR</td>'
       : `<td>${o.kmPlecare!==undefined&&o.kmPlecare!==''?esc(String(o.kmPlecare)):''}</td><td>${o.deschisa||o.kmSosire===undefined?'':esc(String(o.kmSosire))}</td><td>${o.deschisa?'':(o.kmPlecare!==undefined&&o.kmPlecare!==''||nr(o.km)?fmtNr(nr(o.km)):'')}</td>`;
-    return `<tr><td>${fmtData(o.data)}</td><td>${fmtNr(nr(o.nr))}</td><td>${o.ora||''}</td><td>${la}</td>${km}<td><b>${fmtNr(cum)}</b></td><td></td><td></td></tr>`;
+    return `<tr><td>${fmtData(o.data)}</td><td>${fmtNr(nr(o.nr))}</td><td>${or}</td><td>${la}</td>${km}<td><b>${fmtNr(cum)}</b></td><td></td><td></td></tr>`;
   });
   const gol='<tr><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr>';
   const pagini=[]; for(let i=0;i<Math.max(1,rows.length);i+=CAIET_RANDURI) pagini.push(rows.slice(i,i+CAIET_RANDURI));
@@ -2396,8 +2408,8 @@ function construiesteFoaie(data, masNr){
   </div>`;
   // ---- VERSO
   let rows=''; for(let i=0;i<18;i++){ const o=ore[i]; const e=o?elevById(o.elevId):null;
-    rows+= `<tr style="height:5.7mm;">${o?`<td style="font-size:6.3pt;">${esc(e?e.nume:'')}</td><td class="c">${esc(e?e.grupa||'':'')}</td><td class="c">${esc(e?e.registru||'':'')}</td><td class="c">${o.ora||''}</td><td class="c">${o.ora?adunaOre(o.ora,nr(o.nr)):''}</td><td class="c">${fmtNr(nr(o.km))}</td><td></td>`:'<td></td><td></td><td></td><td></td><td></td><td></td><td></td>'}</tr>`; }
-  const start=ore.length?ore[0].ora:'', ultim=ore[ore.length-1], sfarsit=ultim&&ultim.ora?adunaOre(ultim.ora,nr(ultim.nr)):'';
+    rows+= `<tr style="height:5.7mm;">${o?`<td style="font-size:6.3pt;">${esc(e?e.nume:'')}</td><td class="c">${esc(e?e.grupa||'':'')}</td><td class="c">${esc(e?e.registru||'':'')}</td><td class="c">${oraRaport(o)}</td><td class="c">${oraRaport(o)?adunaOre(oraRaport(o),nr(o.nr)):''}</td><td class="c">${fmtNr(nr(o.km))}</td><td></td>`:'<td></td><td></td><td></td><td></td><td></td><td></td><td></td>'}</tr>`; }
+  const start=ore.length?oraRaport(ore[0]):'', ultim=ore[ore.length-1], sfarsit=ultim&&oraRaport(ultim)?adunaOre(oraRaport(ultim),nr(ultim.nr)):'';
   const verso=`<div class="${cls}" style="${sty}">
     <table style="left:14.3mm; top:3.2mm; width:119.6mm;"><colgroup><col style="width:33.7mm"><col style="width:12mm"><col style="width:13.4mm"><col style="width:10.4mm"><col style="width:11.7mm"><col style="width:18mm"><col style="width:20.4mm"></colgroup>
       <tr style="height:11.1mm;"><th>Numele și prenumele cursantului</th><th>Nr. serie/ grupă</th><th>Nr. registru</th><th>De la ora</th><th>la ora</th><th>Km efectivi</th><th>Semnătura de confirmare a cursantului</th></tr>${rows}</table>
@@ -2506,6 +2518,7 @@ function openSettings(){
     <div class="field"><label>Titlul aplicației</label><input type="text" id="s-titlu" value="${esc(s.titlu)}"></div>
     <div class="field"><label>Școala (apare pe fișa zilnică)</label><input type="text" id="s-scoala" value="${esc(s.scoala)}"></div>
     <div class="field"><label>Instructor auto</label><input type="text" id="s-instr" value="${esc(s.instructor)}"></div>
+    <label style="display:flex; gap:8px; align-items:center; font-size:14px; cursor:pointer; margin:6px 0 10px;"><input type="checkbox" id="s-orafixa" ${s.oraFixa===false?'':'checked'} style="width:18px; height:18px;"> Raportez orele la <b>ora fixă</b> (ARR): 10:35 → 10:00 pe fișe, formular și rapoarte; ora reală rămâne în aplicație</label>
     <div class="field"><label>Numele tău în formularul de prezență (Google)</label><select id="s-finstr"><option value="">— alege —</option>${Object.keys(FORM_PREZ.cursant).map(n=>`<option ${instrFormular()===n?'selected':''}>${esc(n)}</option>`).join('')}</select></div>
     <div class="field"><label>Contul școlii cu care trimiți formularul</label><input type="email" id="s-fcont" value="${esc(s.formCont||'')}" placeholder="ex: prenume.nume@ltavs.ro"><div class="small muted">Formularul se deschide direct cu acest cont (trebuie să fie adăugat în browser).</div></div>
     <div class="row"><div class="field" style="flex:1;"><label>Atestat — seria</label><input type="text" id="s-ats" value="${esc(s.atestatSeria)}"></div><div class="field" style="flex:1;"><label>Atestat — nr.</label><input type="text" id="s-atn" value="${esc(s.atestatNr)}"></div></div>
@@ -2552,7 +2565,7 @@ function openSettings(){
     s.atestatSeria=b.querySelector('#s-ats').value.trim(); s.atestatNr=b.querySelector('#s-atn').value.trim();
     s.oreNecesare=Math.max(1,nr(b.querySelector('#s-ore').value)||30);
     s.kmPeOra=nr(b.querySelector('#s-km').value);
-    s.formInstructor=b.querySelector('#s-finstr').value; s.formCont=(b.querySelector('#s-fcont').value||'').trim();
+    s.oraFixa=b.querySelector('#s-orafixa').checked; s.formInstructor=b.querySelector('#s-finstr').value; s.formCont=(b.querySelector('#s-fcont').value||'').trim();
     b.querySelectorAll('.s-norma').forEach(x=>{ const n=s.norme.find(y=>y.id===x.dataset.id); if(n) n[x.dataset.k]=nr(x.value); });
     s.valoareBon=nr(b.querySelector('#s-bon').value); s.simulatorSS=nr(b.querySelector('#s-sss').value); s.chestionarTotal=nr(b.querySelector('#s-cht').value)||26; s.chestionarMinim=nr(b.querySelector('#s-chm').value)||22; s.simulatorIP=nr(b.querySelector('#s-sip').value);
     const ascunse=[...b.querySelectorAll('.s-tab')].filter(x=>!x.checked).map(x=>x.value);
@@ -2607,7 +2620,7 @@ function fisaExportParc(luna){
     <div style="font-size:12px; margin-top:4px;">Km bord la începutul lunii = km la plecare la prima mea oră din lună; la sfârșitul lunii = km la sosire la ultima mea oră. Diferența față de „km la orele mele” sunt km făcuți de alți șoferi/instructori pe aceeași mașină.</div>
     <div style="font-weight:700; font-size:15px; margin:16px 0 0;">Orele, una câte una</div>
     <table style="margin-top:6px;"><thead><tr><th style="width:6%;">Nr.</th><th>Data</th><th>Ora</th><th>Nr. ore</th><th>SS / IP</th><th>Mașina</th><th>Km bord la plecare</th><th>Km bord la sosire</th><th>Km parcurși</th></tr></thead><tbody>
-    ${ore.map((o,i)=>`<tr><td>${i+1}.</td><td>${fmtData(o.data)}</td><td>${esc(o.ora||'')}</td><td>${fmtNr(nr(o.nr))}</td><td>${regimOra(o)||'SS'}</td><td>${esc(nrMasina(o.masinaId)||'—')}</td><td>${(o.kmPlecare!==undefined&&o.kmPlecare!==''?esc(String(o.kmPlecare)):'—')}</td><td>${(o.kmSosire!==undefined&&o.kmSosire!==''&&!o.deschisa?esc(String(o.kmSosire)):'—')}</td><td>${fmtNr(nr(o.km))}</td></tr>`).join('')}
+    ${ore.map((o,i)=>`<tr><td>${i+1}.</td><td>${fmtData(o.data)}</td><td>${esc(oraRaport(o))}</td><td>${fmtNr(nr(o.nr))}</td><td>${regimOra(o)||'SS'}</td><td>${esc(nrMasina(o.masinaId)||'—')}</td><td>${(o.kmPlecare!==undefined&&o.kmPlecare!==''?esc(String(o.kmPlecare)):'—')}</td><td>${(o.kmSosire!==undefined&&o.kmSosire!==''&&!o.deschisa?esc(String(o.kmSosire)):'—')}</td><td>${fmtNr(nr(o.km))}</td></tr>`).join('')}
     <tr><td colspan="3" style="text-align:right;"><b>Total</b></td><td><b>${fmtNr(tS+tI)}</b></td><td></td><td></td><td></td><td></td><td><b>${fmtNr(tK)}</b></td></tr></tbody></table>
     <div style="font-size:12px; margin-top:4px;">SS = școala de șoferi · IP = instruire practică. Fișierul trimis nu conține numele elevilor.</div>
     <div class="meta" style="margin-top:30px;"><span>Instructor auto,<br>${esc(s.instructor)}<br><br>..............................</span></div>
@@ -2631,7 +2644,7 @@ function previzualizareParcAuto(){
     <div class="table-wrap"><table><thead><tr><th>Mașina</th><th class="num">Ore SS</th><th class="num">Ore IP</th><th class="num">Km bord început lună</th><th class="num">Km bord sfârșit lună</th><th class="num">Km la ore</th></tr></thead><tbody>${Object.entries(pm).map(([k,x])=>{ const kb=kmBordLuna(ore,k.startsWith('—')?'':k); return `<tr${k.startsWith('—')?' style="color:var(--danger);"':''}><td><b>${esc(k)}</b></td><td class="num">${fmtNr(x.ss)}</td><td class="num">${fmtNr(x.ip)}</td><td class="num">${kb.inceput===null?'—':kb.inceput}</td><td class="num">${kb.sfarsit===null?'—':kb.sfarsit}</td><td class="num">${fmtNr(x.km)}</td></tr>`; }).join('')}
     <tr style="font-weight:700;"><td>Total</td><td class="num" colspan="4">${fmtNr(tO)} ore (${ore.length} înregistrări)</td><td class="num">${fmtNr(tK)}</td></tr></tbody></table></div>
     <div class="table-wrap" style="max-height:45vh; overflow:auto; margin-top:10px;"><table><thead><tr><th>Nr.</th><th>Data</th><th>Ora</th><th class="num">Ore</th><th>Fel</th><th>Mașina</th><th class="num">Km plecare</th><th class="num">Km sosire</th><th class="num">Km</th></tr></thead><tbody>
-    ${ore.map((o,i)=>`<tr${nrMasina(o.masinaId)?'':' style="background:#fde2e1;"'}><td class="muted">${i+1}</td><td style="white-space:nowrap;">${fmtData(o.data)}</td><td>${esc(o.ora||'')}</td><td class="num">${fmtNr(nr(o.nr))}</td><td>${regimOra(o)||'SS'}</td><td>${esc(nrMasina(o.masinaId)||'—')}</td><td class="num">${(o.kmPlecare!==undefined&&o.kmPlecare!==''?esc(String(o.kmPlecare)):'—')}</td><td class="num">${(o.kmSosire!==undefined&&o.kmSosire!==''&&!o.deschisa?esc(String(o.kmSosire)):'—')}</td><td class="num">${o.deschisa?'<span class="pill pill-yellow">în desfășurare</span>':fmtNr(nr(o.km))}</td></tr>`).join('')}</tbody></table></div>
+    ${ore.map((o,i)=>`<tr${nrMasina(o.masinaId)?'':' style="background:#fde2e1;"'}><td class="muted">${i+1}</td><td style="white-space:nowrap;">${fmtData(o.data)}</td><td>${esc(oraRaport(o))}</td><td class="num">${fmtNr(nr(o.nr))}</td><td>${regimOra(o)||'SS'}</td><td>${esc(nrMasina(o.masinaId)||'—')}</td><td class="num">${(o.kmPlecare!==undefined&&o.kmPlecare!==''?esc(String(o.kmPlecare)):'—')}</td><td class="num">${(o.kmSosire!==undefined&&o.kmSosire!==''&&!o.deschisa?esc(String(o.kmSosire)):'—')}</td><td class="num">${o.deschisa?'<span class="pill pill-yellow">în desfășurare</span>':fmtNr(nr(o.km))}</td></tr>`).join('')}</tbody></table></div>
     ${faraMas?`<p class="small" style="color:var(--danger);">⚠ ${faraMas} ${faraMas===1?'oră nu are':'ore nu au'} mașina aleasă (cu roșu) — administratorul nu le poate pune pe o mașină. Corectează-le în Ore → ✎.</p>`:''}
     ${ore.some(o=>o.deschisa)?`<p class="small" style="color:#8A5A16;">⏱ Ai ore încă în desfășurare — închide-le întâi, altfel pleacă cu 0 km.</p>`:''}
     <div class="row" style="justify-content:flex-end; margin-top:10px; gap:6px;"><button class="btn btn-ghost" id="pa-no">Închide</button><button class="btn btn-secondary" id="pa-pdf">📄 Salvează PDF</button><button class="btn btn-secondary" id="pa-docx">📝 Word</button><button class="btn btn-primary" id="pa-ok">📤 Trimite fișierul</button></div>`);
@@ -2648,7 +2661,7 @@ async function exportParcAuto(){
   const faraMas=ore.filter(o=>!nrMasina(o.masinaId)).length;
   const date={tip:'export-ore-conducere', versiune:1, aplicatie:'Școala de șoferi', instructor:s.instructor, scoala:s.scoala, luna, generat:new Date().toISOString(),
     masini:[...new Set(ore.map(o=>nrMasina(o.masinaId)).filter(Boolean))].map(n=>{ const kb=kmBordLuna(ore,n); return {masina:n, kmInceputLuna:kb.inceput, kmSfarsitLuna:kb.sfarsit}; }),
-    ore:ore.map(o=>({id:o.id, data:o.data, ora:o.ora||'', nrOre:nr(o.nr), regim:regimOra(o)||'SS', masina:nrMasina(o.masinaId), km:nr(o.km), kmPlecare:o.kmPlecare??'', kmSosire:o.deschisa?'':(o.kmSosire??'')}))};
+    ore:ore.map(o=>({id:o.id, data:o.data, ora:oraRaport(o), oraReala:o.ora||'', nrOre:nr(o.nr), regim:regimOra(o)||'SS', masina:nrMasina(o.masinaId), km:nr(o.km), kmPlecare:o.kmPlecare??'', kmSosire:o.deschisa?'':(o.kmSosire??'')}))};
   const slug=String(s.instructor||'instructor').normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^A-Za-z0-9]+/g,'-').replace(/^-|-$/g,'');
   const nume=`ore-conducere-${luna}-${slug}.json`;
   const r=await partajeazaSauDescarca(new Blob([JSON.stringify(date,null,1)],{type:'application/json'}), nume, 'Ore conducere '+luna);
@@ -2819,7 +2832,7 @@ async function exportXlsx(){
   const add=(name, aoa, cols)=>{ const ws=XLSX.utils.aoa_to_sheet(aoa,{dateNF:'dd/mm/yyyy'}); if(cols) ws['!cols']=cols.map(w=>({wch:w})); XLSX.utils.book_append_sheet(wb, ws, name); };
   const ore=state.ore.filter(o=>ids.has(o.elevId)).sort((a,b)=>a.data.localeCompare(b.data)||(a.ora||'').localeCompare(b.ora||''));
   add('Ore', [['ELEV','Data','Ora','Nr. ore Simulator','Nr. ore Conducere','SS/IP','Mașina','Km','Consum (l)','Luna','Observații'],
-    ...ore.map(o=>[numeElev(o.elevId), D(o.data), o.ora, o.tip==='S'?nr(o.nr):'', o.tip==='C'?nr(o.nr):'', regimOra(o), o.tip==='C'?nrMasina(o.masinaId):'', o.tip==='C'?nr(o.km):'', o.tip==='C'?Math.round(consumOra(o)*100)/100:'', lunaDin(o.data), o.obs||''])], [34,12,8,10,10,7,12,8,10,6,30]);
+    ...ore.map(o=>[numeElev(o.elevId), D(o.data), oraRaport(o), o.tip==='S'?nr(o.nr):'', o.tip==='C'?nr(o.nr):'', regimOra(o), o.tip==='C'?nrMasina(o.masinaId):'', o.tip==='C'?nr(o.km):'', o.tip==='C'?Math.round(consumOra(o)*100)/100:'', lunaDin(o.data), o.obs||''])], [34,12,8,10,10,7,12,8,10,6,30]);
   const cz=[['NO','ELEV','CLASA','PREGĂTIRE','Ore Simulator','Ore Conducere','Total Ore B','Km B','Rămase']]; let T=[0,0,0,0,0];
   el.forEach((e,i)=>{ const s=statElev(e.id); cz.push([i+1,e.nume,e.clasa,e.regim||'SS',s.s,s.c,s.total,s.km,s.ramase]); T=[T[0]+s.s,T[1]+s.c,T[2]+s.total,T[3]+s.km,T[4]+s.ramase]; });
   cz.push(['TOTAL','','','',...T]);
