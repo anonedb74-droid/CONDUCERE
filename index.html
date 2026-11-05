@@ -2272,10 +2272,11 @@ function construiesteJurnalComun(m, luna){
     let dif=''; if(kp!==null && prev!==null){ const d=kp-prev; dif = d===0 ? '0' : `<b style="color:${d<0?'#c00':'#8A5A16'};">${d>0?'+':''}${fmtNr(d)}</b>`; }
     if(ks!==null) prev=ks;
     if(trece(e)) rd.push({e,kp,ks,dif}); });
+  rd.forEach((r,i)=>r.n=i+1); rd.reverse(); // cea mai recentă oră sus
   const st0=stocLa(m,de), st1=st0+T.l-T.c;
   const ini=n=>`<span title="${esc(n)}">${esc(initiale(n))}</span>`;
   const legenda=Object.keys(per).map(n=>`<b>${esc(initiale(n))}</b> = ${esc(n)}`).join(' · ');
-  const alF=alim.filter(trece);
+  const alF=alim.filter(trece).map((e,i)=>({...e,_n:i+1})).reverse();
   return `<div class="fisa">
     <div class="sc">${esc(s.scoala)}</div>
     <div class="tt" style="margin-bottom:4px;">Jurnalul mașinii ${esc(m.nr)} — luna ${lunaNume}</div>
@@ -2286,10 +2287,10 @@ function construiesteJurnalComun(m, luna){
     <table style="margin-top:8px;"><tbody><tr><td class="nume">Km bord la începutul lunii: <b>${kmI===null?'—':kmI}</b></td><td class="nume">Km bord la sfârșitul lunii: <b>${kmF===null?'—':kmF}</b></td><td class="nume">Pe bord: <b>${kmI!==null&&kmF!==null?fmtNr(kmF-kmI):'—'} km</b></td><td class="nume">Rezervor: <b>${fmtNr(Math.round(st0*10)/10)} → ${fmtNr(Math.round(st1*10)/10)} l</b></td></tr></tbody></table>
     <div style="font-weight:700; font-size:15px; margin:16px 0 0;">Alimentări</div>
     <table style="margin-top:6px;"><thead><tr><th style="width:6%;">Nr.</th><th>Data</th><th>Instructor</th><th>Sursa</th><th>Nr. bonuri</th><th>Litri</th></tr></thead>
-    <tbody>${alF.length?alF.map((e,i)=>`<tr><td>${i+1}.</td><td>${fmtData(e.data)}</td><td><b>${ini(nume(e))}</b></td><td>${e.sursa==='magazie'?'Magazie':'BCF'}</td><td>${e.bcf||'—'}</td><td>${fmtNr(nr(e.litri))}</td></tr>`).join('')+`<tr><td colspan="5" style="text-align:right;"><b>Total</b></td><td><b>${fmtNr(alF.reduce((q,e)=>q+nr(e.litri),0))}</b></td></tr>`:'<tr><td colspan="6">Nicio alimentare în această lună.</td></tr>'}</tbody></table>
-    <div style="font-weight:700; font-size:15px; margin:16px 0 0;">Orele, în ordinea efectuării</div>
+    <tbody>${alF.length?alF.map(e=>`<tr><td>${e._n}.</td><td>${fmtData(e.data)}</td><td><b>${ini(nume(e))}</b></td><td>${e.sursa==='magazie'?'Magazie':'BCF'}</td><td>${e.bcf||'—'}</td><td>${fmtNr(nr(e.litri))}</td></tr>`).join('')+`<tr><td colspan="5" style="text-align:right;"><b>Total</b></td><td><b>${fmtNr(alF.reduce((q,e)=>q+nr(e.litri),0))}</b></td></tr>`:'<tr><td colspan="6">Nicio alimentare în această lună.</td></tr>'}</tbody></table>
+    <div style="font-weight:700; font-size:15px; margin:16px 0 0;">Orele, în ordinea efectuării — cea mai recentă sus</div>
     <table style="margin-top:6px;"><thead><tr><th style="width:5%;">Nr.</th><th>Data</th><th>Ora</th><th>Instr.</th><th>Fel</th><th>Nr. ore</th><th>Km plecare</th><th>Km sosire</th><th>Km parcurși</th><th>Consum (l)</th><th>Km între ore</th></tr></thead>
-    <tbody>${rd.length?rd.map((r,i)=>`<tr><td>${i+1}.</td><td>${fmtData(r.e.data)}</td><td style="white-space:nowrap;">${esc(r.e.ora||'')}${r.e.ora?'–'+adunaOre(r.e.ora,nr(r.e.nr)):''}</td><td><b>${ini(nume(r.e))}</b></td><td>${esc(r.e.regim||'')}</td><td>${fmtNr(nr(r.e.nr))}${r.e.deschisa?' ⏱':''}</td><td>${r.kp===null?'—':r.kp}</td><td>${r.ks===null?'—':r.ks}</td><td>${r.e.deschisa?'—':fmtNr(nr(r.e.km))}</td><td>${fmtNr(nr(r.e.consum))}</td><td>${r.dif}</td></tr>`).join(''):'<tr><td colspan="11">Nicio oră în această lună.</td></tr>'}</tbody></table>
+    <tbody>${rd.length?rd.map(r=>`<tr><td>${r.n}.</td><td>${fmtData(r.e.data)}</td><td style="white-space:nowrap;">${esc(r.e.ora||'')}${r.e.ora?'–'+adunaOre(r.e.ora,nr(r.e.nr)):''}</td><td><b>${ini(nume(r.e))}</b></td><td>${esc(r.e.regim||'')}</td><td>${fmtNr(nr(r.e.nr))}${r.e.deschisa?' ⏱':''}</td><td>${r.kp===null?'—':r.kp}</td><td>${r.ks===null?'—':r.ks}</td><td>${r.e.deschisa?'—':fmtNr(nr(r.e.km))}</td><td>${fmtNr(nr(r.e.consum))}</td><td>${r.dif}</td></tr>`).join(''):'<tr><td colspan="11">Nicio oră în această lună.</td></tr>'}</tbody></table>
     <div style="font-size:12px; margin-top:4px;"><b>Km între ore</b> = câți km a mers mașina <b>fără să fie trecuți la nicio oră</b>, între sfârșitul orei de dinainte (al oricărui instructor) și începutul acesteia. <b>0</b> = totul se leagă; <b style="color:#8A5A16;">+ km</b> = drum în afara orelor (la alimentare, service, deplasare); <b style="color:#c00;">minus</b> = greșeală la km scriși.</div>
     <div class="meta" style="margin-top:30px;">${(filtru==='all'?Object.keys(per).length?Object.keys(per):[s.instructor||'']:[filtru]).map(n=>`<span>Instructor auto,<br>${esc(n)}<br><br>..............................</span>`).join('')}</div>
   </div>`;
