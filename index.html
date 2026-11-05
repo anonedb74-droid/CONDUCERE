@@ -2523,6 +2523,11 @@ async function partajeazaSauDescarca(blob, filename, titlu){
   const url=URL.createObjectURL(blob); const a=document.createElement('a'); a.href=url; a.download=filename; document.body.appendChild(a); a.click(); a.remove(); setTimeout(()=>URL.revokeObjectURL(url),1000);
   return 'download';
 }
+function kmBordLuna(ore, masNr){
+  const l=ore.filter(o=>(nrMasina(o.masinaId)||'')===masNr);
+  const p=l.filter(o=>o.kmPlecare!==undefined && o.kmPlecare!=='').map(o=>nr(o.kmPlecare)), q=l.filter(o=>!o.deschisa && o.kmSosire!==undefined && o.kmSosire!=='').map(o=>nr(o.kmSosire));
+  return {inceput:p.length?Math.min(...p):null, sfarsit:q.length?Math.max(...q):null};
+}
 function fisaExportParc(luna){
   const s=state.settings, ore=state.ore.filter(o=>o.tip==='C' && (o.data||'').slice(0,7)===luna).sort((a,b)=>(a.data+(a.ora||'')).localeCompare(b.data+(b.ora||'')));
   const lunaNume=LUNI[parseInt(luna.slice(5,7),10)]+' '+luna.slice(0,4);
@@ -2533,9 +2538,10 @@ function fisaExportParc(luna){
     <div class="tt" style="margin-bottom:4px;">Ore de conducere trimise administratorului (Parc auto)</div>
     <div style="text-align:center; font-size:16px; margin-bottom:10px;">luna <b>${lunaNume}</b></div>
     <div class="meta"><span>Instructor auto: <b>${esc(s.instructor)}</b></span><span>Generat: <b>${fmtData(todayISO())}</b></span></div>
-    <table><thead><tr><th>Mașina</th><th>Ore SS</th><th>Ore IP</th><th>Total ore</th><th>Km</th></tr></thead><tbody>
-    ${Object.entries(pm).map(([k,x])=>`<tr><td><b>${esc(k)}</b></td><td>${fmtNr(x.ss)}</td><td>${fmtNr(x.ip)}</td><td>${fmtNr(x.ss+x.ip)}</td><td>${fmtNr(x.km)}</td></tr>`).join('')}
-    <tr><td><b>Total</b></td><td><b>${fmtNr(tS)}</b></td><td><b>${fmtNr(tI)}</b></td><td><b>${fmtNr(tS+tI)}</b></td><td><b>${fmtNr(tK)}</b></td></tr></tbody></table>
+    <table><thead><tr><th>Mașina</th><th>Ore SS</th><th>Ore IP</th><th>Total ore</th><th>Km bord la începutul lunii</th><th>Km bord la sfârșitul lunii</th><th>Km la orele mele</th></tr></thead><tbody>
+    ${Object.entries(pm).map(([k,x])=>{ const kb=kmBordLuna(ore,k==='fără mașină'?'':k); return `<tr><td><b>${esc(k)}</b></td><td>${fmtNr(x.ss)}</td><td>${fmtNr(x.ip)}</td><td>${fmtNr(x.ss+x.ip)}</td><td>${kb.inceput===null?'—':kb.inceput}</td><td>${kb.sfarsit===null?'—':kb.sfarsit}</td><td>${fmtNr(x.km)}</td></tr>`; }).join('')}
+    <tr><td><b>Total</b></td><td><b>${fmtNr(tS)}</b></td><td><b>${fmtNr(tI)}</b></td><td><b>${fmtNr(tS+tI)}</b></td><td></td><td></td><td><b>${fmtNr(tK)}</b></td></tr></tbody></table>
+    <div style="font-size:12px; margin-top:4px;">Km bord la începutul lunii = km la plecare la prima mea oră din lună; la sfârșitul lunii = km la sosire la ultima mea oră. Diferența față de „km la orele mele” sunt km făcuți de alți șoferi/instructori pe aceeași mașină.</div>
     <div style="font-weight:700; font-size:15px; margin:16px 0 0;">Orele, una câte una</div>
     <table style="margin-top:6px;"><thead><tr><th style="width:6%;">Nr.</th><th>Data</th><th>Ora</th><th>Nr. ore</th><th>SS / IP</th><th>Mașina</th><th>Km bord la plecare</th><th>Km bord la sosire</th><th>Km parcurși</th></tr></thead><tbody>
     ${ore.map((o,i)=>`<tr><td>${i+1}.</td><td>${fmtData(o.data)}</td><td>${esc(o.ora||'')}</td><td>${fmtNr(nr(o.nr))}</td><td>${regimOra(o)||'SS'}</td><td>${esc(nrMasina(o.masinaId)||'—')}</td><td>${(o.kmPlecare!==undefined&&o.kmPlecare!==''?esc(String(o.kmPlecare)):'—')}</td><td>${(o.kmSosire!==undefined&&o.kmSosire!==''&&!o.deschisa?esc(String(o.kmSosire)):'—')}</td><td>${fmtNr(nr(o.km))}</td></tr>`).join('')}
@@ -2559,8 +2565,8 @@ function previzualizareParcAuto(){
   const tO=ore.reduce((q,o)=>q+nr(o.nr),0), tK=ore.reduce((q,o)=>q+nr(o.km),0), faraMas=ore.filter(o=>!nrMasina(o.masinaId)).length;
   const b=openModal(`<h3>Ce primește administratorul</h3>
     <p class="small" style="margin-top:-4px;">Fișierul pentru <b>Parc auto</b> · instructor <b>${esc(s.instructor||'')}</b> · luna <b>${lunaNume}</b>. <b>Numele elevilor nu se trimit</b> — doar orele.</p>
-    <div class="table-wrap"><table><thead><tr><th>Mașina</th><th class="num">Ore SS</th><th class="num">Ore IP</th><th class="num">Km</th></tr></thead><tbody>${Object.entries(pm).map(([k,x])=>`<tr${k.startsWith('—')?' style="color:var(--danger);"':''}><td><b>${esc(k)}</b></td><td class="num">${fmtNr(x.ss)}</td><td class="num">${fmtNr(x.ip)}</td><td class="num">${fmtNr(x.km)}</td></tr>`).join('')}
-    <tr style="font-weight:700;"><td>Total</td><td class="num" colspan="2">${fmtNr(tO)} ore (${ore.length} înregistrări)</td><td class="num">${fmtNr(tK)}</td></tr></tbody></table></div>
+    <div class="table-wrap"><table><thead><tr><th>Mașina</th><th class="num">Ore SS</th><th class="num">Ore IP</th><th class="num">Km bord început lună</th><th class="num">Km bord sfârșit lună</th><th class="num">Km la ore</th></tr></thead><tbody>${Object.entries(pm).map(([k,x])=>{ const kb=kmBordLuna(ore,k.startsWith('—')?'':k); return `<tr${k.startsWith('—')?' style="color:var(--danger);"':''}><td><b>${esc(k)}</b></td><td class="num">${fmtNr(x.ss)}</td><td class="num">${fmtNr(x.ip)}</td><td class="num">${kb.inceput===null?'—':kb.inceput}</td><td class="num">${kb.sfarsit===null?'—':kb.sfarsit}</td><td class="num">${fmtNr(x.km)}</td></tr>`; }).join('')}
+    <tr style="font-weight:700;"><td>Total</td><td class="num" colspan="4">${fmtNr(tO)} ore (${ore.length} înregistrări)</td><td class="num">${fmtNr(tK)}</td></tr></tbody></table></div>
     <div class="table-wrap" style="max-height:45vh; overflow:auto; margin-top:10px;"><table><thead><tr><th>Nr.</th><th>Data</th><th>Ora</th><th class="num">Ore</th><th>Fel</th><th>Mașina</th><th class="num">Km plecare</th><th class="num">Km sosire</th><th class="num">Km</th></tr></thead><tbody>
     ${ore.map((o,i)=>`<tr${nrMasina(o.masinaId)?'':' style="background:#fde2e1;"'}><td class="muted">${i+1}</td><td style="white-space:nowrap;">${fmtData(o.data)}</td><td>${esc(o.ora||'')}</td><td class="num">${fmtNr(nr(o.nr))}</td><td>${regimOra(o)||'SS'}</td><td>${esc(nrMasina(o.masinaId)||'—')}</td><td class="num">${(o.kmPlecare!==undefined&&o.kmPlecare!==''?esc(String(o.kmPlecare)):'—')}</td><td class="num">${(o.kmSosire!==undefined&&o.kmSosire!==''&&!o.deschisa?esc(String(o.kmSosire)):'—')}</td><td class="num">${o.deschisa?'<span class="pill pill-yellow">în desfășurare</span>':fmtNr(nr(o.km))}</td></tr>`).join('')}</tbody></table></div>
     ${faraMas?`<p class="small" style="color:var(--danger);">⚠ ${faraMas} ${faraMas===1?'oră nu are':'ore nu au'} mașina aleasă (cu roșu) — administratorul nu le poate pune pe o mașină. Corectează-le în Ore → ✎.</p>`:''}
@@ -2578,6 +2584,7 @@ async function exportParcAuto(){
   if(!ore.length) return toast('Nicio oră de conducere în luna aleasă.');
   const faraMas=ore.filter(o=>!nrMasina(o.masinaId)).length;
   const date={tip:'export-ore-conducere', versiune:1, aplicatie:'Școala de șoferi', instructor:s.instructor, scoala:s.scoala, luna, generat:new Date().toISOString(),
+    masini:[...new Set(ore.map(o=>nrMasina(o.masinaId)).filter(Boolean))].map(n=>{ const kb=kmBordLuna(ore,n); return {masina:n, kmInceputLuna:kb.inceput, kmSfarsitLuna:kb.sfarsit}; }),
     ore:ore.map(o=>({id:o.id, data:o.data, ora:o.ora||'', nrOre:nr(o.nr), regim:regimOra(o)||'SS', masina:nrMasina(o.masinaId), km:nr(o.km), kmPlecare:o.kmPlecare??'', kmSosire:o.deschisa?'':(o.kmSosire??'')}))};
   const slug=String(s.instructor||'instructor').normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^A-Za-z0-9]+/g,'-').replace(/^-|-$/g,'');
   const nume=`ore-conducere-${luna}-${slug}.json`;
