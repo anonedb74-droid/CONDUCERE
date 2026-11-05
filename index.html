@@ -1777,7 +1777,7 @@ async function salveazaPDF(foiOpt, numeOpt){
     if(i<foi.length-1){ const br=document.createElement('div'); br.className='html2pdf__page-break'; box.appendChild(br); }
   });
   const v=ui.fisaVedere||'monit';
-  const feE=elevById(ui.fisaElevId); const nume = numeOpt || (v==='situatie' && currentTab==='fisa' ? 'Situatie-lunara-'+(ui.consumLuna||todayISO().slice(0,7)) : currentTab==='scolarizare' ? 'Fisa-scolarizare-'+((elevById(ui.scElevId)||{nume:'elev'}).nume.replace(/[^\wăâîșțĂÂÎȘȚ]+/g,'-')) : v==='caiet' ? 'Caiet-cursant-'+(ui.fisaElevId==='all'||!feE?'toti-elevii':feE.nume.replace(/[^\wăâîșțĂÂÎȘȚ]+/g,'-'))+'-'+(ui.fisaElevPana||todayISO()) : v==='km' ? 'Verificare-km-'+(ui.fisaData||todayISO()).slice(0,7) : v==='elev' ? 'Fisa-individuala-'+(ui.fisaElevId==='all'||!feE?'toti-elevii':feE.nume.replace(/[^\wăâîșțĂÂÎȘȚ]+/g,'-'))+'-'+(ui.fisaElevPana||todayISO()) : v==='zilnic' ? 'Raport-zilnic-'+(ui.rzMod==='luna'?(ui.fisaData||todayISO()).slice(0,7):(ui.fisaData||todayISO())) : v==='consum' ? 'Consum-'+(ui.consumLuna||todayISO().slice(0,7)) : v==='foaie' ? 'Foaie-parcurs-'+(ui.fisaData||todayISO()) : 'Monitorizare-ore-'+(ui.fisaMod==='lista'?(ui.fisaDe||'')+'_'+(ui.fisaPana||''):(ui.fisaData||todayISO())))+'.pdf';
+  const feE=elevById(ui.fisaElevId); const nume = numeOpt || (v==='comun' && currentTab==='fisa' ? 'Jurnal-masina-comuna-'+(ui.consumLuna||todayISO().slice(0,7)) : v==='situatie' && currentTab==='fisa' ? 'Situatie-lunara-'+(ui.consumLuna||todayISO().slice(0,7)) : currentTab==='scolarizare' ? 'Fisa-scolarizare-'+((elevById(ui.scElevId)||{nume:'elev'}).nume.replace(/[^\wăâîșțĂÂÎȘȚ]+/g,'-')) : v==='caiet' ? 'Caiet-cursant-'+(ui.fisaElevId==='all'||!feE?'toti-elevii':feE.nume.replace(/[^\wăâîșțĂÂÎȘȚ]+/g,'-'))+'-'+(ui.fisaElevPana||todayISO()) : v==='km' ? 'Verificare-km-'+(ui.fisaData||todayISO()).slice(0,7) : v==='elev' ? 'Fisa-individuala-'+(ui.fisaElevId==='all'||!feE?'toti-elevii':feE.nume.replace(/[^\wăâîșțĂÂÎȘȚ]+/g,'-'))+'-'+(ui.fisaElevPana||todayISO()) : v==='zilnic' ? 'Raport-zilnic-'+(ui.rzMod==='luna'?(ui.fisaData||todayISO()).slice(0,7):(ui.fisaData||todayISO())) : v==='consum' ? 'Consum-'+(ui.consumLuna||todayISO().slice(0,7)) : v==='foaie' ? 'Foaie-parcurs-'+(ui.fisaData||todayISO()) : 'Monitorizare-ore-'+(ui.fisaMod==='lista'?(ui.fisaDe||'')+'_'+(ui.fisaPana||''):(ui.fisaData||todayISO())))+'.pdf';
   toast('Se creează PDF-ul…', 1500);
   try{
     const blob = await html2pdf().set({
@@ -1896,9 +1896,9 @@ function tabScolarizare(){
 }
 function tabFisa(){
   const v=ui.fisaVedere||'monit';
-  const opt=[['situatie','Situația lunară'],['zilnic','Raport zilnic (A4)'],['caiet','Fișa cursantului (SS / IP)'],['elev','Fișă individuală'],['km','Verificare km'],['monit','Monitorizare conducere'],['consum','Consum lunar'],['foaie','Foaie de parcurs']];
+  const opt=[['situatie','Situația lunară'],...(Object.keys(state.settings.masiniComune||{}).length?[['comun','Mașina comună']]:[]),['zilnic','Raport zilnic (A4)'],['caiet','Fișa cursantului (SS / IP)'],['elev','Fișă individuală'],['km','Verificare km'],['monit','Monitorizare conducere'],['consum','Consum lunar'],['foaie','Foaie de parcurs']];
   const seg=`<div class="seg" style="margin-bottom:14px;">${opt.map(([k,t])=>`<button type="button" data-act="fisa-tip" data-v="${k}" class="${v===k?'on':''}">${t}</button>`).join('')}</div>`;
-  const corp = v==='situatie' ? tabSituatieLunara() : v==='caiet' ? tabCaiet() : v==='km' ? tabVerificareKm() : v==='elev' ? tabFisaElev() : v==='foaie' ? tabFoaie() : v==='consum' ? tabConsumLunar() : v==='zilnic' ? tabRaportZilnic() : tabMonitorizare();
+  const corp = v==='comun' ? tabJurnalComun() : v==='situatie' ? tabSituatieLunara() : v==='caiet' ? tabCaiet() : v==='km' ? tabVerificareKm() : v==='elev' ? tabFisaElev() : v==='foaie' ? tabFoaie() : v==='consum' ? tabConsumLunar() : v==='zilnic' ? tabRaportZilnic() : tabMonitorizare();
   return `<div class="no-print">${seg}</div>` + corp;
 }
 function selMasinaFisa(cuToate){
@@ -2238,6 +2238,57 @@ function tabSituatieLunara(){
       </div><p class="small muted no-print" style="margin:8px 0 0;"><b>📝 Word</b> face un document .docx pe care îl poți modifica în Word înainte să-l tipărești sau să-l trimiți.</p></div>
     </div>
     ${construiesteSituatieLunara(luna)}`;
+}
+/* ---------------- JURNALUL MAȘINII COMUNE: orele și alimentările amândurora, în ordine cronologică ---------------- */
+function construiesteJurnalComun(m, luna){
+  const s=state.settings, de=`${luna}-01`, pana=`${luna}-31`, eu=euUid(), lunaNume=LUNI[parseInt(luna.slice(5,7),10)]+' '+luna.slice(0,4);
+  const ev=[...Object.values(evenimenteleMele(m)), ...Object.values(comun.cache[codMasina(m.id)]||{}).filter(e=>e && !e.sters && e.uid!==eu)]
+    .filter(e=>(e.data||'')>=de && (e.data||'')<=pana)
+    .sort((a,b)=>(a.data+' '+(a.tip==='alim'?'00:00':(a.ora||'99:99'))).localeCompare(b.data+' '+(b.tip==='alim'?'00:00':(b.ora||'99:99'))));
+  const nume=e=>e.uid===eu?(s.instructor||'eu'):(e.instructor||'alt instructor');
+  const per={}; let prev=null, kmI=null, kmF=null;
+  const rows=ev.map((e,i)=>{ const n=nume(e), x=per[n]||(per[n]={ore:0,km:0,c:0,l:0});
+    if(e.tip==='alim'){ x.l+=nr(e.litri); return `<tr><td>${i+1}.</td><td>${fmtData(e.data)}</td><td></td><td class="nume">${esc(n)}</td><td>Alimentare ${e.sursa==='magazie'?'magazie':'BCF'+(e.bcf?' ('+esc(e.bcf)+' bonuri)':'')}</td><td></td><td></td><td></td><td>+${fmtNr(nr(e.litri))}</td><td></td></tr>`; }
+    x.ore+=nr(e.nr); if(!e.deschisa){ x.km+=nr(e.km); x.c+=nr(e.consum); }
+    const kp=e.kmPlecare!==''&&e.kmPlecare!==undefined?nr(e.kmPlecare):null, ks=!e.deschisa&&e.kmSosire!==''&&e.kmSosire!==undefined?nr(e.kmSosire):null;
+    if(kp!==null && kmI===null) kmI=kp; if(ks!==null) kmF=ks;
+    let dif=''; if(kp!==null && prev!==null){ const d=kp-prev; dif=d===0?'0':(d>0?'+':'')+fmtNr(d); if(d!==0) dif=`<b style="color:${d<0?'#c00':'#8A5A16'};">${dif}</b>`; }
+    if(ks!==null) prev=ks;
+    return `<tr><td>${i+1}.</td><td>${fmtData(e.data)}</td><td style="white-space:nowrap;">${esc(e.ora||'')}${e.ora?'–'+adunaOre(e.ora,nr(e.nr)):''}</td><td class="nume">${esc(n)}</td><td>Conducere ${esc(e.regim||'')} · ${fmtNr(nr(e.nr))} h${e.deschisa?' (în desfășurare)':''}</td><td>${kp===null?'—':kp}</td><td>${ks===null?'—':ks}</td><td>${e.deschisa?'—':fmtNr(nr(e.km))}</td><td>−${fmtNr(nr(e.consum))}</td><td>${dif}</td></tr>`; }).join('');
+  const T=Object.values(per).reduce((q,x)=>({ore:q.ore+x.ore,km:q.km+x.km,c:q.c+x.c,l:q.l+x.l}),{ore:0,km:0,c:0,l:0});
+  const st0=stocLa(m,de), st1=st0+T.l-T.c;
+  return `<div class="fisa">
+    <div class="sc">${esc(s.scoala)}</div>
+    <div class="tt" style="margin-bottom:4px;">Jurnalul mașinii ${esc(m.nr)} — ore și alimentări, în ordine cronologică</div>
+    <div style="text-align:center; font-size:16px; margin-bottom:10px;">luna <b>${lunaNume}</b> · toți instructorii de pe mașină</div>
+    <table><thead><tr><th>Instructor</th><th>Ore</th><th>Km parcurși</th><th>Consum normat (l)</th><th>Alimentat (l)</th></tr></thead><tbody>
+    ${Object.entries(per).map(([n,x])=>`<tr><td class="nume"><b>${esc(n)}</b></td><td>${fmtNr(x.ore)}</td><td>${fmtNr(x.km)}</td><td>${fmtNr(Math.round(x.c*100)/100)}</td><td>${x.l?fmtNr(x.l):'—'}</td></tr>`).join('')}
+    <tr><td class="nume"><b>Total</b></td><td><b>${fmtNr(T.ore)}</b></td><td><b>${fmtNr(T.km)}</b></td><td><b>${fmtNr(Math.round(T.c*100)/100)}</b></td><td><b>${fmtNr(T.l)}</b></td></tr></tbody></table>
+    <table style="margin-top:8px;"><tbody><tr><td class="nume">Km bord la începutul lunii: <b>${kmI===null?'—':kmI}</b></td><td class="nume">Km bord la sfârșitul lunii: <b>${kmF===null?'—':kmF}</b></td><td class="nume">Pe bord: <b>${kmI!==null&&kmF!==null?fmtNr(kmF-kmI):'—'} km</b></td><td class="nume">Rezervor: <b>${fmtNr(Math.round(st0*10)/10)} → ${fmtNr(Math.round(st1*10)/10)} l</b></td></tr></tbody></table>
+    <div style="font-weight:700; font-size:15px; margin:16px 0 0;">Toate înregistrările, în ordinea efectuării</div>
+    <table style="margin-top:6px;"><thead><tr><th style="width:5%;">Nr.</th><th>Data</th><th>Ora</th><th>Instructor</th><th>Ce</th><th>Km plecare</th><th>Km sosire</th><th>Km</th><th>Combustibil (l)</th><th>Față de ora anterioară</th></tr></thead>
+    <tbody>${rows||'<tr><td colspan="10">Nicio oră sau alimentare în această lună.</td></tr>'}</tbody></table>
+    <div style="font-size:12px; margin-top:4px;">„Față de ora anterioară” = km la plecare minus km la sosire de la ora precedentă (oricare instructor). 0 = mașina n-a mers între ore; pozitiv = km făcuți în afara orelor (alt șofer, drum la alimentare, service); <span style="color:#c00;">negativ = greșeală de scriere</span>. Numele elevilor nu apar.</div>
+    <div class="meta" style="margin-top:30px;"><span>Instructor auto,<br>${esc(s.instructor)}<br><br>..............................</span></div>
+  </div>`;
+}
+function tabJurnalComun(){
+  const mas=state.masini.filter(m=>codMasina(m.id));
+  if(!mas.length) return gol('Nicio mașină comună', 'Leagă mașina cu celălalt instructor în Mașini → „🔗 Mașină comună”.');
+  const m=mas.find(x=>x.id===ui.fisaMasinaId)||mas[0], luna=ui.consumLuna||todayISO().slice(0,7);
+  return `
+    <div class="no-print">
+      <h2>Jurnalul mașinii comune</h2>
+      <p class="tab-desc">Orele tale și ale celuilalt instructor pe aceeași mașină, plus alimentările, în ordinea în care s-au făcut — cu km de bord la plecare și la sosire, consumul și rezervorul. Fără numele elevilor.</p>
+      <div class="card"><div class="row">
+        <div class="field"><label>Luna</label><input type="month" id="c-luna" value="${luna}"></div>
+        ${mas.length>1?`<div class="field"><label>Mașina</label><select id="f-mas">${mas.map(x=>`<option value="${x.id}" ${x.id===m.id?'selected':''}>${esc(x.nr)}</option>`).join('')}</select></div>`:''}
+        <button class="btn btn-primary" data-act="print">🖨 Tipărește</button>
+        <button class="btn btn-secondary" data-act="pdf">📄 Salvează PDF</button>
+        <button class="btn btn-secondary" data-act="docx">📝 Word (.docx)</button>
+      </div>${PRINT_HINT}</div>
+    </div>
+    ${construiesteJurnalComun(m, luna)}`;
 }
 function tabConsumLunar(){
   if(!state.masini.length) return gol('Nicio mașină','Adaugă mașinile în tabul Mașini.');
@@ -2910,7 +2961,7 @@ document.addEventListener('click', e=>{
       save(); render(); toast('Foaia de parcurs salvată ✓'); break; }
     case 'foaie-open': ui.fisaData=a.dataset.d; render(); document.getElementById('main').scrollTop=0; break;
     case 'foaie-del': e.stopPropagation(); confirma(`Ștergi foaia de parcurs din ${fmtData(a.dataset.d)}? Orele elevilor rămân.`, ()=>{ state.foi=state.foi.filter(x=>x.data!==a.dataset.d); save(); render(); }); break;
-    case 'docx': salveazaDocx(((ui.fisaVedere==='situatie')?'Situatie-lunara-'+(ui.consumLuna||todayISO().slice(0,7)):'Document')+'.docx'); break;
+    case 'docx': salveazaDocx(((ui.fisaVedere==='situatie')?'Situatie-lunara-'+(ui.consumLuna||todayISO().slice(0,7)):ui.fisaVedere==='comun'?'Jurnal-masina-comuna-'+(ui.consumLuna||todayISO().slice(0,7)):'Document')+'.docx'); break;
     case 'print': {
       window.print(); break; }
     case 'pdf': salveazaPDF(); break;
