@@ -1697,7 +1697,7 @@ function ccDeLa(c, m){ return c.de || ultimaAlimentare(m, todayISO()) || inceput
 function ccDate(){
   const c=ccSetari(), m=masinaById(c.masinaId); if(!m) return null;
   const de=ccDeLa(c,m), pana=todayISO();
-  const ore=state.ore.filter(o=>o.tip==='C' && o.masinaId===m.id && o.data>=de && o.data<=pana && (c.regim==='toate' || regimOra(o)===c.regim.toUpperCase()));
+  const ore=state.ore.filter(o=>o.tip==='C' && !o.deschisa && o.masinaId===m.id && o.data>=de && o.data<=pana && (c.regim==='toate' || regimOra(o)===c.regim.toUpperCase()));
   let km=0, h=0, ss=0, ip=0; ore.forEach(o=>{ km+=nr(o.km); h+=nr(o.nr); if(regimOra(o)==='IP') ip+=nr(o.nr); else ss+=nr(o.nr); });
   /* orele închise ale colegului pe mașina comună (din jurnalul comun) intră doar în acest calcul;
      în tabul Ore nu apar */
