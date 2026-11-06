@@ -1685,7 +1685,7 @@ function calcConsumPeOra(km, l100, ore){
   return {litri, peOra: nr(ore)>0 ? litri/nr(ore) : 0};
 }
 function ultimaAlimentare(m, pana){
-  return (m.alimentari||[]).filter(a=>a.data && a.data<=pana).map(a=>a.data).sort().pop()||'';
+  return [...(m.alimentari||[]), ...colegEv(m.id,'alim')].filter(a=>a.data && a.data<=pana).map(a=>a.data).sort().pop()||'';
 }
 function ccSetari(){
   const c=state.settings.calcConsum||(state.settings.calcConsum={});
@@ -1699,7 +1699,11 @@ function ccDate(){
   const de=ccDeLa(c,m), pana=todayISO();
   const ore=state.ore.filter(o=>o.tip==='C' && o.masinaId===m.id && o.data>=de && o.data<=pana && (c.regim==='toate' || regimOra(o)===c.regim.toUpperCase()));
   let km=0, h=0, ss=0, ip=0; ore.forEach(o=>{ km+=nr(o.km); h+=nr(o.nr); if(regimOra(o)==='IP') ip+=nr(o.nr); else ss+=nr(o.nr); });
-  return {c, m, de, pana, km, ore:h, ss, ip, n:ore.length};
+  /* orele închise ale colegului pe mașina comună (din jurnalul comun) intră doar în acest calcul;
+     în tabul Ore nu apar */
+  let hc=0; colegEv(m.id,'ora').filter(e=>!e.deschisa && e.data>=de && e.data<=pana).forEach(e=>{
+    hc+=nr(e.nr); h+=nr(e.nr); km+=nr(e.km); if(e.regim==='IP') ip+=nr(e.nr); else ss+=nr(e.nr); });
+  return {c, m, de, pana, km, ore:h, ss, ip, hc, n:ore.length};
 }
 function cardCalcConsum(){
   if(!state.masini.length) return '';
@@ -1725,7 +1729,7 @@ function rezCalcConsum(){
   g('cc-km').value=fmtNr(rot(d.km)); g('cc-ore').value=fmtNr(d.ore);
   g('cc-ora').value = (l100>0 && d.ore>0 && d.km>0) ? fmtNr(rot(calcConsumPeOra(d.km,l100,d.ore).peOra))+' l' : '—';
   const ua=ultimaAlimentare(d.m, todayISO());
-  g('cc-info').innerHTML = (!d.ore ? 'Nicio oră de conducere de la această dată. ' : !d.km ? 'Orele de la această dată nu au km trecuți. ' : `${d.ss?fmtNr(d.ss)+' h SS':''}${d.ss&&d.ip?' + ':''}${d.ip?fmtNr(d.ip)+' h IP':''} pe ${esc(d.m.nr)}, ${fmtData(d.de)} – ${fmtData(d.pana)}. `)
+  g('cc-info').innerHTML = (!d.ore ? 'Nicio oră de conducere de la această dată. ' : !d.km ? 'Orele de la această dată nu au km trecuți. ' : `${d.ss?fmtNr(d.ss)+' h SS':''}${d.ss&&d.ip?' + ':''}${d.ip?fmtNr(d.ip)+' h IP':''}${d.hc?` (din care ${fmtNr(d.hc)} h ale colegului)`:''} pe ${esc(d.m.nr)}, ${fmtData(d.de)} – ${fmtData(d.pana)}. `)
     + (ua && d.c.de && d.c.de!==ua ? `<a href="#" data-act="cc-de-alim">Revino la ultima alimentare (${fmtData(ua)})</a>` : (!ua?'Nicio alimentare trecută pe această mașină.':''));
 }
 
