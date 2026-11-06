@@ -1669,8 +1669,48 @@ function tabMasina(){
     <h2>Mașini</h2>
     <p class="tab-desc">Actele, reviziile și rovinieta fiecărei mașini, plus stocul din rezervor. Alimentările le treci în secțiunea <b>Alimentări</b>. Actele și rovinieta care expiră în curând apar și în tabul Azi.</p>
     <datalist id="d-tipuri">${DOC_TIPURI.map(t=>`<option value="${t}">`).join('')}</datalist>
+    ${cardCalcConsum()}
     ${state.masini.map(cardMasina).join('')}
     <div class="card"><h3>Altă mașină</h3>${formNou}</div>`;
+}
+
+/* ---------------- CALCULATOR CONSUM PE ORĂ ----------------
+   Regula lui Daniel: litri consumați = km × (l/100 km) ÷ 100;
+   consum pe oră de conducere = litri consumați ÷ ore efectuate. */
+function calcConsumPeOra(km, l100, ore){
+  const litri = nr(km)*nr(l100)/100;
+  return {litri, peOra: nr(ore)>0 ? litri/nr(ore) : 0};
+}
+function cardCalcConsum(){
+  const c=state.settings.calcConsum||{}, nAzi=normaLa(todayISO());
+  const f=(id,lab,val,step,ph)=>`<div class="field" style="flex:1 1 130px;"><label>${lab}</label><input type="number" inputmode="decimal" id="${id}" value="${val??''}" step="${step}" min="0" placeholder="${ph}"></div>`;
+  return `<div class="card" id="cc-card">
+    <h3>Calculator consum pe oră de conducere</h3>
+    <p class="small muted" style="margin-top:-4px;">Treci km parcurși de la ultima alimentare, consumul mediu arătat de mașină (l/100 km) și orele efectuate în acești km.</p>
+    <div class="row">
+      ${f('cc-km','Km parcurși',c.km,'1','ex: 300')}
+      ${f('cc-l100','Consum mașină (l/100 km)',c.l100,'0.1','ex: 6,5')}
+      ${f('cc-ore','Ore efectuate',c.ore,'0.5','ex: 11')}
+      ${f('cc-pret','Preț litru (lei, opțional)',c.pret,'0.01','ex: 7,50')}
+    </div>
+    <div id="cc-rez">${rezCalcConsum()}</div>
+    <div class="row" style="margin-top:10px;">
+      <button class="btn btn-ghost" data-act="cc-norma" data-k="ss">Adaugă ca normă SS de azi</button>
+      <button class="btn btn-ghost" data-act="cc-norma" data-k="ip">Adaugă ca normă IP de azi</button>
+    </div>
+    <p class="small muted" style="margin:6px 0 0;">Normele în vigoare acum: SS ${fmtNr(nr(nAzi.ss))} l/oră · IP ${fmtNr(nr(nAzi.ip))} l/oră. Butoanele de mai sus adaugă o normă nouă de azi înainte; orele de dinainte rămân calculate cu norma veche.</p>
+  </div>`;
+}
+function rezCalcConsum(){
+  const c=state.settings.calcConsum||{};
+  if(!(nr(c.km)>0 && nr(c.l100)>0 && nr(c.ore)>0)) return '<p class="small muted" style="margin:4px 0 0;">Completează km, consumul și orele ca să vezi rezultatul.</p>';
+  const r=calcConsumPeOra(c.km, c.l100, c.ore), rot=x=>Math.round(x*100)/100;
+  return `<div class="stats" style="margin-top:6px;">
+    <div class="stat accent"><div class="v">${fmtNr(rot(r.peOra))}</div><div class="l">Litri / oră de conducere</div></div>
+    <div class="stat"><div class="v">${fmtNr(rot(r.litri))}</div><div class="l">Litri consumați în total</div></div>
+    <div class="stat"><div class="v">${fmtNr(rot(nr(c.km)/nr(c.ore)))}</div><div class="l">Km / oră (medie)</div></div>
+    ${nr(c.pret)>0?`<div class="stat"><div class="v">${fmtNr(rot(r.peOra*nr(c.pret)))}</div><div class="l">Lei / oră de conducere</div></div>`:''}
+  </div>`;
 }
 
 /* ---------------- FIȘA ZILNICĂ (MONITORIZARE) ---------------- */
@@ -2871,6 +2911,16 @@ document.addEventListener('click', e=>{
   const m=masinaActiva();
   switch(act){
     case 'ora-noua': ui.editOraId=null; ui.preOra={elevId:a.dataset.elev||'', data:todayISO()}; goTab('ore'); break;
+    case 'cc-norma': {
+      const c=state.settings.calcConsum||{}, k=a.dataset.k;
+      if(!(nr(c.km)>0 && nr(c.l100)>0 && nr(c.ore)>0)) { toast('Completează mai întâi km, consumul și orele.'); break; }
+      const v=Math.round(calcConsumPeOra(c.km,c.l100,c.ore).peOra*10)/10, azi=todayISO(), n0=normaLa(azi);
+      confirma(`Adaug normă nouă de la ${fmtData(azi)}: <b>${k.toUpperCase()} ${fmtNr(v)} l/oră</b> (${k==='ss'?'IP rămâne '+fmtNr(nr(n0.ip)):'SS rămâne '+fmtNr(nr(n0.ss))} l/oră)? Orele de dinainte rămân cu norma veche.`, ()=>{
+        const s=state.settings; let n=s.norme.find(x=>x.deLa===azi);
+        if(!n){ n={id:uid(), deLa:azi, ss:nr(n0.ss), ip:nr(n0.ip)}; s.norme.push(n); }
+        n[k]=v; save(); render(); toast(`Normă ${k.toUpperCase()} ${fmtNr(v)} l/oră de la ${fmtData(azi)} ✓`);
+      }, 'Adaugă norma');
+      break; }
     case 'ora-save': salveazaOra(); break;
     case 'ora-cancel': ui.editOraId=null; ui.preOra=null; render(); break;
     case 'ora-edit': ui.editOraId=id; ui.preOra=null; render(); document.getElementById('main').scrollTop=0; break;
@@ -2938,7 +2988,7 @@ document.addEventListener('click', e=>{
     case 'masina-add': {
       const v=capitalizeaza(document.getElementById('m-nr').value); if(!v) return toast('Scrie numărul mașinii.');
       if(state.masini.find(x=>x.nr.replace(/\W/g,'')===v.replace(/\W/g,''))) return toast('Mașina există deja.');
-      const nm={id:uid(), nr:v, regimImplicit:'SS', stocInitial:0, documente:DOC_TIPURI.slice(0,3).map(t=>({id:uid(),tip:t,valabil:'',expira:''})), revizii:[], alimentari:[]};
+      const nm={id:uid(), nr:v, regimImplicit:'SS', stocInitial:0, documente:DOC_TIPURI.slice(0,3).map(t=>({id:uid(),tip:t,valabil:'',expira:''})), revizii:[], alimentari:[], roviniete:[]};
       state.masini.push(nm); save(); render(); toast('Mașina '+v+' adăugată ✓'); break; }
     case 'masina-del': { const mm=masinaById(a.dataset.m); const n=state.ore.filter(o=>o.masinaId===mm.id).length;
       confirma(`Ștergi mașina ${esc(mm.nr)} cu actele, reviziile și alimentările ei?${n?` Cele ${n} ore făcute pe ea rămân la elevi, dar fără mașină.`:''}`, ()=>{ state.masini=state.masini.filter(x=>x.id!==mm.id); state.ore.forEach(o=>{ if(o.masinaId===mm.id) o.masinaId=null; }); save(); render(); }); break; }
@@ -2998,6 +3048,13 @@ document.addEventListener('click', e=>{
     case 'import-xlsx': document.getElementById('file-xlsx').click(); break;
     case 'export-xlsx': exportXlsx(); break;
   }
+});
+document.addEventListener('input', e=>{
+  const t=e.target; if(!t.id || !t.id.startsWith('cc-')) return;
+  const c=state.settings.calcConsum||(state.settings.calcConsum={});
+  c[{'cc-km':'km','cc-l100':'l100','cc-ore':'ore','cc-pret':'pret'}[t.id]] = t.value==='' ? '' : nr(t.value);
+  const rez=document.getElementById('cc-rez'); if(rez) rez.innerHTML=rezCalcConsum();
+  save();
 });
 document.addEventListener('change', e=>{
   const t=e.target;
