@@ -643,6 +643,7 @@ function renderTab(){
   const f = {azi:tabAzi, ore:tabOre, centralizator:tabCentralizator, lunar:tabLunar, programari:tabProgramari, teme:tabTeme, elevi:tabElevi, note:tabNote, examen:tabExamen, alimentari:tabAlimentari, masina:tabMasina, scolarizare:tabScolarizare, fisa:tabFisa}[currentTab];
   main.innerHTML = f();
   if(currentTab==='ore') initFormOra();
+  if(currentTab==='masina') rezCalcConsum();
 }
 function goTab(id){ currentTab=id; render(); document.getElementById('main').scrollTop=0; }
 function gol(titlu, txt){ return `<div class="empty"><div class="display">${titlu}</div><div>${txt||''}</div></div>`; }
@@ -1689,7 +1690,7 @@ function ultimaAlimentare(m, pana){
 function ccSetari(){
   const c=state.settings.calcConsum||(state.settings.calcConsum={});
   if(!masinaById(c.masinaId)) c.masinaId=(masinaImplicita()||{}).id||'';
-  if(!c.regim) c.regim='toate';
+  c.regim='toate';
   return c;
 }
 function ccDeLa(c, m){ return c.de || ultimaAlimentare(m, todayISO()) || inceputAn(state.settings.anScolar); }
@@ -1702,33 +1703,30 @@ function ccDate(){
 }
 function cardCalcConsum(){
   if(!state.masini.length) return '';
-  const c=ccSetari(), m=masinaById(c.masinaId), nAzi=normaLa(todayISO()), ua=ultimaAlimentare(m, todayISO());
+  const c=ccSetari(), m=masinaById(c.masinaId), ua=ultimaAlimentare(m, todayISO());
+  const ro='readonly tabindex="-1" style="background:var(--chalk); font-weight:700; text-align:center;"';
   return `<div class="card" id="cc-card">
     <h3>Consum pe oră de conducere</h3>
-    <p class="small muted" style="margin-top:-4px;">Treci consumul arătat de mașină (l/100 km). Data alimentării e pusă singură (ultima alimentare); km și orele de după ea le iau din aplicație.</p>
     ${state.masini.length>1?`<div class="field"><label>Mașina</label><div class="seg">${state.masini.map(x=>`<button type="button" data-act="cc-mas" data-m="${x.id}" class="${x.id===c.masinaId?'on':''}">${esc(x.nr)}</button>`).join('')}</div></div>`:''}
-    <div class="row">
-      <div class="field" style="flex:1 1 150px;"><label>Consum mașină (l/100 km)</label><input type="number" inputmode="decimal" id="cc-l100" value="${c.l100??''}" step="0.1" min="0" placeholder="ex: 6,5"></div>
-      <div class="field" style="flex:1 1 150px;"><label>Data alimentării</label><input type="date" id="cc-de" value="${ccDeLa(c,m)}"></div>
-      <div class="field" style="flex:1 1 130px;"><label>Ore</label><select id="cc-regim">${[['toate','Toate (SS + IP)'],['ss','Doar SS'],['ip','Doar IP']].map(([v,l])=>`<option value="${v}" ${c.regim===v?'selected':''}>${l}</option>`).join('')}</select></div>
+    <div class="row" style="align-items:flex-end;">
+      <div class="field" style="flex:1 1 140px;"><label>Data alimentării</label><input type="date" id="cc-de" value="${ccDeLa(c,m)}"></div>
+      <div class="field" style="flex:1 1 110px;"><label>Consum l/100 km</label><input type="number" inputmode="decimal" id="cc-l100" value="${c.l100??''}" step="0.1" min="0" placeholder="ex: 6,5" style="text-align:center;"></div>
+      <div class="field" style="flex:1 1 90px;"><label>Km parcurși</label><input type="text" id="cc-km" ${ro}></div>
+      <div class="field" style="flex:1 1 80px;"><label>Ore</label><input type="text" id="cc-ore" ${ro}></div>
+      <div class="field" style="flex:1 1 110px;"><label>Consum / oră</label><input type="text" id="cc-ora" ${ro.replace('var(--chalk)','#fff3ec').replace('font-weight:700;','font-weight:700; color:var(--track); border-color:var(--track);')}></div>
     </div>
-    <div class="small muted">${ua?`Ultima alimentare pe ${esc(m.nr)}: ${fmtData(ua)}${c.de&&c.de!==ua?` · <a href="#" data-act="cc-de-alim">pornește de la ea</a>`:''}`:`Nicio alimentare trecută pe ${esc(m.nr)} — pornesc de la începutul anului școlar.`}</div>
-    <div id="cc-rez">${rezCalcConsum()}</div>
+    <div class="small muted" id="cc-info"></div>
   </div>`;
 }
+/* completează căsuțele calculate (km, ore, consum/oră) pe loc */
 function rezCalcConsum(){
-  const d=ccDate(); if(!d) return '';
-  const rot=x=>Math.round(x*100)/100;
-  const baza=`<p class="small" style="margin:10px 0 0;">Din aplicație, ${fmtData(d.de)} – ${fmtData(d.pana)}: <b>${fmtNr(rot(d.km))} km</b> în <b>${fmtNr(d.ore)} ore</b> de conducere (${fmtNr(d.ss)} SS · ${fmtNr(d.ip)} IP, ${d.n} înregistrări).</p>`;
-  if(!d.ore) return baza.replace('</p>',' — nu sunt ore de conducere în această perioadă.</p>');
-  if(!d.km) return baza.replace('</p>',' — orele nu au km trecuți.</p>');
-  if(!(nr(d.c.l100)>0)) return baza+'<p class="small muted" style="margin:4px 0 0;">Trece consumul mașinii ca să vezi rezultatul.</p>';
-  const r=calcConsumPeOra(d.km, d.c.l100, d.ore);
-  return baza+`<div class="stats" style="margin-top:6px;">
-    <div class="stat accent"><div class="v">${fmtNr(rot(r.peOra))}</div><div class="l">Litri / oră de conducere</div></div>
-    <div class="stat"><div class="v">${fmtNr(rot(r.litri))}</div><div class="l">Litri consumați în total</div></div>
-    <div class="stat"><div class="v">${fmtNr(rot(d.km/d.ore))}</div><div class="l">Km / oră (medie)</div></div>
-  </div>`;
+  const d=ccDate(), g=id=>document.getElementById(id); if(!d || !g('cc-km')) return;
+  const rot=x=>Math.round(x*100)/100, l100=nr(d.c.l100);
+  g('cc-km').value=fmtNr(rot(d.km)); g('cc-ore').value=fmtNr(d.ore);
+  g('cc-ora').value = (l100>0 && d.ore>0 && d.km>0) ? fmtNr(rot(calcConsumPeOra(d.km,l100,d.ore).peOra))+' l' : '—';
+  const ua=ultimaAlimentare(d.m, todayISO());
+  g('cc-info').innerHTML = (!d.ore ? 'Nicio oră de conducere de la această dată. ' : !d.km ? 'Orele de la această dată nu au km trecuți. ' : `${d.ss?fmtNr(d.ss)+' h SS':''}${d.ss&&d.ip?' + ':''}${d.ip?fmtNr(d.ip)+' h IP':''} pe ${esc(d.m.nr)}, ${fmtData(d.de)} – ${fmtData(d.pana)}. `)
+    + (ua && d.c.de && d.c.de!==ua ? `<a href="#" data-act="cc-de-alim">Revino la ultima alimentare (${fmtData(ua)})</a>` : (!ua?'Nicio alimentare trecută pe această mașină.':''));
 }
 
 /* ---------------- FIȘA ZILNICĂ (MONITORIZARE) ---------------- */
@@ -3060,10 +3058,10 @@ document.addEventListener('click', e=>{
   }
 });
 document.addEventListener('input', e=>{
-  const t=e.target; if(!['cc-l100','cc-de','cc-regim'].includes(t.id)) return;
+  const t=e.target; if(!['cc-l100','cc-de'].includes(t.id)) return;
   const c=ccSetari(), k={'cc-l100':'l100','cc-de':'de','cc-regim':'regim'}[t.id];
   c[k] = (k==='de'||k==='regim') ? t.value : (t.value==='' ? '' : nr(t.value));
-  const rez=document.getElementById('cc-rez'); if(rez) rez.innerHTML=rezCalcConsum();
+  rezCalcConsum();
   save();
 });
 document.addEventListener('change', e=>{
