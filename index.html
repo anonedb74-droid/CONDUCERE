@@ -1699,7 +1699,12 @@ function ccDate(){
   const de=ccDeLa(c,m), pana=todayISO();
   const ore=state.ore.filter(o=>o.tip==='C' && o.masinaId===m.id && o.data>=de && o.data<=pana && (c.regim==='toate' || regimOra(o)===c.regim.toUpperCase()));
   let km=0, h=0, ss=0, ip=0; ore.forEach(o=>{ km+=nr(o.km); h+=nr(o.nr); if(regimOra(o)==='IP') ip+=nr(o.nr); else ss+=nr(o.nr); });
-  return {c, m, de, pana, km, ore:h, ss, ip, n:ore.length};
+  /* programările din perioadă încă nemarcate ca efectuate, care au început deja (azi: până la ora curentă),
+     intră și ele în calcul, cu km impliciți / oră din Setări */
+  const acum=new Date(), oraAcum=pad2(acum.getHours())+':'+pad2(acum.getMinutes());
+  const prog=(state.programari||[]).filter(p=>!p.efectuata && p.masinaId===m.id && p.data>=de && (p.data<pana || (p.data===pana && (p.oraStart||'')<=oraAcum)));
+  let hp=0; prog.forEach(p=>{ const d=durataProg(p); hp+=d; km+=d*nr(state.settings.kmPeOra); h+=d; if(regimElev(elevById(p.elevId))==='IP') ip+=d; else ss+=d; });
+  return {c, m, de, pana, km, ore:h, ss, ip, n:ore.length, hp};
 }
 function cardCalcConsum(){
   if(!state.masini.length) return '';
@@ -1725,7 +1730,7 @@ function rezCalcConsum(){
   g('cc-km').value=fmtNr(rot(d.km)); g('cc-ore').value=fmtNr(d.ore);
   g('cc-ora').value = (l100>0 && d.ore>0 && d.km>0) ? fmtNr(rot(calcConsumPeOra(d.km,l100,d.ore).peOra))+' l' : '—';
   const ua=ultimaAlimentare(d.m, todayISO());
-  g('cc-info').innerHTML = (!d.ore ? 'Nicio oră de conducere de la această dată. ' : !d.km ? 'Orele de la această dată nu au km trecuți. ' : `${d.ss?fmtNr(d.ss)+' h SS':''}${d.ss&&d.ip?' + ':''}${d.ip?fmtNr(d.ip)+' h IP':''} pe ${esc(d.m.nr)}, ${fmtData(d.de)} – ${fmtData(d.pana)}. `)
+  g('cc-info').innerHTML = (!d.ore ? 'Nicio oră de conducere de la această dată. ' : !d.km ? 'Orele de la această dată nu au km trecuți. ' : `${d.ss?fmtNr(d.ss)+' h SS':''}${d.ss&&d.ip?' + ':''}${d.ip?fmtNr(d.ip)+' h IP':''} pe ${esc(d.m.nr)}, ${fmtData(d.de)} – ${fmtData(d.pana)}${d.hp?` (din care ${fmtNr(d.hp)} h din programări, cu km estimați)`:''}. `)
     + (ua && d.c.de && d.c.de!==ua ? `<a href="#" data-act="cc-de-alim">Revino la ultima alimentare (${fmtData(ua)})</a>` : (!ua?'Nicio alimentare trecută pe această mașină.':''));
 }
 
