@@ -1705,13 +1705,12 @@ function cardCalcConsum(){
   const c=ccSetari(), m=masinaById(c.masinaId), nAzi=normaLa(todayISO()), ua=ultimaAlimentare(m, todayISO());
   return `<div class="card" id="cc-card">
     <h3>Consum pe oră de conducere</h3>
-    <p class="small muted" style="margin-top:-4px;">Treci doar consumul mediu arătat de mașină (l/100 km). Km și orele le iau din orele de conducere trecute în aplicație, pe mașina și perioada alese.</p>
+    <p class="small muted" style="margin-top:-4px;">Treci consumul arătat de mașină (l/100 km). Data alimentării e pusă singură (ultima alimentare); km și orele de după ea le iau din aplicație.</p>
     ${state.masini.length>1?`<div class="field"><label>Mașina</label><div class="seg">${state.masini.map(x=>`<button type="button" data-act="cc-mas" data-m="${x.id}" class="${x.id===c.masinaId?'on':''}">${esc(x.nr)}</button>`).join('')}</div></div>`:''}
     <div class="row">
       <div class="field" style="flex:1 1 150px;"><label>Consum mașină (l/100 km)</label><input type="number" inputmode="decimal" id="cc-l100" value="${c.l100??''}" step="0.1" min="0" placeholder="ex: 6,5"></div>
-      <div class="field" style="flex:1 1 150px;"><label>De la data</label><input type="date" id="cc-de" value="${ccDeLa(c,m)}"></div>
+      <div class="field" style="flex:1 1 150px;"><label>Data alimentării</label><input type="date" id="cc-de" value="${ccDeLa(c,m)}"></div>
       <div class="field" style="flex:1 1 130px;"><label>Ore</label><select id="cc-regim">${[['toate','Toate (SS + IP)'],['ss','Doar SS'],['ip','Doar IP']].map(([v,l])=>`<option value="${v}" ${c.regim===v?'selected':''}>${l}</option>`).join('')}</select></div>
-      <div class="field" style="flex:1 1 130px;"><label>Preț litru (lei, opțional)</label><input type="number" inputmode="decimal" id="cc-pret" value="${c.pret??''}" step="0.01" min="0" placeholder="ex: 7,50"></div>
     </div>
     <div class="small muted">${ua?`Ultima alimentare pe ${esc(m.nr)}: ${fmtData(ua)}${c.de&&c.de!==ua?` · <a href="#" data-act="cc-de-alim">pornește de la ea</a>`:''}`:`Nicio alimentare trecută pe ${esc(m.nr)} — pornesc de la începutul anului școlar.`}</div>
     <div id="cc-rez">${rezCalcConsum()}</div>
@@ -1738,7 +1737,6 @@ function rezCalcConsum(){
     <div class="stat accent"><div class="v">${fmtNr(rot(r.peOra))}</div><div class="l">Litri / oră de conducere</div></div>
     <div class="stat"><div class="v">${fmtNr(rot(r.litri))}</div><div class="l">Litri consumați în total</div></div>
     <div class="stat"><div class="v">${fmtNr(rot(d.km/d.ore))}</div><div class="l">Km / oră (medie)</div></div>
-    ${nr(d.c.pret)>0?`<div class="stat"><div class="v">${fmtNr(rot(r.peOra*nr(d.c.pret)))}</div><div class="l">Lei / oră de conducere</div></div>`:''}
   </div>`;
 }
 
@@ -3081,8 +3079,8 @@ document.addEventListener('click', e=>{
   }
 });
 document.addEventListener('input', e=>{
-  const t=e.target; if(!['cc-l100','cc-pret','cc-de','cc-regim'].includes(t.id)) return;
-  const c=ccSetari(), k={'cc-l100':'l100','cc-pret':'pret','cc-de':'de','cc-regim':'regim'}[t.id];
+  const t=e.target; if(!['cc-l100','cc-de','cc-regim'].includes(t.id)) return;
+  const c=ccSetari(), k={'cc-l100':'l100','cc-de':'de','cc-regim':'regim'}[t.id];
   c[k] = (k==='de'||k==='regim') ? t.value : (t.value==='' ? '' : nr(t.value));
   const rez=document.getElementById('cc-rez'); if(rez) rez.innerHTML=rezCalcConsum();
   save();
