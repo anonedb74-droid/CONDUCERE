@@ -1265,7 +1265,7 @@ function tabProgramari(){
   let html='', zi=''; const proj={};
   lista.forEach(p=>{
     if(p.data!==zi){ if(zi) html+='</table></div>'; zi=p.data; html+=`<div class="day-head" style="display:flex; justify-content:space-between; align-items:center; gap:8px;"><span>${ziDin(p.data)}, ${fmtData(p.data)}${p.data===azi?' · <span class="pill pill-yellow">azi</span>':''}</span>${p.data>=azi?`<button class="btn btn-wa mic" data-act="wa-zi" data-d="${p.data}" title="Trimite programările zilei pe WhatsApp">${ICON_WA} Trimite ziua</button>`:''}</div><div class="table-wrap"><table>`; }
-    html+=`<tr ${!p.efectuata?`class="clickable" data-act="prog-done" data-id="${p.id}" title="Deschide fișa orei"`:''}><td style="white-space:nowrap; width:120px;"><b>${p.oraStart}</b>–${p.oraFinal||''}</td><td>${esc(numeElev(p.elevId))} ${pillRegim(regimElev(elevById(p.elevId)))}${temaProgramare(p, proj)}${p.masinaId?` <span class="small muted">${esc(nrMasina(p.masinaId))}</span>`:''}${!p.efectuata&&p.masinaId?(()=>{ const k=p.kmPlecare||((ultimaSosire(p.masinaId)||{}).kmSosire); return k?` <span class="small muted">· km plecare ${esc(String(k))}${p.kmPlecare?'':' (ultimii trecuți)'}</span>`:''; })():''}${p.efectuata?' <span class="pill pill-ok">efectuată</span>':''}${!p.efectuata&&p.masinaId&&masinaById(p.masinaId)&&p.data>=azi?(()=>{ const m=masinaById(p.masinaId); const st=stocPana(m,p.data)-consumProgramat(m,p.data,p.oraStart,p.id); const nec=durataProg(p)*consumPeOra(regimElev(elevById(p.elevId)),p.data); return st-nec<0?' <span class="pill pill-danger">⚠ combustibil insuficient</span>':''; })():''}</td>
+    html+=`<tr ${!p.efectuata?`class="clickable" data-act="prog-done" data-id="${p.id}" title="Deschide fișa orei"`:''}><td style="white-space:nowrap; width:120px;"><b>${p.oraStart}</b>–${p.oraFinal||''}</td><td>${esc(numeElev(p.elevId))} ${pillRegim(regimElev(elevById(p.elevId)))}${temaProgramare(p, proj)}${p.masinaId?` <span class="small muted">${esc(nrMasina(p.masinaId))}</span>`:''}${p.efectuata?' <span class="pill pill-ok">efectuată</span>':''}${!p.efectuata&&p.masinaId&&masinaById(p.masinaId)&&p.data>=azi?(()=>{ const m=masinaById(p.masinaId); const st=stocPana(m,p.data)-consumProgramat(m,p.data,p.oraStart,p.id); const nec=durataProg(p)*consumPeOra(regimElev(elevById(p.elevId)),p.data); return st-nec<0?' <span class="pill pill-danger">⚠ combustibil insuficient</span>':''; })():''}</td>
       <td style="text-align:right; white-space:nowrap;">${!p.efectuata?`<button class="btn btn-ghost mic" data-act="fise-prog" data-id="${p.id}" title="Deschide fișa elevului și fișa ta">📘 Fișe</button> <button class="btn btn-wa mic" data-act="wa-elev" data-id="${p.id}" title="Trimite elevului programarea și fișa temei">${ICON_WA} Elevului</button> <button class="btn btn-ok" data-act="prog-done" data-id="${p.id}">▶ Începe ora</button> `:''}${!p.efectuata?`<button class="icon-btn" data-act="prog-edit" data-id="${p.id}" title="Modifică data / ora">${ICONS.edit}</button> `:''}<button class="icon-btn del" data-act="prog-del" data-id="${p.id}" title="Șterge">${ICONS.trash}</button></td></tr>`;
   });
   if(zi) html+='</table></div>';
@@ -1284,10 +1284,8 @@ function tabProgramari(){
         <div class="field"><label>Nr. ore</label><div class="seg">${[1,2].map(n=>`<button type="button" data-act="prog-nr" data-v="${n}" class="${(ui.progNr||1)===n?'on':''}">${n} ${n===1?'oră':'ore'}</button>`).join('')}</div></div>
         <div class="field"><label>De la</label><input type="time" id="p-start" list="p-int"><datalist id="p-int">${optOre}</datalist></div>
         <div class="field"><label>Până la</label><input type="time" id="p-final" list="p-int"></div>
-        ${state.masini.length?(()=>{ const u=ultimaSosire((masinaImplicita()||{}).id); return `<div class="field"><label>Km la plecare</label><input type="number" id="p-kmp" min="0" step="1" value="${u?u.kmSosire:''}" data-auto="${u?1:''}" style="width:120px; ${u?'color:var(--muted);':''}"></div>`; })():''}
         <button class="btn btn-primary" data-act="prog-save">Programează</button>
       </div>
-      <div id="p-kminfo" class="small muted" style="margin-top:6px;">${(()=>{ const m=masinaImplicita(), u=m?ultimaSosire(m.id):null; return u?`Ultimii km trecuți pe ${esc(m.nr)}: <b>${u.kmSosire}</b> (${fmtData(u.data)}, ${esc(cineSosire(u))}). Îi poți schimba; dacă îi lași gri, la „Începe ora” se propun din nou ultimii km de atunci.`:''; })()}</div>
       <div id="p-stoc"></div>
       <p class="small muted" style="margin:10px 0 0;">Dacă lași „Până la” gol, se pune automat o oră după început. Combustibilul arătat ține cont și de programările făcute înainte pe aceeași mașină.</p>
     </div>
@@ -2863,7 +2861,7 @@ async function exportXlsx(){
 /* ================= ACȚIUNI (delegare evenimente) ================= */
 document.addEventListener('click', e=>{
   const pmb=e.target.closest('#p-mas button');
-  if(pmb){ document.querySelectorAll('#p-mas button').forEach(x=>x.classList.toggle('on', x===pmb)); stocProgramare(); actualizeazaKmProg(); return; }
+  if(pmb){ document.querySelectorAll('#p-mas button').forEach(x=>x.classList.toggle('on', x===pmb)); stocProgramare(); return; }
   const tabBtn=e.target.closest('[data-tab]');
   if(tabBtn){ ui.elevDetaliu = tabBtn.dataset.tab==='elevi' ? null : ui.elevDetaliu; goTab(tabBtn.dataset.tab); return; }
   if(e.target.closest('#btn-settings')) return openSettings();
@@ -2885,7 +2883,6 @@ document.addEventListener('click', e=>{
       const nrP=ui.progNr||1; if(!fin) fin=finalProg(st,nrP);
       const pmb=document.querySelector('#p-mas button.on'); const pm=pmb?masinaById(pmb.dataset.masval):null;
       const np={id:uid(), elevId, data, oraStart:st, oraFinal:fin, nrOre:nrP, efectuata:false, masinaId:pm?pm.id:null};
-      const kpI=document.getElementById('p-kmp'); if(kpI && kpI.value!=='' && kpI.dataset.auto!=='1') np.kmPlecare=kpI.value.trim();
       let avert='';
       if(pm){ const stoc=stocPana(pm,data)-consumProgramat(pm,data,st); const nec=durataProg(np)*consumPeOra(regimElev(elevById(elevId)),data); if(stoc-nec<0) avert=` — ATENȚIE: pe ${pm.nr} ${stoc<=0?'rezervorul e gol după calcul':'sunt ~'+fmtNr(stoc)+' l'}, ora are nevoie de ${fmtNr(nec)} l`; ui.ultimaMasinaId=pm.id;
         if(regimElev(elevById(elevId))==='SS' && (pm.roviniete||[]).length && !rovinietaLa(pm,data)) avert+=` — ATENȚIE: ${pm.nr} nu are rovinietă valabilă pe ${fmtData(data)}`; }
@@ -2899,7 +2896,7 @@ document.addEventListener('click', e=>{
       const mi=masinaById(p.masinaId)||masinaImplicita();
       const ep=elevById(p.elevId); const tipP = ep && (conducereBlocata(ep) || simFacut(ep.id)<simLimita(ep) && !state.ore.some(o=>o.elevId===ep.id && o.tip==='C')) ? 'S' : 'C';
       const acumD=new Date(), acum=`${pad2(acumD.getHours())}:${pad2(acumD.getMinutes())}`, eAzi=p.data===todayISO();
-      ui.editOraId=null; ui.preOra={elevId:p.elevId, data:eAzi?p.data:p.data, ora:eAzi?acum:p.oraStart, kmPlecare:p.kmPlecare, tip:tipP, nr:durata, progId:p.id, masinaId:mi?mi.id:null};
+      ui.editOraId=null; ui.preOra={elevId:p.elevId, data:eAzi?p.data:p.data, ora:eAzi?acum:p.oraStart, tip:tipP, nr:durata, progId:p.id, masinaId:mi?mi.id:null};
       goTab('ore'); toast((eAzi&&acum!==p.oraStart?`Ora de început: ${acum} (acum; programat ${p.oraStart}). `:'')+(tipP==='C'?'Treci km la plecare și apasă „▶ Începe ora”.':'Apasă „▶ Începe ora”.'), 4000);
       setTimeout(()=>{ const k=document.getElementById('o-kmp'); if(k && tipP==='C') k.focus(); }, 80); break; }
     case 'ora-inchide': inchideOra(id); break;
