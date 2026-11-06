@@ -1714,16 +1714,7 @@ function cardCalcConsum(){
     </div>
     <div class="small muted">${ua?`Ultima alimentare pe ${esc(m.nr)}: ${fmtData(ua)}${c.de&&c.de!==ua?` · <a href="#" data-act="cc-de-alim">pornește de la ea</a>`:''}`:`Nicio alimentare trecută pe ${esc(m.nr)} — pornesc de la începutul anului școlar.`}</div>
     <div id="cc-rez">${rezCalcConsum()}</div>
-    <div class="row" style="margin-top:10px;">
-      <button class="btn btn-ghost" data-act="cc-norma" data-k="ss">Adaugă ca normă SS de azi</button>
-      <button class="btn btn-ghost" data-act="cc-norma" data-k="ip">Adaugă ca normă IP de azi</button>
-    </div>
-    <p class="small muted" style="margin:6px 0 0;">Normele în vigoare acum: SS ${fmtNr(nr(nAzi.ss))} l/oră · IP ${fmtNr(nr(nAzi.ip))} l/oră. Butoanele adaugă o normă nouă de azi înainte; orele de dinainte rămân calculate cu norma veche.</p>
   </div>`;
-}
-function ccRezultat(){
-  const d=ccDate(); if(!d || !(nr(d.c.l100)>0) || !(d.ore>0) || !(d.km>0)) return null;
-  return {...d, ...calcConsumPeOra(d.km, d.c.l100, d.ore)};
 }
 function rezCalcConsum(){
   const d=ccDate(); if(!d) return '';
@@ -2940,16 +2931,6 @@ document.addEventListener('click', e=>{
     case 'ora-noua': ui.editOraId=null; ui.preOra={elevId:a.dataset.elev||'', data:todayISO()}; goTab('ore'); break;
     case 'cc-mas': { const c=ccSetari(); c.masinaId=a.dataset.m; c.de=''; save(); render(); break; }
     case 'cc-de-alim': { e.preventDefault(); ccSetari().de=''; save(); render(); break; }
-    case 'cc-norma': {
-      const r=ccRezultat(), k=a.dataset.k;
-      if(!r) { toast('Trece consumul mașinii și verifică să existe ore cu km în perioada aleasă.'); break; }
-      const v=Math.round(r.peOra*10)/10, azi=todayISO(), n0=normaLa(azi);
-      confirma(`Adaug normă nouă de la ${fmtData(azi)}: <b>${k.toUpperCase()} ${fmtNr(v)} l/oră</b> (${k==='ss'?'IP rămâne '+fmtNr(nr(n0.ip)):'SS rămâne '+fmtNr(nr(n0.ss))} l/oră)? Orele de dinainte rămân cu norma veche.`, ()=>{
-        const s=state.settings; let n=s.norme.find(x=>x.deLa===azi);
-        if(!n){ n={id:uid(), deLa:azi, ss:nr(n0.ss), ip:nr(n0.ip)}; s.norme.push(n); }
-        n[k]=v; save(); render(); toast(`Normă ${k.toUpperCase()} ${fmtNr(v)} l/oră de la ${fmtData(azi)} ✓`);
-      }, 'Adaugă norma');
-      break; }
     case 'ora-save': salveazaOra(); break;
     case 'ora-cancel': ui.editOraId=null; ui.preOra=null; render(); break;
     case 'ora-edit': ui.editOraId=id; ui.preOra=null; render(); document.getElementById('main').scrollTop=0; break;
