@@ -790,7 +790,7 @@ function tabOre(){
           <td style="white-space:nowrap;">${pillOra(o)}${o.tip==='C'&&o.masinaId?`<div class="small muted">${esc(nrMasina(o.masinaId))}</div>`:''}</td>
           <td class="num">${fmtNr(nr(o.nr))}</td>
           <td class="num">${o.tip==='S'?'—':o.deschisa?'<span class="pill pill-yellow">în desfășurare</span>':fmtNr(nr(o.km))}${o.tip==='C'&&o.kmPlecare!==undefined&&o.kmPlecare!==''?`<div class="small muted" style="white-space:nowrap;">${o.kmPlecare} → ${o.kmSosire||'…'}</div>`:''}</td>
-          <td style="white-space:nowrap; text-align:right;">${o.tip==='C'&&!o.deschisa?`<button class="btn ${o.prezenta?'btn-ghost':'btn-secondary'} mic" data-act="prezenta" data-id="${o.id}" title="${o.prezenta?'Formular deschis pe '+fmtData(o.prezenta.slice(0,10))+' — apasă ca să-l deschizi din nou':'Deschide formularul de prezență completat'}" style="padding:6px 10px; min-height:34px;">${o.prezenta?'✓ prezență':'📋 Prezență'}</button> `:''}<button class="icon-btn" data-act="ora-edit" data-id="${o.id}" title="Modifică">${ICONS.edit}</button> <button class="icon-btn del" data-act="ora-del" data-id="${o.id}" title="Șterge">${ICONS.trash}</button></td>
+          <td style="white-space:nowrap; text-align:right;">${o.tip==='C'&&!o.deschisa?`<button class="btn ${o.prezenta?'btn-ghost':'btn-secondary'} mic" data-act="prezenta" data-id="${o.id}" title="${o.prezenta?'Bifată ca trimisă pe '+fmtData(o.prezenta.slice(0,10))+' — apasă ca s-o deschizi din nou sau să scoți bifa':'Deschide formularul de prezență completat'}" style="padding:6px 10px; min-height:34px;">${o.prezenta?'✓ prezență':'📋 Prezență'}</button> `:''}<button class="icon-btn" data-act="ora-edit" data-id="${o.id}" title="Modifică">${ICONS.edit}</button> <button class="icon-btn del" data-act="ora-del" data-id="${o.id}" title="Șterge">${ICONS.trash}</button></td>
         </tr>`).join('')}</tbody></table></div>` : gol('Nicio oră','Nu există înregistrări pentru filtrul ales.')}
     </div>`;
 }
@@ -828,9 +828,29 @@ function trimitePrezenta(id){
   const o=state.ore.find(x=>x.id===id); if(!o) return;
   if(o.deschisa) return toast('Închide întâi ora (km la sosire), apoi trimiți prezența.', 3000);
   if(!instrFormular()) return toast('Alege în Setări (⚙) numele tău din formularul de prezență.', 3500);
-  window.open(linkPrezenta(o), '_blank');
-  o.prezenta=new Date().toISOString(); save(); render();
+  const desc=`<b>${esc(numeElev(o.elevId))}</b>, ${fmtData(o.data)} ${intervalOrar(o)}`;
+  if(o.prezenta){
+    const b=openModal(`<h3>Prezență</h3><p>Ora lui ${desc} e bifată ca <b>trimisă</b> (${fmtData(o.prezenta.slice(0,10))}).</p>
+      <div class="row" style="justify-content:flex-end; gap:6px;"><button class="btn btn-ghost" id="pz-x">Închide</button><button class="btn btn-secondary" id="pz-scoate">N-am trimis-o — scoate bifa</button><button class="btn btn-primary" id="pz-iar">📋 Deschide din nou formularul</button></div>`);
+    b.querySelector('#pz-x').onclick=closeModal;
+    b.querySelector('#pz-scoate').onclick=()=>{ delete o.prezenta; save(); closeModal(); render(); toast('Bifa a fost scoasă — prezența apare ca netrimisă.', 2500); };
+    b.querySelector('#pz-iar').onclick=()=>{ closeModal(); deschideFormPrezenta(o); };
+    return;
+  }
+  deschideFormPrezenta(o);
 }
+/* Bifa „✓ prezență” se pune doar după ce confirmi că ai apăsat „Trimite” în formular */
+function deschideFormPrezenta(o){
+  window.open(linkPrezenta(o), '_blank');
+  ui.prezentaAsteapta=o.id;
+  setTimeout(()=>{ if(document.visibilityState==='visible' && ui.prezentaAsteapta===o.id && document.hasFocus()) intrebaPrezenta(); }, 4000);
+}
+function intrebaPrezenta(){
+  const id=ui.prezentaAsteapta; ui.prezentaAsteapta=null; const o=state.ore.find(x=>x.id===id); if(!o || document.querySelector('#modal')) return;
+  confirma(`Ai apăsat <b>„Trimite”</b> în formularul de prezență pentru <b>${esc(numeElev(o.elevId))}</b> (${fmtData(o.data)} ${intervalOrar(o)})?`, ()=>{ o.prezenta=new Date().toISOString(); save(); render(); toast('✓ Prezență bifată ca trimisă.', 2000); }, 'Da, am trimis-o');
+}
+document.addEventListener('visibilitychange', ()=>{ if(document.visibilityState==='visible' && ui.prezentaAsteapta) setTimeout(intrebaPrezenta, 400); });
+window.addEventListener('focus', ()=>{ if(ui.prezentaAsteapta) setTimeout(intrebaPrezenta, 400); });
 function inchideOra(id){
   const o=state.ore.find(x=>x.id===id); if(!o) return;
   const inp=document.getElementById('ks-'+id); const v=inp?inp.value.trim():'';
