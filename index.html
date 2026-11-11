@@ -607,6 +607,7 @@ const TABS = [
 /* ================= RANDARE ================= */
 function tabsVizibile(){ const v=TABS.filter(t=>!(state.settings.taburiAscunse||[]).includes(t.id)); return v.length?v:TABS.slice(0,1); }
 function render(){
+  { const mc=state.settings&&state.settings.masiniComune||{}; const i=state.masini.findIndex(m=>mc[m.id]); if(i>0){ const [mm]=state.masini.splice(i,1); state.masini.unshift(mm); } } // mașina comună mereu prima
   const _m=document.getElementById('main'), _y=_m?_m.scrollTop:0, _t=currentTab; // păstrăm poziția în pagină
   if(!tabsVizibile().find(t=>t.id===currentTab) && !(currentTab==='elevi' && ui.elevDetaliu)) currentTab=tabsVizibile()[0].id;
   const app=document.getElementById('app');
