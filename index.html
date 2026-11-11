@@ -335,7 +335,6 @@ function migreaza(){
     ['tsc','psc','tpol','ppol'].forEach(k=>{ if(!Array.isArray(e.examene[k])) e.examene[k]=[]; });
   });
   state.elevi.forEach(e=>{ if(!e.regim){ const oc=state.ore.filter(o=>o.elevId===e.id && o.tip==='C'); e.regim = oc.length && oc.filter(o=>o.regim==='IP').length*2>oc.length ? 'IP' : 'SS'; } if(e.grupa===undefined) e.grupa=''; if(e.registru===undefined) e.registru=''; if(!e.note) e.note=[]; if(e.telefon===undefined) e.telefon=''; if(e.obs===undefined) e.obs=''; });
-  { const mc=state.settings&&state.settings.masiniComune||{}; const i=state.masini.findIndex(m=>mc[m.id]); if(i>0){ const [mm]=state.masini.splice(i,1); state.masini.unshift(mm); } }
   state.masini.forEach(m=>{ ['documente','revizii','alimentari','roviniete'].forEach(k=>{ if(!m[k]) m[k]=[]; });
     // rovinieta avea înainte un rând în Acte -> o mutăm în secțiunea ei
     m.documente.filter(d=>/^ROVINIET/i.test(d.tip||'')).forEach(d=>{ if(d.valabil||d.expira) m.roviniete.push({id:d.id, de:d.valabil||'', perioada:'12l', expira:d.expira||'', serie:'', cost:''}); });
@@ -606,8 +605,15 @@ const TABS = [
 
 /* ================= RANDARE ================= */
 function tabsVizibile(){ const v=TABS.filter(t=>!(state.settings.taburiAscunse||[]).includes(t.id)); return v.length?v:TABS.slice(0,1); }
+/* Prima mașină: cea aleasă cu „Pune-o prima” (se ține minte și se sincronizează); altfel mașina comună cu coleg activ */
+function ordoneazaMasini(){
+  const st=state.settings||{}, mc=st.masiniComune||{};
+  let i=state.masini.findIndex(m=>m.id===st.masinaPrima);
+  if(i<0){ const cuColeg=m=>mc[m.id] && Object.values(comun.cache[mc[m.id]]||{}).some(e=>e && e.uid!==euUid()); i=state.masini.findIndex(cuColeg); }
+  if(i>0){ const [mm]=state.masini.splice(i,1); state.masini.unshift(mm); }
+}
 function render(){
-  { const mc=state.settings&&state.settings.masiniComune||{}; const i=state.masini.findIndex(m=>mc[m.id]); if(i>0){ const [mm]=state.masini.splice(i,1); state.masini.unshift(mm); } } // mașina comună mereu prima
+  ordoneazaMasini();
   const _m=document.getElementById('main'), _y=_m?_m.scrollTop:0, _t=currentTab; // păstrăm poziția în pagină
   if(!tabsVizibile().find(t=>t.id===currentTab) && !(currentTab==='elevi' && ui.elevDetaliu)) currentTab=tabsVizibile()[0].id;
   const app=document.getElementById('app');
@@ -3048,7 +3054,7 @@ document.addEventListener('click', e=>{
     case 'comun-trimite': { const mm=masinaById(a.dataset.m), c=codMasina(mm.id); trimiteWhatsApp(`🔗 Cod mașină comună ${mm.nr}: *${c}*\n\nÎn aplicația Școala de șoferi: Mașini → ${mm.nr} → „Mașină comună” → „am primit un cod” → scrie codul → Leagă.\n(Trebuie să fii intrat cu contul Google în aplicație.)`); break; }
     case 'comun-dezleaga': { const mm=masinaById(a.dataset.m); confirma(`Dezlegi ${esc(mm.nr)} de jurnalul comun? Nu mai vezi orele și alimentările celuilalt instructor (ale tale rămân la tine).`, ()=>{ const c=codMasina(mm.id); delete state.settings.masiniComune[mm.id]; delete comun.cache[c]; salveazaComun(); save(); ascultaComun(); render(); }, 'Da, dezleagă'); break; }
     case 'jc-instr': ui.jcInstr=a.dataset.v; render(); break;
-    case 'masina-prima': { const i=state.masini.findIndex(x=>x.id===a.dataset.m); if(i>0){ const [mm]=state.masini.splice(i,1); state.masini.unshift(mm); ui.ultimaMasinaId=mm.id; save(); render(); toast(mm.nr+' e acum prima mașină ✓', 2000); } break; }
+    case 'masina-prima': { const i=state.masini.findIndex(x=>x.id===a.dataset.m); if(i>=0){ const mm=state.masini[i]; state.settings.masinaPrima=mm.id; ui.ultimaMasinaId=mm.id; save(); render(); toast(mm.nr+' e acum prima mașină ✓', 2000); } break; }
     case 'alim-reset': ui.alimMasina='all'; ui.alimPer='toate'; ui.alimLuna='all'; render(); break;
     case 'alim-sursa': { ui.alimSursa=a.dataset.v; document.querySelectorAll('[data-act="alim-sursa"]').forEach(b=>b.classList.toggle('on', b===a)); const f=document.getElementById('a-bcf-f'); if(f) f.style.display = a.dataset.v==='bcf' ? '' : 'none'; break; }
     case 'alim-per': ui.alimPer=a.dataset.v; render(); break;
