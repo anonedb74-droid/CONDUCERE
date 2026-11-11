@@ -335,6 +335,7 @@ function migreaza(){
     ['tsc','psc','tpol','ppol'].forEach(k=>{ if(!Array.isArray(e.examene[k])) e.examene[k]=[]; });
   });
   state.elevi.forEach(e=>{ if(!e.regim){ const oc=state.ore.filter(o=>o.elevId===e.id && o.tip==='C'); e.regim = oc.length && oc.filter(o=>o.regim==='IP').length*2>oc.length ? 'IP' : 'SS'; } if(e.grupa===undefined) e.grupa=''; if(e.registru===undefined) e.registru=''; if(!e.note) e.note=[]; if(e.telefon===undefined) e.telefon=''; if(e.obs===undefined) e.obs=''; });
+  { const mc=state.settings&&state.settings.masiniComune||{}; const i=state.masini.findIndex(m=>mc[m.id]); if(i>0){ const [mm]=state.masini.splice(i,1); state.masini.unshift(mm); } }
   state.masini.forEach(m=>{ ['documente','revizii','alimentari','roviniete'].forEach(k=>{ if(!m[k]) m[k]=[]; });
     // rovinieta avea înainte un rând în Acte -> o mutăm în secțiunea ei
     m.documente.filter(d=>/^ROVINIET/i.test(d.tip||'')).forEach(d=>{ if(d.valabil||d.expira) m.roviniete.push({id:d.id, de:d.valabil||'', perioada:'12l', expira:d.expira||'', serie:'', cost:''}); });
@@ -1293,6 +1294,7 @@ function tabProgramari(){
   const optOre = s.intervale.map(i=>`<option value="${i}">`).join('');
   return `
     <h2>Programări</h2>
+    ${cardProgColegi()}
     <p class="tab-desc">Cine vine la volan și când. Apasă pe o programare (sau pe „▶ Începe ora”): se deschide fișa orei cu elevul, ora, mașina și tema completate — treci doar km la plecare. La final închizi ora cu km la sosire.</p>
     <div class="card">
       <h3>Programare nouă</h3>
@@ -2969,6 +2971,9 @@ document.addEventListener('click', e=>{
       let avert='';
       if(pm){ const stoc=stocPana(pm,data)-consumProgramat(pm,data,st); const nec=durataProg(np)*consumPeOra(regimElev(elevById(elevId)),data); if(stoc-nec<0) avert=` — ATENȚIE: pe ${pm.nr} ${stoc<=0?'rezervorul e gol după calcul':'sunt ~'+fmtNr(stoc)+' l'}, ora are nevoie de ${fmtNr(nec)} l`; ui.ultimaMasinaId=pm.id;
         if(regimElev(elevById(elevId))==='SS' && (pm.roviniete||[]).length && !rovinietaLa(pm,data)) avert+=` — ATENȚIE: ${pm.nr} nu are rovinietă valabilă pe ${fmtData(data)}`; }
+      if(pm && codMasina(pm.id) && !ui.okColeg){ const mn=t=>{ const [h,mm]=String(t||'0:0').split(':').map(Number); return h*60+mm; }; const c=progColegi(pm.id,data,data).find(e=>mn(st)<mn(e.oraFinal||adunaOre(e.ora,nr(e.nr)||1)) && mn(e.ora)<mn(fin));
+        if(c){ confirma(`Pe <b>${esc(pm.nr)}</b>, pe ${fmtData(data)}, <b>${esc(c.instructor||'celălalt instructor')}</b> are deja programare <b>${esc(c.ora)}–${esc(c.oraFinal||'')}</b>. Programezi totuși ${esc(st)}–${esc(fin)}?`, ()=>{ ui.okColeg=true; document.querySelector('[data-act="prog-save"]').click(); }, 'Da, programez'); return; } }
+      ui.okColeg=false;
       state.programari.push(np); save(); render(); toast('Programat ✓'+avert, avert?4500:2000);
       if(telefonWa((elevById(elevId)||{}).telefon)) confirma(`Programat ✓ Trimiți acum lui <b>${esc(numeElev(elevId))}</b> pe WhatsApp programarea și fișa temei?`, ()=>trimiteElevului(np.id), 'Da, trimite');
       break; }
@@ -3037,7 +3042,7 @@ document.addEventListener('click', e=>{
       const mm=masinaById(a.dataset.m); if(!mm) break;
       let c = act==='comun-creeaza' ? genereazaCod(mm) : ((document.getElementById('comun-cod-'+mm.id)||{}).value||'').trim().toUpperCase().replace(/\s+/g,'');
       if(!/^[A-Z0-9]{3,}-[A-Z0-9]{4}$/.test(c)) return toast('Codul arată ca BT33GSV-7Q4K. Verifică ce ai scris.', 3500);
-      state.settings.masiniComune=state.settings.masiniComune||{}; state.settings.masiniComune[mm.id]=c; save(); ascultaComun(); render();
+      state.settings.masiniComune=state.settings.masiniComune||{}; state.settings.masiniComune[mm.id]=c; { const i=state.masini.indexOf(mm); if(i>0){ state.masini.splice(i,1); state.masini.unshift(mm); } } save(); ascultaComun(); render();
       toast(act==='comun-creeaza'?'Cod creat ✓ Trimite-l colegului.':'Mașină legată ✓', 3000); break; }
     case 'comun-trimite': { const mm=masinaById(a.dataset.m), c=codMasina(mm.id); trimiteWhatsApp(`🔗 Cod mașină comună ${mm.nr}: *${c}*\n\nÎn aplicația Școala de șoferi: Mașini → ${mm.nr} → „Mașină comună” → „am primit un cod” → scrie codul → Leagă.\n(Trebuie să fii intrat cu contul Google în aplicație.)`); break; }
     case 'comun-dezleaga': { const mm=masinaById(a.dataset.m); confirma(`Dezlegi ${esc(mm.nr)} de jurnalul comun? Nu mai vezi orele și alimentările celuilalt instructor (ale tale rămân la tine).`, ()=>{ const c=codMasina(mm.id); delete state.settings.masiniComune[mm.id]; delete comun.cache[c]; salveazaComun(); save(); ascultaComun(); render(); }, 'Da, dezleagă'); break; }
@@ -3288,6 +3293,8 @@ function ascultaComun(){
 function evenimenteleMele(m){
   const eu=euUid(), instr=state.settings.instructor||'', r={};
   state.ore.filter(o=>o.tip==='C' && o.masinaId===m.id).forEach(o=>{ r[eu+'_o_'+o.id]={tip:'ora', uid:eu, instructor:instr, data:o.data, ora:o.ora||'', nr:nr(o.nr), regim:regimOra(o), kmPlecare:o.kmPlecare??'', kmSosire:o.kmSosire??'', km:nr(o.km), consum:Math.round(consumOra(o)*100)/100, deschisa:!!o.deschisa}; });
+  const ieri=plusZile(todayISO(),-1), mi0=state.masini[0];
+  state.programari.filter(p=>!p.efectuata && p.data>=ieri && (p.masinaId||(mi0&&mi0.id))===m.id).forEach(p=>{ r[eu+'_p_'+p.id]={tip:'prog', uid:eu, instructor:instr, data:p.data, ora:p.oraStart||'', oraFinal:p.oraFinal||'', nr:durataProg(p)}; });
   m.alimentari.forEach(a=>{ r[eu+'_a_'+a.id]={tip:'alim', uid:eu, instructor:instr, data:a.data||'', litri:nr(a.litri), sursa:sursaAlim(a), bcf:a.bcf||'', obs:a.obs||''}; });
   return r;
 }
@@ -3307,6 +3314,16 @@ function publicaComun(){
     }
   }, 1500);
 }
+function progColegi(mid, de, pana){ return colegEv(mid,'prog').filter(e=>e.data>=de && e.data<=pana).sort((a,b)=>(a.data+(a.ora||'')).localeCompare(b.data+(b.ora||''))); }
+function textProgColeg(l){ return l.map(e=>`<b>${esc(e.ora||'?')}${e.oraFinal?'–'+esc(e.oraFinal):''}</b> <span class="muted">(${esc(initiale(e.instructor||''))})</span>`).join(', '); }
+function cardProgColegi(){
+  const mas=state.masini.filter(m=>codMasina(m.id)); if(!mas.length) return '';
+  const azi=todayISO(), lim=plusZile(azi,7); let html='';
+  mas.forEach(m=>{ const l=progColegi(m.id, azi, lim); if(!l.length){ html+=`<p class="small muted" style="margin:0;">${esc(m.nr)}: celălalt instructor n-are programări în următoarele 7 zile.</p>`; return; }
+    const zile={}; l.forEach(e=>(zile[e.data]=zile[e.data]||[]).push(e));
+    html+=`<div style="font-weight:700; margin:4px 0;">${esc(m.nr)}</div>`+Object.entries(zile).map(([d,x])=>`<div style="display:flex; gap:10px; padding:4px 0; border-top:1px solid var(--border);"><span style="min-width:120px;">${d===azi?'<b>Azi</b>':d===plusZile(azi,1)?'<b>Mâine</b>':esc(ziDin(d).slice(0,3))+' '+fmtData(d).slice(0,5)}</span><span>${textProgColeg(x)}</span></div>`).join(''); });
+  return `<div class="card" style="border-left:4px solid #8A5A16;"><h3 style="margin-top:0;">🔗 Programările celuilalt instructor (mașina comună)</h3>${html}<p class="small muted" style="margin:6px 0 0;">Fără numele elevilor. Și el le vede pe ale tale la el, în aplicație.</p></div>`;
+}
 function rezumatComun(m){
   const eu=euUid(), cheie=e=>(e.data||'')+' '+(e.ora||'');
   const mele=state.ore.filter(o=>o.tip==='C' && o.masinaId===m.id && !o.deschisa).sort((a,b)=>cheie(b).localeCompare(cheie(a)));
@@ -3325,6 +3342,7 @@ function rezumatComun(m){
       <div><div class="small muted">KM LA BORD ACUM</div><div style="font-size:24px; font-weight:700;">${u?esc(String(u.kmSosire)):'—'}</div><div class="small muted">${u?`${fmtData(u.data)}${u.instructor?' · '+esc(u.instructor):' · tu'}`:''}</div></div>
       <div><div class="small muted">ÎN REZERVOR (CALCULAT)</div><div style="font-size:24px; font-weight:700; color:${stoc<5?'var(--danger)':'var(--infield)'};">~${fmtNr(Math.round(stoc*10)/10)} l</div><div class="small muted">din alimentările și orele amândurora</div></div>
     </div>
+    ${(()=>{ const a=todayISO(), m1=plusZile(a,1), pa=progColegi(m.id,a,a), pm=progColegi(m.id,m1,m1); return (pa.length||pm.length)?`<div style="margin-top:8px; font-size:14px;">📅 Programările colegului: ${pa.length?`<b>azi</b> ${textProgColeg(pa)}`:''}${pa.length&&pm.length?' · ':''}${pm.length?`<b>mâine</b> ${textProgColeg(pm)}`:''}</div>`:''; })()}
     <div class="small muted" style="margin-top:6px;">Când programezi sau apeși „Începe ora”, km la plecare se propun de aici (${u?esc(String(u.kmSosire)):'—'}).</div>
   </div>`;
 }
