@@ -713,7 +713,7 @@ function tabAzi(){
       </div>
       <div class="card">
         <div style="display:flex; justify-content:space-between; align-items:center; gap:8px; margin-bottom:10px;"><h3 style="margin:0;">Ore trecute azi</h3><button class="btn btn-primary" data-act="ora-noua">+ Oră</button></div>
-        ${oreAzi.length ? `<div class="table-wrap"><table>${oreAzi.map(o=>`<tr><td style="white-space:nowrap;">${intervalOrar(o)}</td><td>${esc(numeElev(o.elevId))}</td><td>${pillOra(o)}</td><td class="num">${fmtNr(nr(o.nr))} h · ${o.deschisa?'<span class="pill pill-yellow">în desfășurare</span>':fmtNr(nr(o.km))+' km'}</td></tr>`).join('')}</table></div>` : `<p class="muted small" style="margin:0;">Nicio oră trecută azi.</p>`}
+        ${oreAzi.length ? `<div class="table-wrap"><table>${oreAzi.map(o=>`<tr><td style="white-space:nowrap;">${intervalOrar(o)}</td><td>${esc(numeElev(o.elevId))}</td><td>${pillOra(o)}</td><td class="num">${fmtNr(nr(o.nr))} h · ${o.deschisa?'<span class="pill pill-yellow">în desfășurare</span>':fmtNr(nr(o.km))+' km'}</td><td style="text-align:right;">${o.deschisa?'':`<button class="icon-btn" data-act="ora-edit" data-id="${o.id}" title="Modifică ora (km etc.)">${ICONS.edit}</button>`}</td></tr>`).join('')}</table></div>` : `<p class="muted small" style="margin:0;">Nicio oră trecută azi.</p>`}
       </div>
     </div>
     ${rami.length ? `<div class="card"><h3>Cele mai multe ore rămase</h3><div class="table-wrap"><table>${rami.map(x=>`<tr class="clickable" data-act="elev-open" data-id="${x.e.id}"><td>${esc(x.e.nume)}</td><td style="width:40%;">${barProgres(x.st)}</td><td class="num"><b>${fmtNr(x.st.ramase)}</b> rămase</td></tr>`).join('')}</table></div></div>` : ''}
@@ -797,8 +797,8 @@ function tabOre(){
           <td>${esc(numeElev(o.elevId))}${o.ramaneLa?` <span class="pill pill-yellow" title="Elevul nu și-a însușit tema">↺ rămâne la tema ${o.ramaneLa}</span>`:""}${o.obs?`<div class="small muted">${esc(o.obs)}</div>`:''}</td>
           <td style="white-space:nowrap;">${pillOra(o)}${o.tip==='C'&&o.masinaId?`<div class="small muted">${esc(nrMasina(o.masinaId))}</div>`:''}</td>
           <td class="num">${fmtNr(nr(o.nr))}</td>
-          <td class="num">${o.tip==='S'?'—':o.deschisa?'<span class="pill pill-yellow">în desfășurare</span>':fmtNr(nr(o.km))}${o.tip==='C'&&o.kmPlecare!==undefined&&o.kmPlecare!==''?`<div class="small muted" style="white-space:nowrap;">${o.kmPlecare} → ${o.kmSosire||'…'}</div>`:''}</td>
-          <td style="white-space:nowrap; text-align:right;">${o.tip==='C'&&!o.deschisa?`<button class="btn ${o.prezenta?'btn-ghost':'btn-secondary'} mic" data-act="prezenta" data-id="${o.id}" title="${o.prezenta?'Bifată ca trimisă pe '+fmtData(o.prezenta.slice(0,10))+' — apasă ca s-o deschizi din nou sau să scoți bifa':'Deschide formularul de prezență completat'}" style="padding:6px 10px; min-height:34px;">${o.prezenta?'✓ prezență':'📋 Prezență'}</button> `:''}<button class="icon-btn" data-act="ora-edit" data-id="${o.id}" title="Modifică">${ICONS.edit}</button> <button class="icon-btn del" data-act="ora-del" data-id="${o.id}" title="Șterge">${ICONS.trash}</button></td>
+          <td class="num"${o.tip==='C'&&!o.deschisa?` data-act="ora-edit" data-id="${o.id}" style="cursor:pointer;" title="Apasă ca să corectezi km"`:''}>${o.tip==='S'?'—':o.deschisa?'<span class="pill pill-yellow">în desfășurare</span>':fmtNr(nr(o.km))}${o.tip==='C'&&o.kmPlecare!==undefined&&o.kmPlecare!==''?`<div class="small muted" style="white-space:nowrap;">${o.kmPlecare} → ${o.kmSosire||'…'}</div>`:''}${o.tip==='C'&&!o.deschisa?`<div class="small" style="color:var(--accent,#2563eb); white-space:nowrap;">✎ corectează</div>`:''}</td>
+          <td style="white-space:nowrap; text-align:right;"><button class="icon-btn" data-act="ora-edit" data-id="${o.id}" title="Modifică ora (km, oră, elev, temă)">${ICONS.edit}</button> ${o.tip==='C'&&!o.deschisa?`<button class="btn ${o.prezenta?'btn-ghost':'btn-secondary'} mic" data-act="prezenta" data-id="${o.id}" title="${o.prezenta?'Bifată ca trimisă pe '+fmtData(o.prezenta.slice(0,10))+' — apasă ca s-o deschizi din nou sau să scoți bifa':'Deschide formularul de prezență completat'}" style="padding:6px 10px; min-height:34px;">${o.prezenta?'✓ prezență':'📋 Prezență'}</button> `:''}<button class="icon-btn del" data-act="ora-del" data-id="${o.id}" title="Șterge">${ICONS.trash}</button></td>
         </tr>`).join('')}</tbody></table></div>` : gol('Nicio oră','Nu există înregistrări pentru filtrul ales.')}
     </div>`;
 }
@@ -2965,7 +2965,7 @@ document.addEventListener('click', e=>{
     case 'cc-de-alim': { e.preventDefault(); ccSetari().de=''; save(); render(); break; }
     case 'ora-save': salveazaOra(); break;
     case 'ora-cancel': ui.editOraId=null; ui.preOra=null; render(); break;
-    case 'ora-edit': ui.editOraId=id; ui.preOra=null; render(); document.getElementById('main').scrollTop=0; break;
+    case 'ora-edit': ui.editOraId=id; ui.preOra=null; if(currentTab!=='ore'){ currentTab='ore'; } render(); document.getElementById('main').scrollTop=0; break;
     case 'ora-del': { const o=state.ore.find(x=>x.id===id); confirma(`Ștergi ora din ${fmtData(o.data)} a lui ${esc(numeElev(o.elevId))}?`, ()=>{ state.ore=state.ore.filter(x=>x.id!==id); if(ui.editOraId===id) ui.editOraId=null; save(); render(); toast('Ora a fost ștearsă.'); }); break; }
     case 'prog-save': {
       const elevId=document.getElementById('p-elev').value, data=document.getElementById('p-data').value, st=document.getElementById('p-start').value;
