@@ -3317,8 +3317,10 @@ function publicaComun(){
   comunT=setTimeout(async()=>{
     if(!sync.db || !sync.uid) return;
     for(const m of state.masini){ const c=codMasina(m.id); if(!c) continue;
-      const nou=evenimenteleMele(m), vechi=Object.assign({}, comun.publicat[c]||{}), ops=[];
-      Object.entries(comun.cache[c]||{}).forEach(([id,e])=>{ if(e && e.uid===sync.uid && !(id in vechi)) vechi[id]=JSON.stringify(e); }); // ce e pe server de la mine, ca să șterg ce nu mai există
+      // comparăm cu ce e efectiv pe server (dacă l-am citit), nu doar cu ce credem că am trimis — așa se repară singur orice trimitere pierdută
+      const nou=evenimenteleMele(m), ops=[]; let vechi;
+      if((comun.citit||{})[c]){ vechi={}; Object.entries(comun.cache[c]||{}).forEach(([id,e])=>{ if(e && e.uid===sync.uid) vechi[id]=JSON.stringify(e); }); }
+      else vechi=Object.assign({}, comun.publicat[c]||{});
       Object.entries(nou).forEach(([id,d])=>{ const j=JSON.stringify(d); if(vechi[id]!==j) ops.push(['s',id,d,j]); });
       Object.keys(vechi).forEach(id=>{ if(!nou[id]) ops.push(['d',id]); });
       for(let i=0;i<ops.length;i+=400){ const b=sync.db.batch(), part=ops.slice(i,i+400);
