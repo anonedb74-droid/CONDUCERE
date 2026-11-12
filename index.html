@@ -699,7 +699,7 @@ function tabAzi(){
     ${bannerSync()}
     ${alerte}
     ${cardOreDeschise()}
-    ${state.masini.filter(m=>codMasina(m.id)).map(m=>`<div class="card"><div style="display:flex; justify-content:space-between; align-items:center; gap:8px; margin-bottom:10px;"><h3 style="margin:0;">🔗 ${esc(m.nr)} — mașină comună</h3><button class="btn btn-ghost" data-tab="masina">Detalii</button></div>${rezumatComun(m)}<div class="small muted" style="margin-top:6px;">Cod: ${esc(codMasina(m.id))}${comun.eroare?` · <span style="color:var(--danger);">⚠ jurnalul comun nu se poate citi (${esc(comun.eroare)})</span>`:''}</div></div>`).join('')}
+    ${state.masini.filter(m=>codMasina(m.id)).map(m=>`<div class="card"><div style="display:flex; justify-content:space-between; align-items:center; gap:8px; margin-bottom:10px;"><h3 style="margin:0;">🔗 ${esc(m.nr)} — mașină comună</h3><button class="btn btn-ghost" data-tab="masina">Detalii</button></div>${rezumatComun(m)}<div class="small muted" style="margin-top:6px;">Cod: ${esc(codMasina(m.id))} · ${(comun.citit||{})[codMasina(m.id)]?'actualizat la '+new Date(comun.citit[codMasina(m.id)]).toTimeString().slice(0,5):'neactualizat încă'} <button class="link small" data-act="comun-refresh" style="margin-left:6px;">↻ Actualizează acum</button>${comun.eroare?` · <span style="color:var(--danger);">⚠ jurnalul comun nu se poate citi (${esc(comun.eroare)})</span>`:''}</div></div>`).join('')}
     <div class="stats">
       <div class="stat"><div class="v">${el.length}</div><div class="l">Elevi</div></div>
       <div class="stat"><div class="v">${fmtNr(totC)}</div><div class="l">Ore conducere</div></div>
@@ -3055,6 +3055,7 @@ document.addEventListener('click', e=>{
     case 'comun-dezleaga': { const mm=masinaById(a.dataset.m); confirma(`Dezlegi ${esc(mm.nr)} de jurnalul comun? Nu mai vezi orele și alimentările celuilalt instructor (ale tale rămân la tine).`, ()=>{ const c=codMasina(mm.id); delete state.settings.masiniComune[mm.id]; delete comun.cache[c]; salveazaComun(); save(); ascultaComun(); render(); }, 'Da, dezleagă'); break; }
     case 'jc-instr': ui.jcInstr=a.dataset.v; render(); break;
     case 'masina-prima': { const i=state.masini.findIndex(x=>x.id===a.dataset.m); if(i>=0){ const mm=state.masini[i]; state.settings.masinaPrima=mm.id; ui.ultimaMasinaId=mm.id; save(); render(); toast(mm.nr+' e acum prima mașină ✓', 2000); } break; }
+    case 'comun-refresh': if(!sync.uid) { toast('Intră întâi cu Google (☁ sus).', 3000); break; } reimprospateazaComun(true); toast('Se actualizează jurnalul mașinii comune…', 2000); setTimeout(render, 2500); break;
     case 'alim-reset': ui.alimMasina='all'; ui.alimPer='toate'; ui.alimLuna='all'; render(); break;
     case 'alim-sursa': { ui.alimSursa=a.dataset.v; document.querySelectorAll('[data-act="alim-sursa"]').forEach(b=>b.classList.toggle('on', b===a)); const f=document.getElementById('a-bcf-f'); if(f) f.style.display = a.dataset.v==='bcf' ? '' : 'none'; break; }
     case 'alim-per': ui.alimPer=a.dataset.v; render(); break;
@@ -3291,7 +3292,7 @@ function ascultaComun(){
   const coduri=new Set(Object.values(state.settings.masiniComune||{}).filter(Boolean));
   Object.keys(comunUnsub).forEach(c=>{ if(!coduri.has(c)){ comunUnsub[c](); delete comunUnsub[c]; } });
   coduri.forEach(c=>{ if(comunUnsub[c]) return;
-    comunUnsub[c]=refComun(c).onSnapshot(snap=>{ const o={}; snap.forEach(d=>{ o[d.id]=d.data(); }); comun.cache[c]=o; comun.eroare=''; salveazaComun();
+    comunUnsub[c]=refComun(c).onSnapshot(snap=>{ const o={}; snap.forEach(d=>{ o[d.id]=d.data(); }); comun.cache[c]=o; comun.citit=comun.citit||{}; comun.citit[c]=Date.now(); comun.eroare=''; salveazaComun();
       clearTimeout(comunRenderT); comunRenderT=setTimeout(()=>{ if(!document.querySelector('#modal') && !(document.activeElement && /INPUT|SELECT|TEXTAREA/.test(document.activeElement.tagName))) render(); }, 400); },
       e=>{ console.warn('mașină comună', e); comun.eroare=e&&e.code||'eroare'; render(); });
   });
@@ -3305,12 +3306,19 @@ function evenimenteleMele(m){
   m.alimentari.forEach(a=>{ r[eu+'_a_'+a.id]={tip:'alim', uid:eu, instructor:instr, data:a.data||'', litri:nr(a.litri), sursa:sursaAlim(a), bcf:a.bcf||'', obs:a.obs||''}; });
   return r;
 }
+function reimprospateazaComun(fortat){
+  Object.keys(comunUnsub).forEach(c=>{ comunUnsub[c](); delete comunUnsub[c]; });
+  if(fortat){ comun.publicat={}; salveazaComun(); }
+  ascultaComun(); publicaComun();
+}
+document.addEventListener('visibilitychange', ()=>{ if(document.visibilityState==='visible' && sync.uid && Object.keys(state.settings.masiniComune||{}).length) reimprospateazaComun(false); });
 function publicaComun(){
   clearTimeout(comunT);
   comunT=setTimeout(async()=>{
     if(!sync.db || !sync.uid) return;
     for(const m of state.masini){ const c=codMasina(m.id); if(!c) continue;
-      const nou=evenimenteleMele(m), vechi=comun.publicat[c]||{}, ops=[];
+      const nou=evenimenteleMele(m), vechi=Object.assign({}, comun.publicat[c]||{}), ops=[];
+      Object.entries(comun.cache[c]||{}).forEach(([id,e])=>{ if(e && e.uid===sync.uid && !(id in vechi)) vechi[id]=JSON.stringify(e); }); // ce e pe server de la mine, ca să șterg ce nu mai există
       Object.entries(nou).forEach(([id,d])=>{ const j=JSON.stringify(d); if(vechi[id]!==j) ops.push(['s',id,d,j]); });
       Object.keys(vechi).forEach(id=>{ if(!nou[id]) ops.push(['d',id]); });
       for(let i=0;i<ops.length;i+=400){ const b=sync.db.batch(), part=ops.slice(i,i+400);
